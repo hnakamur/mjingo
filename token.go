@@ -177,3 +177,9 @@ type span struct {
 func (s *span) String() string {
 	return fmt.Sprintf(" @ %d:%d-%d:%d", s.startLine, s.startCol, s.endLine, s.endCol)
 }
+
+type loc struct {
+	line   uint32
+	col    uint32
+	offset uint32
+}

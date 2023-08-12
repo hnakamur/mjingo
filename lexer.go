@@ -31,15 +31,19 @@ type tokenizerState struct {
 	currentOffset uint32
 }
 
-func (s *tokenizerState) loc() (line, col, offset uint32) {
-	return s.currentLine, s.currentCol, s.currentOffset
+func (s *tokenizerState) loc() loc {
+	return loc{
+		line:   s.currentLine,
+		col:    s.currentCol,
+		offset: s.currentOffset,
+	}
 }
 
-func (s *tokenizerState) span(startLine, startCol, startOffset uint32) *span {
+func (s *tokenizerState) span(startLoc loc) *span {
 	return &span{
-		startLine:   startLine,
-		startCol:    startCol,
-		startOffset: startOffset,
+		startLine:   startLoc.line,
+		startCol:    startLoc.col,
+		startOffset: startLoc.offset,
 		endLine:     s.currentLine,
 		endCol:      s.currentCol,
 		endOffset:   s.currentOffset,
@@ -70,7 +74,7 @@ func (s *tokenizerState) eatNumber() (*token, *span, error) {
 		numberStateExponentSign
 	)
 
-	oldLine, oldCol, oldOffset := s.loc()
+	oldLoc := s.loc()
 	state := numberStateIntger
 	numLen := prefixLenFunc(s.rest, isASCIIDigit)
 	for _, c := range s.rest[numLen:] {
@@ -109,13 +113,13 @@ func (s *tokenizerState) eatNumber() (*token, *span, error) {
 		if err != nil {
 			return nil, nil, s.syntaxError("invalid float")
 		}
-		return &token{Type: tokenFloat, FloatData: fVal}, s.span(oldLine, oldCol, oldOffset), nil
+		return &token{Type: tokenFloat, FloatData: fVal}, s.span(oldLoc), nil
 	}
 	iVal, err := strconv.ParseInt(num, 10, 64)
 	if err != nil {
 		return nil, nil, s.syntaxError("invalid integer")
 	}
-	return &token{Type: tokenInt, IntData: iVal}, s.span(oldLine, oldCol, oldOffset), nil
+	return &token{Type: tokenInt, IntData: iVal}, s.span(oldLoc), nil
 }
 
 func (s *tokenizerState) eatIdentifier() (*token, *span, error) {
@@ -123,9 +127,9 @@ func (s *tokenizerState) eatIdentifier() (*token, *span, error) {
 	if identLen == 0 {
 		return nil, nil, s.syntaxError("unexpected character")
 	}
-	oldLine, oldCol, oldOffset := s.loc()
+	oldLoc := s.loc()
 	ident := s.advance(identLen)
-	return &token{Type: tokenIdent, StrData: ident}, s.span(oldLine, oldCol, oldOffset), nil
+	return &token{Type: tokenIdent, StrData: ident}, s.span(oldLoc), nil
 }
 
 func lexIndentifier(s string) uint {
@@ -154,7 +158,7 @@ func isASCIIAlphaNumeric(r rune) bool {
 }
 
 func (s *tokenizerState) eatString(delim rune) (*token, *span, error) {
-	oldLine, oldCol, oldOffset := s.loc()
+	oldLoc := s.loc()
 	escaped := false
 	hasEscapes := false
 	strLen := prefixLenFunc(s.rest[1:], func(r rune) bool {
@@ -178,14 +182,14 @@ func (s *tokenizerState) eatString(delim rune) (*token, *span, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return &token{Type: tokenString, StrData: str}, s.span(oldLine, oldCol, oldOffset), nil
+		return &token{Type: tokenString, StrData: str}, s.span(oldLoc), nil
 	}
-	return &token{Type: tokenString, StrData: str[1 : len(str)-1]}, s.span(oldLine, oldCol, oldOffset), nil
+	return &token{Type: tokenString, StrData: str[1 : len(str)-1]}, s.span(oldLoc), nil
 }
 
 func (s *tokenizerState) skipWhitespace() {
 	if skip := prefixLenFunc(s.rest, isWhitespace); skip > 0 {
-		_ = s.advance(uint(skip))
+		s.advance(uint(skip))
 	}
 }
 
@@ -277,7 +281,7 @@ func newTokenizeIterator(input string, inExpr bool, syntaxConfig *SyntaxConfig) 
 
 func (i *tokenizeIterator) Next() (*token, *span, error) {
 	for i.state.rest != "" && !i.state.failed {
-		oldLine, oldCol, oldOffset := i.state.loc()
+		oldLoc := i.state.loc()
 		if i.state.stack.empty() {
 			panic("empty lexer state")
 		}
@@ -290,7 +294,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 						if i.state.rest[skip+uint(end)-1] == '-' {
 							i.trimLeadingWhitespace = true
 						}
-						_ = i.state.advance(uint(end) + skip + uint(len(i.commentEnd)))
+						i.state.advance(uint(end) + skip + uint(len(i.commentEnd)))
 						continue
 					} else {
 						return nil, nil, i.state.syntaxError("unexpected end of comment")
@@ -302,11 +306,44 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 						i.state.advance(skip)
 					}
 					i.state.stack.push(lexerStateInVariable)
-					return &token{Type: tokenVariableStart}, i.state.span(oldLine, oldCol, oldOffset), nil
+					return &token{Type: tokenVariableStart}, i.state.span(oldLoc), nil
 				case startMarkerBlock:
 					// raw blocks require some special handling.  If we are at the beginning of a raw
 					// block we want to skip everything until {% endraw %} completely ignoring iterior
 					// syntax and emit the entire raw block as TemplateData.
+					if raw, trimStart, ok := skipBasicTag(i.state.rest[skip:], "raw", i.blockEnd); ok {
+						i.state.advance(raw + skip)
+						ptr := 0
+						for {
+							block := strings.Index(i.state.rest[ptr:], i.blockStart)
+							if block == -1 {
+								break
+							}
+							ptr += block + len(i.blockStart)
+							trimEnd := i.state.rest[ptr] == '-'
+							if endRaw, trimNext, ok := skipBasicTag(i.state.rest[ptr:], "endraw", i.blockEnd); ok {
+								result := i.state.rest[:ptr-len(i.blockStart)]
+								if trimStart {
+									result = trimSpacePrefix(result)
+								}
+								if trimEnd {
+									result = trimSpaceSuffix(result)
+								}
+								i.state.advance(uint(ptr) + endRaw)
+								i.trimLeadingWhitespace = trimNext
+								return &token{Type: tokenTemplateData, StrData: result}, i.state.span(oldLoc), nil
+							}
+						}
+						return nil, nil, i.state.syntaxError("unexpected end of raw block")
+					}
+					if strings.HasPrefix(i.state.rest[skip:], "-") {
+						i.state.advance(skip + 1)
+					} else {
+						i.state.advance(skip)
+					}
+
+					i.state.stack.push(lexerStateInBlock)
+					return &token{Type: tokenBlockStart}, i.state.span(oldLoc), nil
 				}
 			}
 
@@ -314,7 +351,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 				i.trimLeadingWhitespace = false
 				i.state.skipWhitespace()
 			}
-			oldLine, oldCol, oldOffset = i.state.loc()
+			oldLoc = i.state.loc()
 
 			var lead string
 			var spn *span
@@ -324,15 +361,15 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 					peeked := i.state.rest[:start]
 					trimmed := strings.TrimRightFunc(peeked, isWhitespace)
 					lead = i.state.advance(uint(len(trimmed)))
-					spn = i.state.span(oldLine, oldCol, oldOffset)
+					spn = i.state.span(oldLoc)
 					i.state.advance(uint(len(peeked) - len(trimmed)))
 				} else {
 					lead = i.state.advance(start)
-					spn = i.state.span(oldLine, oldCol, oldOffset)
+					spn = i.state.span(oldLoc)
 				}
 			} else {
 				lead = i.state.advance(uint(len(i.state.rest)))
-				spn = i.state.span(oldLine, oldCol, oldOffset)
+				spn = i.state.span(oldLoc)
 			}
 			if lead == "" {
 				continue
@@ -342,34 +379,34 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 		case lexerStateInBlock, lexerStateInVariable:
 			// in blocks whitespace is generally ignored, skip it.
 			if trimLen := prefixLenFunc(i.state.rest, isASCIIWhitespace); trimLen > 0 {
-				_ = i.state.advance(trimLen)
+				i.state.advance(trimLen)
 				continue
 			}
 
 			// look out for the end of blocks
 			if i.state.stack.peek() == lexerStateInBlock {
 				if strings.HasPrefix(i.state.rest, "-") && strings.HasPrefix(i.state.rest[1:], i.blockEnd) {
-					_ = i.state.stack.pop()
+					i.state.stack.pop()
 					i.trimLeadingWhitespace = true
-					_ = i.state.advance(1 + uint(len(i.blockEnd)))
-					return &token{Type: tokenBlockEnd}, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.advance(1 + uint(len(i.blockEnd)))
+					return &token{Type: tokenBlockEnd}, i.state.span(oldLoc), nil
 				}
 				if strings.HasPrefix(i.state.rest, i.blockEnd) {
-					_ = i.state.stack.pop()
-					_ = i.state.advance(uint(len(i.blockEnd)))
-					return &token{Type: tokenBlockEnd}, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.stack.pop()
+					i.state.advance(uint(len(i.blockEnd)))
+					return &token{Type: tokenBlockEnd}, i.state.span(oldLoc), nil
 				}
 			} else {
 				if strings.HasPrefix(i.state.rest, "-") && strings.HasPrefix(i.state.rest[1:], i.variableEnd) {
-					_ = i.state.stack.pop()
+					i.state.stack.pop()
 					i.trimLeadingWhitespace = true
-					_ = i.state.advance(1 + uint(len(i.variableEnd)))
-					return &token{Type: tokenVariableEnd}, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.advance(1 + uint(len(i.variableEnd)))
+					return &token{Type: tokenVariableEnd}, i.state.span(oldLoc), nil
 				}
 				if strings.HasPrefix(i.state.rest, i.variableEnd) {
-					_ = i.state.stack.pop()
-					_ = i.state.advance(uint(len(i.variableEnd)))
-					return &token{Type: tokenVariableEnd}, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.stack.pop()
+					i.state.advance(uint(len(i.variableEnd)))
+					return &token{Type: tokenVariableEnd}, i.state.span(oldLoc), nil
 				}
 			}
 
@@ -391,8 +428,8 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 					tk = &token{Type: tokenLte}
 				}
 				if tk != nil {
-					_ = i.state.advance(2)
-					return tk, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.advance(2)
+					return tk, i.state.span(oldLoc), nil
 				}
 			}
 
@@ -449,8 +486,8 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 					}
 				}
 				if tk != nil {
-					_ = i.state.advance(1)
-					return tk, i.state.span(oldLine, oldCol, oldOffset), nil
+					i.state.advance(1)
+					return tk, i.state.span(oldLoc), nil
 				}
 			}
 
