@@ -2,163 +2,168 @@ package mjingo
 
 import "fmt"
 
-type tokenType int
+type tokenKind int
 
 const (
 	// Raw template data.
-	tokenTemplateData tokenType = iota
+	tokenKindTemplateData tokenKind = iota
 	// Variable block start.
-	tokenVariableStart
+	tokenKindVariableStart
 	// Variable block end
-	tokenVariableEnd
+	tokenKindVariableEnd
 	// Statement block start
-	tokenBlockStart
+	tokenKindBlockStart
 	// Statement block end
-	tokenBlockEnd
+	tokenKindBlockEnd
 	// An identifier.
-	tokenIdent
+	tokenKindIdent
 	// A borrowed string.
-	tokenStr
+	tokenKindStr
 	// An allocated string.
-	tokenString
+	tokenKindString
 	// An integer (limited to i64)
-	tokenInt
+	tokenKindInt
 	// A float
-	tokenFloat
+	tokenKindFloat
 	// A plus (`+`) operator.
-	tokenPlus
+	tokenKindPlus
 	// A plus (`-`) operator.
-	tokenMinus
+	tokenKindMinus
 	// A mul (`*`) operator.
-	tokenMul
+	tokenKindMul
 	// A div (`/`) operator.
-	tokenDiv
+	tokenKindDiv
 	// A floor division (`//`) operator.
-	tokenFloorDiv
+	tokenKindFloorDiv
 	// Power operator (`**`).
-	tokenPow
+	tokenKindPow
 	// A mod (`%`) operator.
-	tokenMod
+	tokenKindMod
 	// The bang (`!`) operator.
-	tokenBang
+	tokenKindBang
 	// A dot operator (`.`)
-	tokenDot
+	tokenKindDot
 	// The comma operator (`,`)
-	tokenComma
+	tokenKindComma
 	// The colon operator (`:`)
-	tokenColon
+	tokenKindColon
 	// The tilde operator (`~`)
-	tokenTilde
+	tokenKindTilde
 	// The assignment operator (`=`)
-	tokenAssign
+	tokenKindAssign
 	// The pipe symbol.
-	tokenPipe
+	tokenKindPipe
 	// `==` operator
-	tokenEq
+	tokenKindEq
 	// `!=` operator
-	tokenNe
+	tokenKindNe
 	// `>` operator
-	tokenGt
+	tokenKindGt
 	// `>=` operator
-	tokenGte
+	tokenKindGte
 	// `<` operator
-	tokenLt
+	tokenKindLt
 	// `<=` operator
-	tokenLte
+	tokenKindLte
 	// Open Bracket
-	tokenBracketOpen
+	tokenKindBracketOpen
 	// Close Bracket
-	tokenBracketClose
+	tokenKindBracketClose
 	// Open Parenthesis
-	tokenParenOpen
+	tokenKindParenOpen
 	// Close Parenthesis
-	tokenParenClose
+	tokenKindParenClose
 	// Open Brace
-	tokenBraceOpen
+	tokenKindBraceOpen
 	// Close Brace
-	tokenBraceClose
+	tokenKindBraceClose
 )
 
+type templateDataTokenData string
+type identTokenData string
+type strTokenData string
+type stringTokenData string
+type intTokenData int64
+type floatTokenData float64
+
 type token struct {
-	Type      tokenType
-	StrData   string
-	IntData   int64
-	FloatData float64
+	kind tokenKind
+	data any
 }
 
 func (t *token) String() string {
-	switch t.Type {
-	case tokenTemplateData:
+	switch t.kind {
+	case tokenKindTemplateData:
 		return "template-data"
-	case tokenVariableStart:
+	case tokenKindVariableStart:
 		return "start of variable block"
-	case tokenVariableEnd:
+	case tokenKindVariableEnd:
 		return "end of variable block"
-	case tokenBlockStart:
+	case tokenKindBlockStart:
 		return "start of block"
-	case tokenBlockEnd:
+	case tokenKindBlockEnd:
 		return "end of block"
-	case tokenIdent:
+	case tokenKindIdent:
 		return "identifier"
-	case tokenStr:
+	case tokenKindStr:
 		return "string"
-	case tokenString:
+	case tokenKindString:
 		return "string"
-	case tokenInt:
+	case tokenKindInt:
 		return "integer"
-	case tokenFloat:
+	case tokenKindFloat:
 		return "float"
-	case tokenPlus:
+	case tokenKindPlus:
 		return "`+`"
-	case tokenMinus:
+	case tokenKindMinus:
 		return "`-`"
-	case tokenMul:
+	case tokenKindMul:
 		return "`*`"
-	case tokenDiv:
+	case tokenKindDiv:
 		return "`/`"
-	case tokenFloorDiv:
+	case tokenKindFloorDiv:
 		return "`//`"
-	case tokenPow:
+	case tokenKindPow:
 		return "`**`"
-	case tokenMod:
+	case tokenKindMod:
 		return "`%`"
-	case tokenBang:
+	case tokenKindBang:
 		return "`!`"
-	case tokenDot:
+	case tokenKindDot:
 		return "`.`"
-	case tokenComma:
+	case tokenKindComma:
 		return "`,`"
-	case tokenColon:
+	case tokenKindColon:
 		return "`:`"
-	case tokenTilde:
+	case tokenKindTilde:
 		return "`~`"
-	case tokenAssign:
+	case tokenKindAssign:
 		return "`=`"
-	case tokenPipe:
+	case tokenKindPipe:
 		return "`|`"
-	case tokenEq:
+	case tokenKindEq:
 		return "`==`"
-	case tokenNe:
+	case tokenKindNe:
 		return "`!=`"
-	case tokenGt:
+	case tokenKindGt:
 		return "`>`"
-	case tokenGte:
+	case tokenKindGte:
 		return "`>=`"
-	case tokenLt:
+	case tokenKindLt:
 		return "`<`"
-	case tokenLte:
+	case tokenKindLte:
 		return "`<=`"
-	case tokenBracketOpen:
+	case tokenKindBracketOpen:
 		return "`[`"
-	case tokenBracketClose:
+	case tokenKindBracketClose:
 		return "`]`"
-	case tokenParenOpen:
+	case tokenKindParenOpen:
 		return "`(`"
-	case tokenParenClose:
+	case tokenKindParenClose:
 		return "`)`"
-	case tokenBraceOpen:
+	case tokenKindBraceOpen:
 		return "`{`"
-	case tokenBraceClose:
+	case tokenKindBraceClose:
 		return "`}`"
 	default:
 		return "unknown"

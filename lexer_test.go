@@ -11,11 +11,11 @@ func TestBasicIdentifiers(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if tk.Type != tokenIdent {
-				t.Errorf("token type mismatch, got=%v, want=%v, input=%q", tk.Type, tokenIdent, s)
+			if tk.kind != tokenKindIdent {
+				t.Errorf("token type mismatch, got=%v, want=%v, input=%q", tk.kind, tokenKindIdent, s)
 			}
-			if tk.StrData != s {
-				t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", tk.Type, s, s)
+			if tk.data != s {
+				t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", tk.kind, s, s)
 			}
 		}
 
@@ -36,8 +36,8 @@ func TestBasicIdentifiers(t *testing.T) {
 				if tk == nil {
 					break
 				}
-				if tk.Type == tokenIdent {
-					t.Errorf("token should not be an identifier, got=%v, input=%q", tk.Type, s)
+				if tk.kind == tokenKindIdent {
+					t.Errorf("token should not be an identifier, got=%v, input=%q", tk.kind, s)
 				}
 			}
 		}

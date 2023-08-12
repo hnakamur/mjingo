@@ -126,3 +126,8 @@ func (u *unescaper) pushChar(r rune) error {
 	u.out = utf8.AppendRune(u.out, r)
 	return nil
 }
+
+type option[T any] struct {
+	data  T
+	valid bool
+}
