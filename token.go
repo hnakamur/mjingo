@@ -79,12 +79,12 @@ const (
 	tokenKindBraceClose
 )
 
-type templateDataTokenData string
-type identTokenData string
-type strTokenData string
-type stringTokenData string
-type intTokenData int64
-type floatTokenData float64
+type templateDataTokenData = string
+type identTokenData = string
+type strTokenData = string
+type stringTokenData = string
+type intTokenData = int64
+type floatTokenData = float64
 
 type token struct {
 	kind tokenKind

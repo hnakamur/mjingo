@@ -3,15 +3,29 @@ package mjingo
 import "errors"
 
 type Environment struct {
-	templates map[string]*Template
+	syntaxConfig SyntaxConfig
+	templates    map[string]*Template
 }
 
 type Template struct {
+	compiled *compiledTemplate
 }
 
 var ErrTemplateNotFound = errors.New("template not found")
 
-func (e *Environment) AddTemplate(name, template string) error {
+func NewEnvironment() *Environment {
+	return &Environment{
+		syntaxConfig: DefaultSyntaxConfig,
+		templates:    make(map[string]*Template),
+	}
+}
+
+func (e *Environment) AddTemplate(name, source string) error {
+	t, err := newCompiledTemplate(name, source, e.syntaxConfig)
+	if err != nil {
+		return err
+	}
+	e.templates[name] = &Template{compiled: t}
 	return nil
 }
 

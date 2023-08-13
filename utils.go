@@ -131,3 +131,31 @@ type option[T any] struct {
 	data  T
 	valid bool
 }
+
+type stack[T any] struct {
+	elems []T
+}
+
+func (s *stack[T]) push(elem T) {
+	s.elems = append(s.elems, elem)
+}
+
+func (s *stack[T]) empty() bool {
+	return len(s.elems) == 0
+}
+
+func (s *stack[T]) pop() *T {
+	if s.empty() {
+		return nil
+	}
+	st := s.elems[len(s.elems)-1]
+	s.elems = s.elems[:len(s.elems)-1]
+	return &st
+}
+
+func (s *stack[T]) peek() *T {
+	if s.empty() {
+		return nil
+	}
+	return &s.elems[len(s.elems)-1]
+}
