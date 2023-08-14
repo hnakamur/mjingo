@@ -197,3 +197,7 @@ func unsupportedConversion(kind valueKind, target string) error {
 		},
 	}
 }
+
+func valueMapWithCapacity(capacity uint) map[string]value {
+	return make(map[string]value, untrustedSizeHint(capacity))
+}

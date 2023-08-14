@@ -472,3 +472,30 @@ type mapExprData struct {
 	keys   []expr
 	values []expr
 }
+
+func (m *mapExprData) asConst() option[value] {
+	for _, key := range m.keys {
+		if key.kind != exprKindConst {
+			return option[value]{}
+		}
+	}
+	for _, v := range m.values {
+		if v.kind != exprKindConst {
+			return option[value]{}
+		}
+	}
+
+	rv := make(map[string]value, len(m.keys))
+	for i, key := range m.keys {
+		v := m.values[i]
+		if key.kind == exprKindConst && v.kind == exprKindConst {
+			keyData := key.data.(constExprData)
+			// implmentation here is different from minijinja
+			if keyStr := keyData.value.asStr(); keyStr.valid {
+				valData := v.data.(constExprData)
+				rv[keyStr.data] = valData.value
+			}
+		}
+	}
+	return option[value]{valid: true, data: value{kind: valueKindMap, data: rv}}
+}

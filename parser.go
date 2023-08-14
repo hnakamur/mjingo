@@ -277,7 +277,42 @@ func (p *parser) parseListExpr(spn span) (*expr, error) {
 }
 
 func (p *parser) parseMapExpr(spn span) (*expr, error) {
-	panic("not implemented")
+	var keys, values []expr
+	for {
+		if matched, err := p.skipToken(tokenKindBraceClose); err != nil {
+			return nil, err
+		} else if matched {
+			break
+		}
+		if len(keys) > 0 {
+			if _, _, err := p.expectToken(isTokenOfKind(tokenKindComma), "`,`"); err != nil {
+				return nil, err
+			}
+			if matched, err := p.skipToken(tokenKindBraceClose); err != nil {
+				return nil, err
+			} else if matched {
+				break
+			}
+		}
+		if key, err := p.parseExpr(); err != nil {
+			return nil, err
+		} else {
+			keys = append(keys, *key)
+		}
+		if _, _, err := p.expectToken(isTokenOfKind(tokenKindColon), "`:`"); err != nil {
+			return nil, err
+		}
+		if value, err := p.parseExpr(); err != nil {
+			return nil, err
+		} else {
+			values = append(values, *value)
+		}
+	}
+	return &expr{
+		kind: exprKindMap,
+		data: mapExprData{keys: keys, values: values},
+		span: p.stream.expandSpan(spn),
+	}, nil
 }
 
 func (p *parser) parseTupleOrExpression(spn span) (*expr, error) {

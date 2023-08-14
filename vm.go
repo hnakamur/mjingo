@@ -108,6 +108,15 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 		case instructionKindLoadConst:
 			v := instr.data.(loadConstInstructionData)
 			stack.push(v)
+		case instructionKindBuildMap:
+			pairCount := instr.data.(buildMapInstructionData)
+			m := valueMapWithCapacity(pairCount)
+			for i := uint(0); i < pairCount; i++ {
+				val := stack.pop()
+				key := stack.pop()
+				m[key.asStr().data] = val
+			}
+			stack.push(value{kind: valueKindMap, data: m})
 		case instructionKindBuildList:
 			count := instr.data.(buildListInstructionData)
 			v := make([]value, 0, untrustedSizeHint(count))

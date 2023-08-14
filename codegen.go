@@ -105,6 +105,25 @@ func (g *codeGenerator) compileExpr(exp expr) {
 				data: buildListInstructionData(len(data.items)),
 			})
 		}
+	case exprKindMap:
+		data := exp.data.(mapExprData)
+		if v := data.asConst(); v.valid {
+			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
+		} else {
+			g.setLineFromSpan(exp.span)
+			if len(data.keys) != len(data.values) {
+				panic("mismatch length of keys and values for a map")
+			}
+			for i, key := range data.keys {
+				v := data.values[i]
+				g.compileExpr(key)
+				g.compileExpr(v)
+			}
+			g.add(instruction{
+				kind: instructionKindBuildMap,
+				data: buildMapInstructionData(len(data.keys)),
+			})
+		}
 	default:
 		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))
 	}
