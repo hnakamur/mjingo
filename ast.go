@@ -456,7 +456,7 @@ func (l *listExprData) asConst() option[value] {
 			seq = append(seq, data.value)
 		}
 	}
-	return option[value]{valid: true, data: value{kind: valueKindSeq, data: seq}}
+	return option[value]{valid: true, data: value{typ: valueTypeSeq, data: seq}}
 }
 
 type kwargsExprData struct {
@@ -497,5 +497,5 @@ func (m *mapExprData) asConst() option[value] {
 			}
 		}
 	}
-	return option[value]{valid: true, data: value{kind: valueKindMap, data: rv}}
+	return option[value]{valid: true, data: value{typ: valueTypeMap, data: rv}}
 }

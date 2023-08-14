@@ -5,60 +5,60 @@ import (
 	"math"
 )
 
-type valueKind int
+type valueType int
 
 const (
-	valueKindUndefined valueKind = iota + 1
-	valueKindBool
-	valueKindU64
-	valueKindI64
-	valueKindF64
-	valueKindNone
-	valueKindInvalid
-	valueKindU128
-	valueKindI128
-	valueKindString
-	valueKindBytes
-	valueKindSeq
-	valueKindMap
-	valueKindDynamic
+	valueTypeUndefined valueType = iota + 1
+	valueTypeBool
+	valueTypeU64
+	valueTypeI64
+	valueTypeF64
+	valueTypeNone
+	valueTypeInvalid
+	valueTypeU128
+	valueTypeI128
+	valueTypeString
+	valueTypeBytes
+	valueTypeSeq
+	valueTypeMap
+	valueTypeDynamic
 )
 
-var valueUndefined = value{kind: valueKindUndefined}
-var valueNone = value{kind: valueKindNone}
+var valueUndefined = value{typ: valueTypeUndefined}
+var valueNone = value{typ: valueTypeNone}
 
-func (k valueKind) String() string {
+func (k valueType) String() string {
 	switch k {
-	case valueKindUndefined:
+	case valueTypeUndefined:
 		return "undefined"
-	case valueKindBool:
+	case valueTypeBool:
 		return "bool"
-	case valueKindU64:
+	case valueTypeU64:
 		return "u64"
-	case valueKindI64:
+	case valueTypeI64:
 		return "i64"
-	case valueKindF64:
+	case valueTypeF64:
 		return "f64"
-	case valueKindNone:
+	case valueTypeNone:
 		return "none"
-	case valueKindInvalid:
+	case valueTypeInvalid:
 		return "invalid"
-	case valueKindU128:
+	case valueTypeU128:
 		return "u128"
-	case valueKindI128:
+	case valueTypeI128:
 		return "i128"
-	case valueKindString:
+	case valueTypeString:
 		return "string"
-	case valueKindBytes:
+	case valueTypeBytes:
 		return "bytes"
-	case valueKindSeq:
+	case valueTypeSeq:
 		return "seq"
-	case valueKindMap:
+	case valueTypeMap:
 		return "map"
-	case valueKindDynamic:
+	case valueTypeDynamic:
 		return "dynamic"
 	default:
-		panic(fmt.Sprintf("invalid valueKind: %d", k))
+		panic(fmt.Sprintf("invalid valueType: %d", k))
 	}
 }
 
@@ -84,27 +84,27 @@ type seqValueData = []value
 type mapValueData = map[string]value
 
 type value struct {
-	kind valueKind
+	typ  valueType
 	data any
 }
 
 func (v *value) isUndefined() bool {
-	return v.kind == valueKindUndefined
+	return v.typ == valueTypeUndefined
 }
 
 func (v *value) isNone() bool {
-	return v.kind == valueKindNone
+	return v.typ == valueTypeNone
 }
 
 func (v *value) getAttrFast(key string) option[value] {
-	switch v.kind {
-	case valueKindMap:
+	switch v.typ {
+	case valueTypeMap:
 		items := v.data.(mapValueData)
 		if v, ok := items[key]; ok {
 			return option[value]{valid: true, data: v}
 		}
 	default:
-		panic(fmt.Sprintf("not implemented for valueKind: %s", v.kind))
+		panic(fmt.Sprintf("not implemented for valueType: %s", v.typ))
 	}
 	return option[value]{}
 }
@@ -112,8 +112,8 @@ func (v *value) getAttrFast(key string) option[value] {
 func (v *value) getItemOpt(key value) option[value] {
 	keyRf := keyRef{kind: keyRefKindValue, data: key}
 	var seq seqObject
-	switch v.kind {
-	case valueKindMap:
+	switch v.typ {
+	case valueTypeMap:
 		items := v.data.(mapValueData)
 
 		// implementation here is different from minijinja.
@@ -124,11 +124,11 @@ func (v *value) getItemOpt(key value) option[value] {
 		} else {
 			panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
 		}
-	case valueKindSeq:
+	case valueTypeSeq:
 		items := v.data.(seqValueData)
 		seq = newSliceSeqObject(items)
 	default:
-		panic(fmt.Sprintf("not implemented for valueKind: %s", v.kind))
+		panic(fmt.Sprintf("not implemented for valueType: %s", v.typ))
 	}
 
 	if idx := keyRf.asI64(); idx.valid {
@@ -151,8 +151,8 @@ func (v *value) getItemOpt(key value) option[value] {
 }
 
 func (v value) asStr() option[string] {
-	switch v.kind {
-	case valueKindString:
+	switch v.typ {
+	case valueTypeString:
 		data := v.data.(stringValueData)
 		return option[string]{valid: true, data: data}
 	default:
@@ -161,34 +161,34 @@ func (v value) asStr() option[string] {
 }
 
 func (v value) tryToI64() (int64, error) {
-	switch v.kind {
-	case valueKindBool:
+	switch v.typ {
+	case valueTypeBool:
 		data := v.data.(boolValueData)
 		if data {
 			return 1, nil
 		} else {
 			return 0, nil
 		}
-	case valueKindI64:
+	case valueTypeI64:
 		data := v.data.(i64ValueData)
 		return data, nil
-	case valueKindU64:
+	case valueTypeU64:
 		data := v.data.(u64ValueData)
 		return int64(data), nil
-	case valueKindF64:
+	case valueTypeF64:
 		data := v.data.(f64ValueData)
 		if float64(int64(data)) == data {
 			return int64(data), nil
 		}
-	case valueKindI128:
+	case valueTypeI128:
 		panic("not implemented")
-	case valueKindU128:
+	case valueTypeU128:
 		panic("not implemented")
 	}
-	return 0, unsupportedConversion(v.kind, "i64")
+	return 0, unsupportedConversion(v.typ, "i64")
 }
 
-func unsupportedConversion(kind valueKind, target string) error {
+func unsupportedConversion(kind valueType, target string) error {
 	return &Error{
 		kind: InvalidOperation,
 		detail: option[string]{

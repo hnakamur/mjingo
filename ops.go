@@ -38,21 +38,21 @@ func opsGetOffsetAndLen(start int64, stop option[int64], end func() uint) (uint,
 func opsSlice(v, start, stop, step value) (value, error) {
 	startVal := int64(0)
 	if !start.isNone() {
-		if start.kind != valueKindI64 {
+		if start.typ != valueTypeI64 {
 			panic("opsSlice start must be an i64")
 		}
 		startVal = start.data.(i64ValueData)
 	}
 	stopVal := option[int64]{}
 	if !stop.isNone() {
-		if stop.kind != valueKindI64 {
+		if stop.typ != valueTypeI64 {
 			panic("opsSlice stop must be an i64")
 		}
 		stopVal = option[int64]{valid: true, data: stop.data.(i64ValueData)}
 	}
 	stepVal := int64(1)
 	if !step.isNone() {
-		if step.kind != valueKindI64 {
+		if step.typ != valueTypeI64 {
 			panic("opsSlice step must be an i64")
 		}
 		stepVal = step.data.(i64ValueData)
@@ -77,8 +77,8 @@ func opsSlice(v, start, stop, step value) (value, error) {
 	}
 
 	var maybeSeq seqObject
-	switch v.kind {
-	case valueKindString:
+	switch v.typ {
+	case valueTypeString:
 		data := v.data.(stringValueData)
 		chars := []rune(data)
 		startIdx, stopIdx := opsGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
@@ -87,18 +87,18 @@ func opsSlice(v, start, stop, step value) (value, error) {
 			sliced = append(sliced, chars[i])
 		}
 		return value{
-			kind: valueKindString,
+			typ:  valueTypeString,
 			data: string(sliced),
 		}, nil
-	case valueKindUndefined, valueKindNone:
+	case valueTypeUndefined, valueTypeNone:
 		return value{
-			kind: valueKindSeq,
+			typ:  valueTypeSeq,
 			data: []value{},
 		}, nil
-	case valueKindSeq:
+	case valueTypeSeq:
 		data := v.data.(seqValueData)
 		maybeSeq = newSliceSeqObject(data)
-	case valueKindDynamic:
+	case valueTypeDynamic:
 		panic("not implemented")
 	}
 
@@ -111,7 +111,7 @@ func opsSlice(v, start, stop, step value) (value, error) {
 			}
 		}
 		return value{
-			kind: valueKindSeq,
+			typ:  valueTypeSeq,
 			data: sliced,
 		}, nil
 	}
@@ -119,7 +119,7 @@ func opsSlice(v, start, stop, step value) (value, error) {
 		kind: InvalidOperation,
 		detail: option[string]{
 			valid: true,
-			data:  fmt.Sprintf("value of type %s cannot be sliced", v.kind),
+			data:  fmt.Sprintf("value of type %s cannot be sliced", v.typ),
 		},
 	}
 }

@@ -116,7 +116,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				key := stack.pop()
 				m[key.asStr().data] = val
 			}
-			stack.push(value{kind: valueKindMap, data: m})
+			stack.push(value{typ: valueTypeMap, data: m})
 		case instructionKindBuildList:
 			count := instr.data.(buildListInstructionData)
 			v := make([]value, 0, untrustedSizeHint(count))
@@ -124,7 +124,9 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				v = append(v, stack.pop())
 			}
 			slices.Reverse(v)
-			stack.push(value{kind: valueKindSeq, data: v})
+			stack.push(value{typ: valueTypeSeq, data: v})
+		case instructionKindNeg:
+			a = stack.pop()
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", instr.kind))
 		}
@@ -134,7 +136,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 }
 
 func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
-	if v.kind == valueKindInvalid {
+	if v.typ == valueTypeInvalid {
 		detail := v.data.(invalidValueData)
 		err := &Error{
 			kind:   BadSerialization,

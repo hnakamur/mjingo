@@ -217,23 +217,23 @@ func (p *parser) parsePrimaryImpl() (*expr, error) {
 		data := tkn.data.(identTokenData)
 		switch data {
 		case "true", "True":
-			return makeConst(value{kind: valueKindBool, data: true}, *spn), nil
+			return makeConst(value{typ: valueTypeBool, data: true}, *spn), nil
 		case "false", "False":
-			return makeConst(value{kind: valueKindBool, data: false}, *spn), nil
+			return makeConst(value{typ: valueTypeBool, data: false}, *spn), nil
 		case "none", "None":
-			return makeConst(value{kind: valueKindNone}, *spn), nil
+			return makeConst(value{typ: valueTypeNone}, *spn), nil
 		default:
 			return &expr{kind: exprKindVar, data: varExprData{id: data}, span: *spn}, nil
 		}
 	case tokenKindString:
 		data := tkn.data.(stringTokenData)
-		return makeConst(value{kind: valueKindString, data: data}, *spn), nil
+		return makeConst(value{typ: valueTypeString, data: data}, *spn), nil
 	case tokenKindInt:
 		data := tkn.data.(intTokenData)
-		return makeConst(value{kind: valueKindI64, data: data}, *spn), nil
+		return makeConst(value{typ: valueTypeI64, data: data}, *spn), nil
 	case tokenKindFloat:
 		data := tkn.data.(floatTokenData)
-		return makeConst(value{kind: valueKindF64, data: data}, *spn), nil
+		return makeConst(value{typ: valueTypeF64, data: data}, *spn), nil
 	case tokenKindParenOpen:
 		return p.parseTupleOrExpression(*spn)
 	case tokenKindBracketOpen:
@@ -322,8 +322,17 @@ func (p *parser) parseTupleOrExpression(spn span) (*expr, error) {
 }
 
 func (p *parser) parseUnaryOnly() (*expr, error) {
+	return p.unaryop(func(tkn token) option[unaryOpKind] {
+		if tkn.kind == tokenKindMinus {
+			return option[unaryOpKind]{valid: true, data: unaryOpKindNeg}
+		}
+		return option[unaryOpKind]{}
+	}, p.parseUnaryOnly, p.parsePrimary)
+}
+
+func (p *parser) parseUnary() (*expr, error) {
 	spn := p.stream.currentSpan()
-	exp, err := p.parsePrimary()
+	exp, err := p.parseUnaryOnly()
 	if err != nil {
 		return nil, err
 	}
@@ -332,10 +341,6 @@ func (p *parser) parseUnaryOnly() (*expr, error) {
 		return nil, err
 	}
 	return p.parseFilterExpr(*exp)
-}
-
-func (p *parser) parseUnary() (*expr, error) {
-	return p.parseUnaryOnly()
 }
 
 func (p *parser) parsePow() (*expr, error) {
@@ -533,3 +538,53 @@ func isTokenOfKind(k tokenKind) func(tkn token) bool {
 		return tkn.kind == k
 	}
 }
+
+func (p *parser) unaryop(matchFn func(tkn token) option[unaryOpKind], opFn, next func() (*expr, error)) (*expr, error) {
+	spn := p.stream.currentSpan()
+	tkn, _, err := p.stream.current()
+	if err != nil {
+		return nil, err
+	}
+	if tkn == nil {
+		return next()
+	}
+	opKind := matchFn(*tkn)
+	if !opKind.valid {
+		return next()
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return nil, err
+	}
+	exp, err := opFn()
+	if err != nil {
+		return nil, err
+	}
+	return &expr{
+		kind: exprKindUnaryOp,
+		data: unaryOpData{
+			op:   opKind.data,
+			expr: *exp,
+		},
+		span: p.stream.expandSpan(spn),
+	}, nil
+}
+
+// macro_rules! unaryop {
+//     ($func:ident, $next:ident, { $($tok:tt)* }) => {
+//         fn $func(&mut self) -> Result<ast::Expr<'a>, Error> {
+//             let span = self.stream.current_span();
+//             let op = match ok!(self.stream.current()) {
+//                 $($tok)*
+//                 _ => return self.$next()
+//             };
+//             ok!(self.stream.next());
+//             Ok(ast::Expr::UnaryOp(Spanned::new(
+//                 ast::UnaryOp {
+//                     op,
+//                     expr: ok!(self.$func()),
+//                 },
+//                 self.stream.expand_span(span),
+//             )))
+//         }
+//     };
+// }

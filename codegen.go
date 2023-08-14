@@ -64,7 +64,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		if data.start.valid {
 			g.compileExpr(data.start.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: value{kind: valueKindI64, data: int64(0)}})
+			g.add(instruction{kind: instructionKindLoadConst, data: value{typ: valueTypeI64, data: int64(0)}})
 		}
 		if data.stop.valid {
 			g.compileExpr(data.stop.data)
@@ -74,10 +74,20 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		if data.step.valid {
 			g.compileExpr(data.step.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: value{kind: valueKindI64, data: int64(1)}})
+			g.add(instruction{kind: instructionKindLoadConst, data: value{typ: valueTypeI64, data: int64(1)}})
 		}
 		g.add(instruction{kind: instructionKindSlice})
 		g.popSpan()
+	case exprKindUnaryOp:
+		data := exp.data.(unaryOpData)
+		g.setLineFromSpan(exp.span)
+		g.compileExpr(data.expr)
+		switch data.op {
+		case unaryOpKindNot:
+			g.add(instruction{kind: instructionKindNot})
+		case unaryOpKindNeg:
+			g.addWithSpan(instruction{kind: instructionKindNeg}, exp.span)
+		}
 	case exprKindGetAttr:
 		data := exp.data.(getAttrExprData)
 		g.pushSpan(exp.span)
@@ -157,4 +167,8 @@ func (g *codeGenerator) add(instr instruction) uint {
 		}
 	}
 	return g.instructions.addWithLine(instr, g.currentLine)
+}
+
+func (g *codeGenerator) addWithSpan(instr instruction, spn span) uint {
+	return g.instructions.addWithSpan(instr, spn)
 }

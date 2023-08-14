@@ -12,8 +12,8 @@ func TestEnvironment(t *testing.T) {
 	}{
 		{
 			source: "Hello {{ name }}",
-			context: value{kind: valueKindMap, data: map[string]value{
-				"name": {kind: valueKindString, data: "World"},
+			context: value{typ: valueTypeMap, data: map[string]value{
+				"name": {typ: valueTypeString, data: "World"},
 			}},
 			want: "Hello World",
 		},
@@ -49,18 +49,18 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ user.name }}`,
-			context: value{kind: valueKindMap, data: map[string]value{
-				"user": {kind: valueKindMap, data: map[string]value{
-					"name": {kind: valueKindString, data: "John"},
+			context: value{typ: valueTypeMap, data: map[string]value{
+				"user": {typ: valueTypeMap, data: map[string]value{
+					"name": {typ: valueTypeString, data: "John"},
 				}},
 			}},
 			want: "Hello John",
 		},
 		{
 			source: `Hello {{ user["name"] }}`,
-			context: value{kind: valueKindMap, data: map[string]value{
-				"user": {kind: valueKindMap, data: map[string]value{
-					"name": {kind: valueKindString, data: "John"},
+			context: value{typ: valueTypeMap, data: map[string]value{
+				"user": {typ: valueTypeMap, data: map[string]value{
+					"name": {typ: valueTypeString, data: "John"},
 				}},
 			}},
 			want: "Hello John",
@@ -77,8 +77,8 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ ["John", name][1] }}`,
-			context: value{kind: valueKindMap, data: map[string]value{
-				"name": {kind: valueKindString, data: "Paul"},
+			context: value{typ: valueTypeMap, data: map[string]value{
+				"name": {typ: valueTypeString, data: "Paul"},
 			}},
 			want: "Hello Paul",
 		},
@@ -89,11 +89,16 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ {"name": name}["name"] }}`,
-			context: value{kind: valueKindMap, data: map[string]value{
-				"name": {kind: valueKindString, data: "Paul"},
+			context: value{typ: valueTypeMap, data: map[string]value{
+				"name": {typ: valueTypeString, data: "Paul"},
 			}},
 			want: "Hello Paul",
 		},
+		// {
+		// 	source:  `Hello {{ ["John", "Paul", "George", "Ringo"][-1] }}`,
+		// 	context: valueNone,
+		// 	want:    "Hello Ringo",
+		// },
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()
