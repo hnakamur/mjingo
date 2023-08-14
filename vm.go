@@ -127,6 +127,11 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			stack.push(value{typ: valueTypeSeq, data: v})
 		case instructionKindNeg:
 			a = stack.pop()
+			v, err := opsNeg(a)
+			if err != nil {
+				return option[value]{}, err
+			}
+			stack.push(v)
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", instr.kind))
 		}

@@ -24,11 +24,32 @@ const (
 	valueTypeDynamic
 )
 
+type valueKind int
+
+const (
+	// The value is undefined
+	valueKindUndefined valueKind = iota + 1
+	// The value is the none singleton ([`()`])
+	valueKindNone
+	// The value is a [`bool`]
+	valueKindBool
+	// The value is a number of a supported type.
+	valueKindNumber
+	// The value is a string.
+	valueKindString
+	// The value is a byte array.
+	valueKindBytes
+	// The value is an array of other values.
+	valueKindSeq
+	// The value is a key/value mapping.
+	valueKindMap
+)
+
 var valueUndefined = value{typ: valueTypeUndefined}
 var valueNone = value{typ: valueTypeNone}
 
-func (k valueType) String() string {
-	switch k {
+func (t valueType) String() string {
+	switch t {
 	case valueTypeUndefined:
 		return "undefined"
 	case valueTypeBool:
@@ -58,7 +79,7 @@ func (k valueType) String() string {
 	case valueTypeDynamic:
 		return "dynamic"
 	default:
-		panic(fmt.Sprintf("invalid valueType: %d", k))
+		panic(fmt.Sprintf("invalid valueType: %d", t))
 	}
 }
 
@@ -200,4 +221,32 @@ func unsupportedConversion(kind valueType, target string) error {
 
 func valueMapWithCapacity(capacity uint) map[string]value {
 	return make(map[string]value, untrustedSizeHint(capacity))
+}
+
+func (v value) kind() valueKind {
+	switch v.typ {
+	case valueTypeUndefined:
+		return valueKindUndefined
+	case valueTypeBool:
+		return valueKindBool
+	case valueTypeU64, valueTypeI64, valueTypeF64, valueTypeU128, valueTypeI128:
+		return valueKindNumber
+	case valueTypeNone:
+		return valueKindNone
+	case valueTypeInvalid:
+		// XXX: invalid values report themselves as maps which is a lie
+		return valueKindMap
+	case valueTypeString:
+		return valueKindString
+	case valueTypeBytes:
+		return valueKindBytes
+	case valueTypeSeq:
+		return valueKindSeq
+	case valueTypeMap:
+		return valueKindMap
+	case valueTypeDynamic:
+		panic("not implemented for valueTypeDynamic")
+	default:
+		panic(fmt.Sprintf("invalid valueType: %d", v.typ))
+	}
 }

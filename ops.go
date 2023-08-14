@@ -123,3 +123,23 @@ func opsSlice(v, start, stop, step value) (value, error) {
 		},
 	}
 }
+
+func opsNeg(v value) (value, error) {
+	if v.kind() != valueKindNumber {
+		return value{}, &Error{kind: InvalidOperation}
+	}
+	if v.typ == valueTypeF64 {
+		data := v.data.(f64ValueData)
+		return value{typ: valueTypeF64, data: -data}, nil
+	}
+
+	if v.typ == valueTypeI128 || v.typ == valueTypeU128 {
+		panic("not implemented")
+	}
+
+	x, err := v.tryToI64()
+	if err != nil {
+		return value{}, err
+	}
+	return value{typ: valueTypeI64, data: -x}, nil
+}

@@ -322,12 +322,13 @@ func (p *parser) parseTupleOrExpression(spn span) (*expr, error) {
 }
 
 func (p *parser) parseUnaryOnly() (*expr, error) {
-	return p.unaryop(func(tkn token) option[unaryOpKind] {
-		if tkn.kind == tokenKindMinus {
-			return option[unaryOpKind]{valid: true, data: unaryOpKindNeg}
-		}
-		return option[unaryOpKind]{}
-	}, p.parseUnaryOnly, p.parsePrimary)
+	return p.unaryop(p.parseUnaryOnly, p.parsePrimary,
+		func(tkn token) option[unaryOpKind] {
+			if tkn.kind == tokenKindMinus {
+				return option[unaryOpKind]{valid: true, data: unaryOpKindNeg}
+			}
+			return option[unaryOpKind]{}
+		})
 }
 
 func (p *parser) parseUnary() (*expr, error) {
@@ -539,7 +540,7 @@ func isTokenOfKind(k tokenKind) func(tkn token) bool {
 	}
 }
 
-func (p *parser) unaryop(matchFn func(tkn token) option[unaryOpKind], opFn, next func() (*expr, error)) (*expr, error) {
+func (p *parser) unaryop(opFn, next func() (*expr, error), matchFn func(tkn token) option[unaryOpKind]) (*expr, error) {
 	spn := p.stream.currentSpan()
 	tkn, _, err := p.stream.current()
 	if err != nil {
@@ -568,23 +569,3 @@ func (p *parser) unaryop(matchFn func(tkn token) option[unaryOpKind], opFn, next
 		span: p.stream.expandSpan(spn),
 	}, nil
 }
-
-// macro_rules! unaryop {
-//     ($func:ident, $next:ident, { $($tok:tt)* }) => {
-//         fn $func(&mut self) -> Result<ast::Expr<'a>, Error> {
-//             let span = self.stream.current_span();
-//             let op = match ok!(self.stream.current()) {
-//                 $($tok)*
-//                 _ => return self.$next()
-//             };
-//             ok!(self.stream.next());
-//             Ok(ast::Expr::UnaryOp(Spanned::new(
-//                 ast::UnaryOp {
-//                     op,
-//                     expr: ok!(self.$func()),
-//                 },
-//                 self.stream.expand_span(span),
-//             )))
-//         }
-//     };
-// }
