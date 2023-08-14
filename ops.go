@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"fmt"
-	"log"
 )
 
 func opsGetOffsetAndLen(start int64, stop option[int64], end func() uint) (uint, uint) {
@@ -87,7 +86,6 @@ func opsSlice(v, start, stop, step value) (value, error) {
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
 			sliced = append(sliced, chars[i])
 		}
-		log.Printf("opsSlice string, data=%s, startIdx=%d, stopIdx=%d, stepVal=%d, sliced=%s", data, startIdx, stopIdx, stepVal, string(sliced))
 		return value{
 			kind: valueKindString,
 			data: string(sliced),
