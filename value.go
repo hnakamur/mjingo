@@ -1,6 +1,9 @@
 package mjingo
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type valueKind int
 
@@ -107,18 +110,90 @@ func (v *value) getAttrFast(key string) option[value] {
 }
 
 func (v *value) getItemOpt(key value) option[value] {
+	keyRf := keyRef{kind: keyRefKindValue, data: key}
+	var seq seqObject
 	switch v.kind {
 	case valueKindMap:
 		items := v.data.(mapValueData)
-		if key.kind != valueKindString {
+
+		// implementation here is different from minijinja.
+		if keyData := keyRf.asStr(); keyData.valid {
+			if v, ok := items[keyData.data]; ok {
+				return option[value]{valid: true, data: v}
+			}
+		} else {
 			panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
 		}
-		keyData := key.data.(stringValueData)
-		if v, ok := items[keyData]; ok {
-			return option[value]{valid: true, data: v}
-		}
+	case valueKindSeq:
+		items := v.data.(seqValueData)
+		seq = newSliceSeqObject(items)
 	default:
 		panic(fmt.Sprintf("not implemented for valueKind: %s", v.kind))
 	}
+
+	if idx := keyRf.asI64(); idx.valid {
+		if idx.data < math.MinInt || math.MaxInt < idx.data {
+			return option[value]{}
+		}
+		var i uint
+		if idx.data < 0 {
+			c := seq.itemCount()
+			if uint(-idx.data) > c {
+				return option[value]{}
+			}
+			i = c - uint(-idx.data)
+		} else {
+			i = uint(idx.data)
+		}
+		return seq.getItem(i)
+	}
 	return option[value]{}
+}
+
+func (v value) asStr() option[string] {
+	switch v.kind {
+	case valueKindString:
+		data := v.data.(stringValueData)
+		return option[string]{valid: true, data: data}
+	default:
+		return option[string]{}
+	}
+}
+
+func (v value) tryToI64() (int64, error) {
+	switch v.kind {
+	case valueKindBool:
+		data := v.data.(boolValueData)
+		if data {
+			return 1, nil
+		} else {
+			return 0, nil
+		}
+	case valueKindI64:
+		data := v.data.(i64ValueData)
+		return data, nil
+	case valueKindU64:
+		data := v.data.(u64ValueData)
+		return int64(data), nil
+	case valueKindF64:
+		data := v.data.(f64ValueData)
+		if float64(int64(data)) == data {
+			return int64(data), nil
+		}
+	case valueKindI128:
+		panic("not implemented")
+	case valueKindU128:
+		panic("not implemented")
+	}
+	return 0, unsupportedConversion(v.kind, "i64")
+}
+
+func unsupportedConversion(kind valueKind, target string) error {
+	return &Error{
+		kind: InvalidOperation,
+		detail: option[string]{
+			valid: true,
+			data:  fmt.Sprintf("cannot convert %s to %s", kind, target),
+		},
+	}
 }

@@ -103,17 +103,15 @@ loop:
 			if _, _, err := p.stream.next(); err != nil {
 				return nil, err
 			}
-			tkn, _, err = p.expectToken(func(tkn *token) bool {
-				return tkn.kind == tokenKindIdent
-			}, "identifier")
-			if err != nil {
+			if tkn2, _, err := p.expectToken(isTokenOfKind(tokenKindIdent), "identifier"); err != nil {
 				return nil, err
-			}
-			name := tkn.data.(identTokenData)
-			exp = expr{
-				kind: exprKindGetAttr,
-				data: getAttrExprData{expr: exp, name: name},
-				span: p.stream.expandSpan(spn),
+			} else {
+				name := tkn2.data.(identTokenData)
+				exp = expr{
+					kind: exprKindGetAttr,
+					data: getAttrExprData{expr: exp, name: name},
+					span: p.stream.expandSpan(spn),
+				}
 			}
 		case tokenKindBracketOpen:
 			if _, _, err := p.stream.next(); err != nil {
@@ -125,9 +123,7 @@ loop:
 			step := option[expr]{}
 			isSlice := false
 
-			if matched, err := p.matchesToken(func(tkn *token) bool {
-				return tkn.kind == tokenKindColon
-			}); err != nil {
+			if matched, err := p.matchesToken(isTokenOfKind(tokenKindColon)); err != nil {
 				return nil, err
 			} else if !matched {
 				if exp, err := p.parseExpr(); err != nil {
@@ -140,7 +136,7 @@ loop:
 				return nil, err
 			} else if matched {
 				isSlice = true
-				if matched, err := p.matchesToken(func(tkn *token) bool {
+				if matched, err := p.matchesToken(func(tkn token) bool {
 					return tkn.kind == tokenKindBracketClose || tkn.kind == tokenKindColon
 				}); err != nil {
 					return nil, err
@@ -154,9 +150,7 @@ loop:
 				if matched, err := p.skipToken(tokenKindColon); err != nil {
 					return nil, err
 				} else if matched {
-					if matched, err := p.matchesToken(func(tkn *token) bool {
-						return tkn.kind == tokenKindBracketClose
-					}); err != nil {
+					if matched, err := p.matchesToken(isTokenOfKind(tokenKindBracketClose)); err != nil {
 						return nil, err
 					} else if !matched {
 						if exp, err := p.parseExpr(); err != nil {
@@ -167,9 +161,7 @@ loop:
 					}
 				}
 			}
-			if _, _, err := p.expectToken(func(tkn *token) bool {
-				return tkn.kind == tokenKindBracketClose
-			}, "`]`"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfKind(tokenKindBracketClose), "`]`"); err != nil {
 				return nil, err
 			}
 
@@ -254,7 +246,34 @@ func (p *parser) parsePrimaryImpl() (*expr, error) {
 }
 
 func (p *parser) parseListExpr(spn span) (*expr, error) {
-	panic("not implemented")
+	var items []expr
+	for {
+		if matched, err := p.skipToken(tokenKindBracketClose); err != nil {
+			return nil, err
+		} else if matched {
+			break
+		}
+		if len(items) > 0 {
+			if _, _, err := p.expectToken(isTokenOfKind(tokenKindComma), "`,`"); err != nil {
+				return nil, err
+			}
+			if matched, err := p.skipToken(tokenKindBracketClose); err != nil {
+				return nil, err
+			} else if matched {
+				break
+			}
+		}
+		if item, err := p.parseExpr(); err != nil {
+			return nil, err
+		} else {
+			items = append(items, *item)
+		}
+	}
+	return &expr{
+		kind: exprKindList,
+		data: listExprData{items: items},
+		span: p.stream.expandSpan(spn),
+	}, nil
 }
 
 func (p *parser) parseMapExpr(spn span) (*expr, error) {
@@ -329,21 +348,21 @@ func (p *parser) parseExpr() (*expr, error) {
 	return withRecursionGuard[expr](p, p.parseIfExpr)
 }
 
-func (p *parser) expectToken(f func(tkn *token) bool, expected string) (*token, *span, error) {
+func (p *parser) expectToken(f func(tkn token) bool, expected string) (token, span, error) {
 	tkn, spn, err := p.stream.next()
 	if err != nil {
-		return nil, nil, err
+		return token{}, span{}, err
 	}
 	if tkn == nil {
-		return nil, nil, unexpectedEOF(expected)
+		return token{}, span{}, unexpectedEOF(expected)
 	}
-	if f(tkn) {
-		return tkn, spn, nil
+	if f(*tkn) {
+		return *tkn, *spn, nil
 	}
-	return nil, nil, unexpected(tkn, expected)
+	return token{}, span{}, unexpected(tkn, expected)
 }
 
-func (p *parser) matchesToken(f func(tkn *token) bool) (bool, error) {
+func (p *parser) matchesToken(f func(tkn token) bool) (bool, error) {
 	tkn, _, err := p.stream.current()
 	if err != nil {
 		return false, err
@@ -351,7 +370,7 @@ func (p *parser) matchesToken(f func(tkn *token) bool) (bool, error) {
 	if tkn == nil {
 		return false, nil
 	}
-	return f(tkn), nil
+	return f(*tkn), nil
 }
 
 func (p *parser) skipToken(k tokenKind) (matched bool, err error) {
@@ -433,9 +452,7 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
 				data: emitExprStmtData{expr: *exp},
 				span: p.stream.expandSpan(*spn),
 			})
-			if _, _, err := p.expectToken(func(tkn *token) bool {
-				return tkn.kind == tokenKindVariableEnd
-			}, "end of variable block"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfKind(tokenKindVariableEnd), "end of variable block"); err != nil {
 				return nil, err
 			}
 		case tokenKindBlockStart:
@@ -474,4 +491,10 @@ func parseWithSyntax(source, filename string, syntax SyntaxConfig) (*stmt, error
 
 	parser := newParser(source, false, &syntax)
 	return parser.parse()
+}
+
+func isTokenOfKind(k tokenKind) func(tkn token) bool {
+	return func(tkn token) bool {
+		return tkn.kind == k
+	}
 }

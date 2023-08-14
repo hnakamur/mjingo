@@ -91,6 +91,20 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		g.compileExpr(data.subscriptExpr)
 		g.add(instruction{kind: instructionKindGetItem})
 		g.popSpan()
+	case exprKindList:
+		data := exp.data.(listExprData)
+		if v := data.asConst(); v.valid {
+			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
+		} else {
+			g.setLineFromSpan(exp.span)
+			for _, item := range data.items {
+				g.compileExpr(item)
+			}
+			g.add(instruction{
+				kind: instructionKindBuildList,
+				data: buildListInstructionData(len(data.items)),
+			})
+		}
 	default:
 		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))
 	}

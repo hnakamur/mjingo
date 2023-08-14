@@ -442,6 +442,23 @@ type listExprData struct {
 	items []expr
 }
 
+func (l *listExprData) asConst() option[value] {
+	for _, item := range l.items {
+		if item.kind != exprKindConst {
+			return option[value]{}
+		}
+	}
+
+	seq := make([]value, 0, len(l.items))
+	for _, item := range l.items {
+		if item.kind == exprKindConst {
+			data := item.data.(constExprData)
+			seq = append(seq, data.value)
+		}
+	}
+	return option[value]{valid: true, data: value{kind: valueKindSeq, data: seq}}
+}
+
 type kwargsExprData struct {
 	pairs []kwarg
 }

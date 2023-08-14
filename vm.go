@@ -3,6 +3,7 @@ package mjingo
 import (
 	"fmt"
 	"io"
+	"slices"
 )
 
 type virtualMachine struct {
@@ -107,6 +108,14 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 		case instructionKindLoadConst:
 			v := instr.data.(loadConstInstructionData)
 			stack.push(v)
+		case instructionKindBuildList:
+			count := instr.data.(buildListInstructionData)
+			v := make([]value, 0, untrustedSizeHint(count))
+			for i := uint(0); i < count; i++ {
+				v = append(v, stack.pop())
+			}
+			slices.Reverse(v)
+			stack.push(value{kind: valueKindSeq, data: v})
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", instr.kind))
 		}

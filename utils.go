@@ -197,3 +197,7 @@ func (s *stack[T]) peek() *T {
 	}
 	return &s.elems[len(s.elems)-1]
 }
+
+func untrustedSizeHint(value uint) uint {
+	return min(value, 1024)
+}
