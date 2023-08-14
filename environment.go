@@ -7,10 +7,6 @@ type Environment struct {
 	templates    map[string]*Template
 }
 
-type Template struct {
-	compiled *compiledTemplate
-}
-
 var ErrTemplateNotFound = errors.New("template not found")
 
 func NewEnvironment() *Environment {
@@ -25,7 +21,7 @@ func (e *Environment) AddTemplate(name, source string) error {
 	if err != nil {
 		return err
 	}
-	e.templates[name] = &Template{compiled: t}
+	e.templates[name] = &Template{env: e, compiled: t}
 	return nil
 }
 
@@ -35,8 +31,4 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 		return nil, ErrTemplateNotFound
 	}
 	return tpl, nil
-}
-
-func (t *Template) Render(context any) (string, error) {
-	return "", nil
 }

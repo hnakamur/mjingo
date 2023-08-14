@@ -98,7 +98,7 @@ func (p *parser) parsePrimaryImpl() (*expr, error) {
 		case "none", "None":
 			return makeConst(value{kind: valueKindNone}, *spn), nil
 		default:
-			return &expr{kind: exprKindVar, data: data, span: *spn}, nil
+			return &expr{kind: exprKindVar, data: varExprData{id: data}, span: *spn}, nil
 		}
 	case tokenKindString:
 		data := tkn.data.(stringTokenData)

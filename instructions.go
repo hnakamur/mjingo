@@ -208,15 +208,144 @@ const (
 	instructionKindGetClosure
 )
 
-type emitRawInstructionData string
-type storeLocalInstructionData string
-type lookupInstructionData string
-type getAttrInstructionData string
-type loatConstInstructionData value
-type buildMapInstructionData uint
-type buildKwargsInstructionData uint
-type buildListInstructionData uint
-type unpackListInstructionData uint
+func (k instructionKind) String() string {
+	switch k {
+	case instructionKindEmitRaw:
+		return "emitRaw"
+	case instructionKindStoreLocal:
+		return "storeLocal"
+	case instructionKindLookup:
+		return "lookup"
+	case instructionKindGetAttr:
+		return "getAttr"
+	case instructionKindGetItem:
+		return "getItem"
+	case instructionKindSlice:
+		return "slice"
+	case instructionKindLoadConst:
+		return "loadConst"
+	case instructionKindBuildMap:
+		return "buildMap"
+	case instructionKindBuildKwargs:
+		return "buildKwargs"
+	case instructionKindBuildList:
+		return "buildList"
+	case instructionKindUnpackList:
+		return "unpackList"
+	case instructionKindListAppend:
+		return "listAppend"
+	case instructionKindAdd:
+		return "add"
+	case instructionKindSub:
+		return "sub"
+	case instructionKindMul:
+		return "mul"
+	case instructionKindDiv:
+		return "div"
+	case instructionKindIntDiv:
+		return "intDiv"
+	case instructionKindRem:
+		return "rem"
+	case instructionKindPow:
+		return "pow"
+	case instructionKindNeg:
+		return "neg"
+	case instructionKindEq:
+		return "eq"
+	case instructionKindNe:
+		return "ne"
+	case instructionKindGt:
+		return "gt"
+	case instructionKindGte:
+		return "gte"
+	case instructionKindLt:
+		return "lt"
+	case instructionKindLte:
+		return "lte"
+	case instructionKindNot:
+		return "not"
+	case instructionKindStringConcat:
+		return "stringConcat"
+	case instructionKindIn:
+		return "in"
+	case instructionKindApplyFilter:
+		return "applyFilter"
+	case instructionKindPerformTest:
+		return "performTest"
+	case instructionKindEmit:
+		return "emit"
+	case instructionKindPushLoop:
+		return "pushLoop"
+	case instructionKindPushWith:
+		return "pushWith"
+	case instructionKindIterate:
+		return "iterate"
+	case instructionKindPushDidNotIterate:
+		return "pushDidNotIterate"
+	case instructionKindPopFrame:
+		return "popFrame"
+	case instructionKindJump:
+		return "jump"
+	case instructionKindJumpIfFalse:
+		return "jumpIfFalse"
+	case instructionKindJumpIfFalseOrPop:
+		return "jumpIfFalseOrPop"
+	case instructionKindJumpIfTrueOrPop:
+		return "jumpIfTrueOrPop"
+	case instructionKindPushAutoEscape:
+		return "pushAutoEscape"
+	case instructionKindPopAutoEscape:
+		return "popAutoEscape"
+	case instructionKindBeginCapture:
+		return "beginCapture"
+	case instructionKindEndCapture:
+		return "endCapture"
+	case instructionKindCallFunction:
+		return "callFunction"
+	case instructionKindCallMethod:
+		return "callMethod"
+	case instructionKindCallObject:
+		return "callObject"
+	case instructionKindDupTop:
+		return "dupTop"
+	case instructionKindDiscardTop:
+		return "discardTop"
+	case instructionKindFastSuper:
+		return "fastSuper"
+	case instructionKindFastRecurse:
+		return "fastRecurse"
+	case instructionKindCallBlock:
+		return "callBlock"
+	case instructionKindLoadBlocks:
+		return "loadBlocks"
+	case instructionKindInclude:
+		return "include"
+	case instructionKindExportLocals:
+		return "exportLocals"
+	case instructionKindBuildMacro:
+		return "buildMacro"
+	case instructionKindReturn:
+		return "return"
+	case instructionKindIsUndefined:
+		return "isUndefined"
+	case instructionKindEnclose:
+		return "enclose"
+	case instructionKindGetClosure:
+		return "getClosure"
+	default:
+		panic("invalid instructionKind")
+	}
+}
+
+type emitRawInstructionData = string
+type storeLocalInstructionData = string
+type lookupInstructionData = string
+type getAttrInstructionData = string
+type loatConstInstructionData = value
+type buildMapInstructionData = uint
+type buildKwargsInstructionData = uint
+type buildListInstructionData = uint
+type unpackListInstructionData = uint
 
 type applyFilterInstructionData struct {
 	str     string
