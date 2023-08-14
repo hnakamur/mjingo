@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -68,11 +67,64 @@ func newParser(source string, inExpr bool, syntax *SyntaxConfig) *parser {
 }
 
 func (p *parser) parseFilterExpr(exp expr) (*expr, error) {
-	panic("not implemented")
+loop:
+	for {
+		tkn, _, err := p.stream.current()
+		if err != nil {
+			return nil, err
+		}
+		switch tkn.kind {
+		case tokenKindPipe:
+			panic("not implemented")
+		case tokenKindIdent:
+			ident := tkn.data.(identTokenData)
+			if ident == "is" {
+				panic("not implemented")
+			} else {
+				break loop
+			}
+		default:
+			break loop
+		}
+	}
+	return &exp, nil
 }
 
 func (p *parser) parsePostfix(exp expr, spn span) (*expr, error) {
-	panic("not implemented")
+loop:
+	for {
+		nextSpan := p.stream.currentSpan()
+		tkn, _, err := p.stream.current()
+		if err != nil {
+			return nil, err
+		}
+		switch tkn.kind {
+		case tokenKindDot:
+			if _, _, err := p.stream.next(); err != nil {
+				return nil, err
+			}
+			tkn, _, err = p.expectToken(func(tkn *token) bool {
+				return tkn.kind == tokenKindIdent
+			}, "identifier")
+			if err != nil {
+				return nil, err
+			}
+			name := tkn.data.(identTokenData)
+			exp = expr{
+				kind: exprKindGetAttr,
+				data: getAttrExprData{expr: exp, name: name},
+				span: p.stream.expandSpan(spn),
+			}
+		case tokenKindBracketOpen:
+			panic("not implemented")
+		case tokenKindParenOpen:
+			panic("not implemented")
+		default:
+			break loop
+		}
+		spn = nextSpan
+	}
+	return &exp, nil
 }
 
 func (p *parser) parsePrimary() (*expr, error) {
@@ -129,11 +181,22 @@ func (p *parser) parseMapExpr(spn span) (*expr, error) {
 }
 
 func (p *parser) parseTupleOrExpression(spn span) (*expr, error) {
+	// MiniJinja does not really have tuples, but it treats the tuple
+	// syntax the same as lists.
 	panic("not implemented")
 }
 
 func (p *parser) parseUnaryOnly() (*expr, error) {
-	return p.parsePrimary()
+	spn := p.stream.currentSpan()
+	exp, err := p.parsePrimary()
+	if err != nil {
+		return nil, err
+	}
+	exp, err = p.parsePostfix(*exp, spn)
+	if err != nil {
+		return nil, err
+	}
+	return p.parseFilterExpr(*exp)
 }
 
 func (p *parser) parseUnary() (*expr, error) {
@@ -185,6 +248,42 @@ func (p *parser) parseExpr() (*expr, error) {
 	return withRecursionGuard[expr](p, p.parseIfExpr)
 }
 
+func (p *parser) expectToken(f func(tkn *token) bool, expected string) (*token, *span, error) {
+	tkn, spn, err := p.stream.next()
+	if err != nil {
+		return nil, nil, err
+	}
+	if tkn == nil {
+		return nil, nil, unexpectedEOF(expected)
+	}
+	if f(tkn) {
+		return tkn, spn, nil
+	}
+	return nil, nil, unexpected(tkn, expected)
+}
+
+func (p *parser) matchesToken(f func(tkn *token) bool) (bool, error) {
+	tkn, _, err := p.stream.current()
+	if err != nil {
+		return false, err
+	}
+	if tkn == nil {
+		return false, nil
+	}
+	return f(tkn), nil
+}
+
+func (p *parser) skipToken(k tokenKind) (matched bool, err error) {
+	if err = p.stream.curErr; err != nil {
+		return false, err
+	}
+	if p.stream.curToken.kind == k {
+		p.stream.next()
+		return true, nil
+	}
+	return false, nil
+}
+
 const parseMaxRecursion = 150
 
 func withRecursionGuard[T any](p *parser, f func() (*T, error)) (*T, error) {
@@ -197,7 +296,13 @@ func withRecursionGuard[T any](p *parser, f func() (*T, error)) (*T, error) {
 }
 
 func unexpected(unexpected any, expected string) error {
-	return &Error{kind: SyntaxError, detail: fmt.Sprintf("unexpected %v, expected %s", unexpected, expected)}
+	return &Error{
+		kind: SyntaxError,
+		detail: option[string]{
+			valid: true,
+			data:  fmt.Sprintf("unexpected %v, expected %s", unexpected, expected),
+		},
+	}
 }
 
 func unexpectedEOF(expected string) error {
@@ -213,14 +318,16 @@ func makeConst(v value, spn span) *expr {
 }
 
 func syntaxError(msg string) error {
-	return &Error{kind: SyntaxError, detail: msg}
+	return &Error{
+		kind:   SyntaxError,
+		detail: option[string]{valid: true, data: msg},
+	}
 }
 
 func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
 	var rv []stmt
 	for {
 		tkn, spn, err := p.stream.next()
-		log.Printf("subparse, tkn=%v, spn=%v, err=%v", tkn, spn, err)
 		if err != nil {
 			return nil, err
 		}
@@ -245,12 +352,10 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
 				data: emitExprStmtData{expr: *exp},
 				span: p.stream.expandSpan(*spn),
 			})
-			tkn, _, err := p.stream.next()
-			if err != nil {
+			if _, _, err := p.expectToken(func(tkn *token) bool {
+				return tkn.kind == tokenKindVariableEnd
+			}, "end of variable block"); err != nil {
 				return nil, err
-			}
-			if tkn == nil || tkn.kind != tokenKindVariableEnd {
-				return nil, unexpectedEOF("end of variable block")
 			}
 		case tokenKindBlockStart:
 			panic("not implemented")

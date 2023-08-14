@@ -28,17 +28,9 @@ func TestBasicIdentifiers(t *testing.T) {
 	t.Run("notIdent", func(t *testing.T) {
 		assertNotIdent := func(s string) {
 			it := Tokenize(s, true, nil)
-			for {
-				tk, _, err := it.Next()
-				if err != nil {
-					continue
-				}
-				if tk == nil {
-					break
-				}
-				if tk.kind == tokenKindIdent {
-					t.Errorf("token should not be an identifier, got=%v, input=%q", tk.kind, s)
-				}
+			tk, _, err := it.Next()
+			if err == nil && tk != nil && tk.kind == tokenKindIdent {
+				t.Errorf("token should not be an identifier, got=%s, input=%q", tk.kind, s)
 			}
 		}
 

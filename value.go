@@ -21,6 +21,8 @@ const (
 	valueKindDynamic
 )
 
+var valueUndefined = value{kind: valueKindUndefined}
+
 func (k valueKind) String() string {
 	switch k {
 	case valueKindUndefined:
@@ -79,6 +81,14 @@ type mapValueData = map[string]value
 type value struct {
 	kind valueKind
 	data any
+}
+
+func (v *value) isUndefined() bool {
+	return v.kind == valueKindUndefined
+}
+
+func (v *value) isNone() bool {
+	return v.kind == valueKindNone
 }
 
 func (v *value) getAttrFast(key string) option[value] {

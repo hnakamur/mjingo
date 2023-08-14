@@ -3,8 +3,9 @@ package mjingo
 import "errors"
 
 type Environment struct {
-	syntaxConfig SyntaxConfig
-	templates    map[string]*Template
+	syntaxConfig      SyntaxConfig
+	templates         map[string]*Template
+	UndefinedBehavior UndefinedBehavior
 }
 
 var ErrTemplateNotFound = errors.New("template not found")

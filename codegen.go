@@ -1,5 +1,7 @@
 package mjingo
 
+import "fmt"
+
 type codeGenerator struct {
 	instructions     instructions
 	blocks           map[string]instructions
@@ -41,10 +43,42 @@ func (g *codeGenerator) compileExpr(exp expr) {
 	switch exp.kind {
 	case exprKindVar:
 		data := exp.data.(varExprData)
+		g.setLineFromSpan(exp.span)
 		g.add(instruction{kind: instructionKindLookup, data: data.id})
+	case exprKindConst:
+		data := exp.data.(constExprData)
+		g.setLineFromSpan(exp.span)
+		g.add(instruction{kind: instructionKindLoadConst, data: data.value})
+	case exprKindGetAttr:
+		data := exp.data.(getAttrExprData)
+		g.pushSpan(exp.span)
+		g.compileExpr(data.expr)
+		g.add(instruction{kind: instructionKindGetAttr, data: data.name})
+		g.popSpan()
 	default:
-		panic("not implemented")
+		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))
 	}
+}
+
+func (g *codeGenerator) finish() (instructions, map[string]instructions) {
+	return g.instructions, g.blocks
+}
+
+func (g *codeGenerator) setLine(lineno uint32) {
+	g.currentLine = lineno
+}
+
+func (g *codeGenerator) setLineFromSpan(spn span) {
+	g.setLine(spn.startLine)
+}
+
+func (g *codeGenerator) pushSpan(spn span) {
+	g.spanStack.push(spn)
+	g.setLineFromSpan(spn)
+}
+
+func (g *codeGenerator) popSpan() {
+	g.spanStack.pop()
 }
 
 func (g *codeGenerator) add(instr instruction) {
@@ -54,8 +88,4 @@ func (g *codeGenerator) add(instr instruction) {
 		}
 	}
 	g.instructions.addWithLine(instr, g.currentLine)
-}
-
-func (g *codeGenerator) finish() (instructions, map[string]instructions) {
-	return g.instructions, g.blocks
 }

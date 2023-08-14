@@ -8,6 +8,44 @@ import (
 	"unicode/utf8"
 )
 
+type UndefinedBehavior uint
+
+const (
+	// The default, somewhat lenient undefined behavior.
+	//
+	// * **printing:** allowed (returns empty string)
+	// * **iteration:** allowed (returns empty array)
+	// * **attribute access of undefined values:** fails
+	UndefinedBehaviorLenient UndefinedBehavior = iota
+
+	// Like `Lenient`, but also allows chaining of undefined lookups.
+	//
+	// * **printing:** allowed (returns empty string)
+	// * **iteration:** allowed (returns empty array)
+	// * **attribute access of undefined values:** allowed (returns [`undefined`](Value::UNDEFINED))
+	UndefinedBehaviorChainable
+
+	// Complains very quickly about undefined values.
+	//
+	// * **printing:** fails
+	// * **iteration:** fails
+	// * **attribute access of undefined values:** fails
+	UndefinedBehaviorStrict
+
+	UndefinedBehaviorDefault = UndefinedBehaviorLenient
+)
+
+func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (value, error) {
+	switch {
+	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
+		return valueUndefined, nil
+	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
+		return value{}, &Error{kind: UndefinedError}
+	default:
+		panic("unreachable")
+	}
+}
+
 // Un-escape a string, following JSON rules.
 func unescape(s string) (string, error) {
 	return (&unescaper{}).unescape(s)

@@ -77,6 +77,7 @@ func (s *tokenizerState) eatNumber() (*token, *span, error) {
 	oldLoc := s.loc()
 	state := numberStateIntger
 	numLen := prefixLenFunc(s.rest, isASCIIDigit)
+loop:
 	for _, c := range s.rest[numLen:] {
 		switch c {
 		case '.':
@@ -102,7 +103,7 @@ func (s *tokenizerState) eatNumber() (*token, *span, error) {
 				state = numberStateExponentSign
 			}
 		default:
-			break
+			break loop
 		}
 		numLen++
 	}
@@ -208,7 +209,7 @@ func isASCIIWhitespace(r rune) bool {
 
 func (s *tokenizerState) syntaxError(msg string) error {
 	s.failed = true
-	return &Error{kind: SyntaxError, detail: msg}
+	return &Error{kind: SyntaxError, detail: option[string]{valid: true, data: msg}}
 }
 
 type tokenizeIterator struct {

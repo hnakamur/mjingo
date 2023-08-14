@@ -1,5 +1,10 @@
 package mjingo
 
+import (
+	"cmp"
+	"slices"
+)
+
 type instructions struct {
 	instructions []instruction
 	lineInfos    []lineInfo
@@ -341,7 +346,7 @@ type emitRawInstructionData = string
 type storeLocalInstructionData = string
 type lookupInstructionData = string
 type getAttrInstructionData = string
-type loatConstInstructionData = value
+type loadConstInstructionData = value
 type buildMapInstructionData = uint
 type buildKwargsInstructionData = uint
 type buildListInstructionData = uint
@@ -436,4 +441,34 @@ func (i *instructions) addWithLine(instr instruction, line uint32) uint {
 	rv := i.add(instr)
 	i.addLineRecord(rv, line)
 	return rv
+}
+
+func (i *instructions) getLine(idx uint) option[uint] {
+	n, found := slices.BinarySearchFunc(i.lineInfos,
+		lineInfo{firstInstruction: uint32(idx)},
+		func(a, b lineInfo) int {
+			return cmp.Compare(a.firstInstruction, b.firstInstruction)
+		})
+	if found {
+		return option[uint]{valid: true, data: uint(i.lineInfos[n].line)}
+	}
+	if n != 0 {
+		return option[uint]{valid: true, data: uint(i.lineInfos[n-1].line)}
+	}
+	return option[uint]{}
+}
+
+func (i *instructions) getSpan(idx uint) option[span] {
+	n, found := slices.BinarySearchFunc(i.spanInfos,
+		spanInfo{firstInstruction: uint32(idx)},
+		func(a, b spanInfo) int {
+			return cmp.Compare(a.firstInstruction, b.firstInstruction)
+		})
+	if found {
+		return i.spanInfos[n].span
+	}
+	if n != 0 {
+		return i.spanInfos[n-1].span
+	}
+	return option[span]{}
 }

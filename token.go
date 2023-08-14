@@ -6,7 +6,7 @@ type tokenKind int
 
 const (
 	// Raw template data.
-	tokenKindTemplateData tokenKind = iota
+	tokenKindTemplateData tokenKind = iota + 1
 	// Variable block start.
 	tokenKindVariableStart
 	// Variable block end
@@ -89,6 +89,85 @@ type floatTokenData = float64
 type token struct {
 	kind tokenKind
 	data any
+}
+
+func (k tokenKind) String() string {
+	switch k {
+	case tokenKindTemplateData:
+		return "template-data"
+	case tokenKindVariableStart:
+		return "start of variable block"
+	case tokenKindVariableEnd:
+		return "end of variable block"
+	case tokenKindBlockStart:
+		return "start of block"
+	case tokenKindBlockEnd:
+		return "end of block"
+	case tokenKindIdent:
+		return "identifier"
+	case tokenKindStr:
+		return "string"
+	case tokenKindString:
+		return "string"
+	case tokenKindInt:
+		return "integer"
+	case tokenKindFloat:
+		return "float"
+	case tokenKindPlus:
+		return "`+`"
+	case tokenKindMinus:
+		return "`-`"
+	case tokenKindMul:
+		return "`*`"
+	case tokenKindDiv:
+		return "`/`"
+	case tokenKindFloorDiv:
+		return "`//`"
+	case tokenKindPow:
+		return "`**`"
+	case tokenKindMod:
+		return "`%`"
+	case tokenKindBang:
+		return "`!`"
+	case tokenKindDot:
+		return "`.`"
+	case tokenKindComma:
+		return "`,`"
+	case tokenKindColon:
+		return "`:`"
+	case tokenKindTilde:
+		return "`~`"
+	case tokenKindAssign:
+		return "`=`"
+	case tokenKindPipe:
+		return "`|`"
+	case tokenKindEq:
+		return "`==`"
+	case tokenKindNe:
+		return "`!=`"
+	case tokenKindGt:
+		return "`>`"
+	case tokenKindGte:
+		return "`>=`"
+	case tokenKindLt:
+		return "`<`"
+	case tokenKindLte:
+		return "`<=`"
+	case tokenKindBracketOpen:
+		return "`[`"
+	case tokenKindBracketClose:
+		return "`]`"
+	case tokenKindParenOpen:
+		return "`(`"
+	case tokenKindParenClose:
+		return "`)`"
+	case tokenKindBraceOpen:
+		return "`{`"
+	case tokenKindBraceClose:
+		return "`}`"
+	default:
+		return "unknown"
+	}
 }
 
 func (t *token) String() string {

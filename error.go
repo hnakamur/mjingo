@@ -7,23 +7,10 @@ import (
 
 type Error struct {
 	kind   ErrorKind
-	detail string
-	name   string
+	detail option[string]
+	name   option[string]
 	lineno uint
-	span   *span
-}
-
-func (e *Error) Error() string {
-	var b strings.Builder
-	b.WriteString(e.kind.String())
-	if e.detail != "" {
-		b.WriteString(": ")
-		b.WriteString(e.detail)
-	}
-	if e.name != "" {
-		fmt.Fprintf(&b, " (in %s:%d)", e.name, e.lineno)
-	}
-	return b.String()
+	span   option[span]
 }
 
 type ErrorKind int
@@ -124,4 +111,36 @@ func (k ErrorKind) String() string {
 	default:
 		panic("unknown error kind")
 	}
+}
+
+func (e *Error) Error() string {
+	var b strings.Builder
+	b.WriteString(e.kind.String())
+	if e.detail.valid {
+		b.WriteString(": ")
+		b.WriteString(e.detail.data)
+	}
+	if e.name.valid {
+		fmt.Fprintf(&b, " (in %s:%d)", e.name.data, e.lineno)
+	}
+	return b.String()
+}
+
+func (e *Error) line() option[uint] {
+	if e.lineno > 0 {
+		return option[uint]{valid: true, data: e.lineno}
+	} else {
+		return option[uint]{}
+	}
+}
+
+func (e *Error) setFilenameAndLine(filename string, lineno uint) {
+	e.name = option[string]{valid: true, data: filename}
+	e.lineno = lineno
+}
+
+func (e *Error) setFilenameAndSpan(filename string, spn span) {
+	e.name = option[string]{valid: true, data: filename}
+	e.span = option[span]{valid: true, data: spn}
+	e.lineno = uint(spn.startLine)
 }

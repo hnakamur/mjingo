@@ -15,6 +15,10 @@ type blockStack struct {
 	depth  uint
 }
 
+func (s *virtualMachineState) undefinedBehavior() UndefinedBehavior {
+	return s.env.UndefinedBehavior
+}
+
 func (s *virtualMachineState) lookup(name string) option[value] {
 	return s.ctx.load(s.env, name)
 }
