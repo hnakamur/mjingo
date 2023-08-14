@@ -1,6 +1,8 @@
 package mjingo
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type codeGenerator struct {
 	instructions     instructions
@@ -26,7 +28,7 @@ func (g *codeGenerator) compileStmt(s stmt) {
 		}
 	case stmtKindEmitExpr:
 		expr := s.data.(emitExprStmtData)
-		g.compileEmitExpr(expr)
+		g.compileEmitExpr(spanned[emitExprStmtData]{data: expr, span: s.span})
 	case stmtKindEmitRaw:
 		raw := s.data.(emitRawStmtData)
 		g.add(instruction{kind: instructionKindEmitRaw, data: raw.raw})
@@ -34,8 +36,14 @@ func (g *codeGenerator) compileStmt(s stmt) {
 	}
 }
 
-func (g *codeGenerator) compileEmitExpr(data emitExprStmtData) {
-	g.compileExpr(data.expr)
+func (g *codeGenerator) compileEmitExpr(exp spanned[emitExprStmtData]) {
+	g.setLineFromSpan(exp.span)
+
+	if exp.data.expr.kind == exprKindCall {
+		panic("not implemented")
+	}
+
+	g.compileExpr(exp.data.expr)
 	g.add(instruction{kind: instructionKindEmit})
 }
 
@@ -45,6 +53,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		data := exp.data.(varExprData)
 		g.setLineFromSpan(exp.span)
 		g.add(instruction{kind: instructionKindLookup, data: data.id})
+		// log.Printf("codegen add lookup data.id=%s", data.id)
 	case exprKindConst:
 		data := exp.data.(constExprData)
 		g.setLineFromSpan(exp.span)
@@ -54,6 +63,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		g.pushSpan(exp.span)
 		g.compileExpr(data.expr)
 		g.add(instruction{kind: instructionKindGetAttr, data: data.name})
+		// log.Printf("codegen add getAttr data.name=%s", data.name)
 		g.popSpan()
 	default:
 		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))
@@ -81,11 +91,11 @@ func (g *codeGenerator) popSpan() {
 	g.spanStack.pop()
 }
 
-func (g *codeGenerator) add(instr instruction) {
+func (g *codeGenerator) add(instr instruction) uint {
 	if spn := g.spanStack.peek(); spn != nil {
 		if spn.startLine == g.currentLine {
-			panic("not implemented")
+			return g.instructions.addWithSpan(instr, *spn)
 		}
 	}
-	g.instructions.addWithLine(instr, g.currentLine)
+	return g.instructions.addWithLine(instr, g.currentLine)
 }

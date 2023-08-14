@@ -52,10 +52,19 @@ func TestEnvironment(t *testing.T) {
 				"name": {kind: valueKindString, data: "World"},
 			}},
 		},
+		{
+			source: `Hello {{ user.name }}`,
+			context: value{kind: valueKindMap, data: map[string]value{
+				"user": {kind: valueKindMap, data: map[string]value{
+					"name": {kind: valueKindString, data: "John"},
+				}},
+			}},
+		},
 	}
 	for _, tc := range testCases {
 		env := NewEnvironment()
 		const templateName = "foo.js"
+		log.Printf("calling AddTemplate source=%s", tc.source)
 		err := env.AddTemplate(templateName, tc.source)
 		if err != nil {
 			t.Fatal(err)

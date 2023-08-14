@@ -34,6 +34,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 		// var b value
 
 		instr := state.instructions.instructions[pc]
+		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, instr.kind, instr)
 		switch instr.kind {
 		case instructionKindEmitRaw:
 			val := instr.data.(emitRawInstructionData)

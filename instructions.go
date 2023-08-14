@@ -443,6 +443,23 @@ func (i *instructions) addWithLine(instr instruction, line uint32) uint {
 	return rv
 }
 
+func (i *instructions) addWithSpan(instr instruction, spn span) uint {
+	rv := i.add(instr)
+
+	sameLoc := false
+	if len(i.spanInfos) > 0 {
+		lastLoc := i.spanInfos[len(i.spanInfos)-1]
+		sameLoc = lastLoc.span.valid && lastLoc.span.data == spn
+	}
+	if !sameLoc {
+		i.spanInfos = append(i.spanInfos,
+			spanInfo{firstInstruction: uint32(rv), span: option[span]{valid: true, data: spn}})
+	}
+
+	i.addLineRecord(rv, spn.startLine)
+	return rv
+}
+
 func (i *instructions) getLine(idx uint) option[uint] {
 	n, found := slices.BinarySearchFunc(i.lineInfos,
 		lineInfo{firstInstruction: uint32(idx)},
