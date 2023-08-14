@@ -60,6 +60,18 @@ func TestEnvironment(t *testing.T) {
 				}},
 			}},
 		},
+		{
+			source: `Hello {{ user["name"] }}`,
+			context: value{kind: valueKindMap, data: map[string]value{
+				"user": {kind: valueKindMap, data: map[string]value{
+					"name": {kind: valueKindString, data: "John"},
+				}},
+			}},
+		},
+		{
+			source:  `Hello {{ "Johnson"[:4] }}`,
+			context: value{kind: valueKindNone},
+		},
 	}
 	for _, tc := range testCases {
 		env := NewEnvironment()

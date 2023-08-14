@@ -53,17 +53,43 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		data := exp.data.(varExprData)
 		g.setLineFromSpan(exp.span)
 		g.add(instruction{kind: instructionKindLookup, data: data.id})
-		// log.Printf("codegen add lookup data.id=%s", data.id)
 	case exprKindConst:
 		data := exp.data.(constExprData)
 		g.setLineFromSpan(exp.span)
 		g.add(instruction{kind: instructionKindLoadConst, data: data.value})
+	case exprKindSlice:
+		data := exp.data.(sliceExprData)
+		g.pushSpan(exp.span)
+		g.compileExpr(data.expr)
+		if data.start.valid {
+			g.compileExpr(data.start.data)
+		} else {
+			g.add(instruction{kind: instructionKindLoadConst, data: value{kind: valueKindI64, data: int64(0)}})
+		}
+		if data.stop.valid {
+			g.compileExpr(data.stop.data)
+		} else {
+			g.add(instruction{kind: instructionKindLoadConst, data: valueNone})
+		}
+		if data.step.valid {
+			g.compileExpr(data.step.data)
+		} else {
+			g.add(instruction{kind: instructionKindLoadConst, data: value{kind: valueKindI64, data: int64(1)}})
+		}
+		g.add(instruction{kind: instructionKindSlice})
+		g.popSpan()
 	case exprKindGetAttr:
 		data := exp.data.(getAttrExprData)
 		g.pushSpan(exp.span)
 		g.compileExpr(data.expr)
 		g.add(instruction{kind: instructionKindGetAttr, data: data.name})
-		// log.Printf("codegen add getAttr data.name=%s", data.name)
+		g.popSpan()
+	case exprKindGetItem:
+		data := exp.data.(getItemExprData)
+		g.pushSpan(exp.span)
+		g.compileExpr(data.expr)
+		g.compileExpr(data.subscriptExpr)
+		g.add(instruction{kind: instructionKindGetItem})
 		g.popSpan()
 	default:
 		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))

@@ -22,6 +22,7 @@ const (
 )
 
 var valueUndefined = value{kind: valueKindUndefined}
+var valueNone = value{kind: valueKindNone}
 
 func (k valueKind) String() string {
 	switch k {
@@ -62,6 +63,7 @@ type boolValueData = bool
 type u64ValueData = uint64
 type i64ValueData = int64
 type f64ValueData = float64
+type invalidValueData = string
 
 type u128ValueData = struct {
 	hi uint64
@@ -96,6 +98,23 @@ func (v *value) getAttrFast(key string) option[value] {
 	case valueKindMap:
 		items := v.data.(mapValueData)
 		if v, ok := items[key]; ok {
+			return option[value]{valid: true, data: v}
+		}
+	default:
+		panic(fmt.Sprintf("not implemented for valueKind: %s", v.kind))
+	}
+	return option[value]{}
+}
+
+func (v *value) getItemOpt(key value) option[value] {
+	switch v.kind {
+	case valueKindMap:
+		items := v.data.(mapValueData)
+		if key.kind != valueKindString {
+			panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
+		}
+		keyData := key.data.(stringValueData)
+		if v, ok := items[keyData]; ok {
 			return option[value]{valid: true, data: v}
 		}
 	default:

@@ -30,8 +30,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 	undefinedBehavior := state.undefinedBehavior()
 
 	for pc < uint(len(state.instructions.instructions)) {
-		var a value
-		// var b value
+		var a, b value
 
 		instr := state.instructions.instructions[pc]
 		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, instr.kind, instr)
@@ -52,7 +51,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			if val := state.lookup(name); val.valid {
 				v = val.data
 			} else {
-				panic("not implemented")
+				v = valueUndefined
 			}
 			stack.push(v)
 		case instructionKindGetAttr:
@@ -64,14 +63,46 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
 			if v := a.getAttrFast(name); v.valid {
-				stack.push(v.data)
-			} else {
-				v, err := undefinedBehavior.handleUndefined(a.isUndefined())
-				if err != nil {
-					processErr(err, pc, state)
+				if v2, err := assertValid(v.data, pc, state); err != nil {
 					return option[value]{}, err
+				} else {
+					stack.push(v2)
 				}
-				stack.push(v)
+			} else {
+				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil {
+					return option[value]{}, processErr(err, pc, state)
+				} else {
+					stack.push(v)
+				}
+			}
+		case instructionKindGetItem:
+			a = stack.pop()
+			b = stack.pop()
+			if v := b.getItemOpt(a); v.valid {
+				if v2, err := assertValid(v.data, pc, state); err != nil {
+					return option[value]{}, err
+				} else {
+					stack.push(v2)
+				}
+			} else {
+				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil {
+					return option[value]{}, processErr(err, pc, state)
+				} else {
+					stack.push(v)
+				}
+			}
+		case instructionKindSlice:
+			step := stack.pop()
+			stop := stack.pop()
+			b = stack.pop()
+			a = stack.pop()
+			if a.isUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
+				return option[value]{}, processErr(&Error{kind: UndefinedError}, pc, state)
+			}
+			if s, err := opsSlice(a, b, stop, step); err != nil {
+				return option[value]{}, processErr(err, pc, state)
+			} else {
+				stack.push(s)
 			}
 		case instructionKindLoadConst:
 			v := instr.data.(loadConstInstructionData)
@@ -84,10 +115,23 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 	return stack.tryPop(), nil
 }
 
-func processErr(err error, pc uint, st *virtualMachineState) {
+func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
+	if v.kind == valueKindInvalid {
+		detail := v.data.(invalidValueData)
+		err := &Error{
+			kind:   BadSerialization,
+			detail: option[string]{valid: true, data: detail},
+		}
+		processErr(err, pc, st)
+		return value{}, err
+	}
+	return v, nil
+}
+
+func processErr(err error, pc uint, st *virtualMachineState) error {
 	er, ok := err.(*Error)
 	if !ok {
-		return
+		return err
 	}
 	// only attach line information if the error does not have line info yet.
 	if !er.line().valid {
@@ -97,4 +141,5 @@ func processErr(err error, pc uint, st *virtualMachineState) {
 			er.setFilenameAndLine(st.instructions.name, lineno.data)
 		}
 	}
+	return er
 }

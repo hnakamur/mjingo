@@ -116,7 +116,88 @@ loop:
 				span: p.stream.expandSpan(spn),
 			}
 		case tokenKindBracketOpen:
-			panic("not implemented")
+			if _, _, err := p.stream.next(); err != nil {
+				return nil, err
+			}
+
+			start := option[expr]{}
+			stop := option[expr]{}
+			step := option[expr]{}
+			isSlice := false
+
+			if matched, err := p.matchesToken(func(tkn *token) bool {
+				return tkn.kind == tokenKindColon
+			}); err != nil {
+				return nil, err
+			} else if !matched {
+				if exp, err := p.parseExpr(); err != nil {
+					return nil, err
+				} else {
+					start = option[expr]{valid: true, data: *exp}
+				}
+			}
+			if matched, err := p.skipToken(tokenKindColon); err != nil {
+				return nil, err
+			} else if matched {
+				isSlice = true
+				if matched, err := p.matchesToken(func(tkn *token) bool {
+					return tkn.kind == tokenKindBracketClose || tkn.kind == tokenKindColon
+				}); err != nil {
+					return nil, err
+				} else if !matched {
+					if exp, err := p.parseExpr(); err != nil {
+						return nil, err
+					} else {
+						stop = option[expr]{valid: true, data: *exp}
+					}
+				}
+				if matched, err := p.skipToken(tokenKindColon); err != nil {
+					return nil, err
+				} else if matched {
+					if matched, err := p.matchesToken(func(tkn *token) bool {
+						return tkn.kind == tokenKindBracketClose
+					}); err != nil {
+						return nil, err
+					} else if !matched {
+						if exp, err := p.parseExpr(); err != nil {
+							return nil, err
+						} else {
+							step = option[expr]{valid: true, data: *exp}
+						}
+					}
+				}
+			}
+			if _, _, err := p.expectToken(func(tkn *token) bool {
+				return tkn.kind == tokenKindBracketClose
+			}, "`]`"); err != nil {
+				return nil, err
+			}
+
+			if !isSlice {
+				if !start.valid {
+					return nil, syntaxError("empty subscript")
+				}
+				exp = expr{
+					kind: exprKindGetItem,
+					data: getItemExprData{
+						expr:          exp,
+						subscriptExpr: start.data,
+					},
+					span: p.stream.expandSpan(spn),
+				}
+			} else {
+				exp = expr{
+					kind: exprKindSlice,
+					data: sliceExprData{
+						expr:  exp,
+						start: start,
+						stop:  stop,
+						step:  step,
+					},
+					span: p.stream.expandSpan(spn),
+				}
+			}
+
 		case tokenKindParenOpen:
 			panic("not implemented")
 		default:
