@@ -157,10 +157,17 @@ func isTokenOfType[T any](tkn token) bool {
 	return ok
 }
 
-func isIdentTokenWithName(name string) func(token) bool {
+func isIdentTokenWithName(name ...string) func(token) bool {
 	return func(tkn token) bool {
 		identTkn, ok := tkn.(identToken)
-		return ok && identTkn.ident == name
+		if ok {
+			for _, n := range name {
+				if identTkn.ident == n {
+					return true
+				}
+			}
+		}
+		return false
 	}
 }
 

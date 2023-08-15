@@ -136,6 +136,34 @@ func TestEnvironment(t *testing.T) {
 			context: valueNone,
 			want:    "8",
 		},
+		{
+			source: `{% if down %}I'm down{% endif %}`,
+			context: mapValue{m: map[string]value{
+				"down": boolValue{b: true},
+			}},
+			want: "I'm down",
+		},
+		{
+			source: `{% if down %}I'm down{% else %}I'm up{% endif %}`,
+			context: mapValue{m: map[string]value{
+				"down": boolValue{b: false},
+			}},
+			want: "I'm up",
+		},
+		{
+			source: `{{ "I'm down" if down }}`,
+			context: mapValue{m: map[string]value{
+				"down": boolValue{b: true},
+			}},
+			want: "I'm down",
+		},
+		{
+			source: `{{ "I'm down" if down else "I'm up" }}`,
+			context: mapValue{m: map[string]value{
+				"down": boolValue{b: false},
+			}},
+			want: "I'm up",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

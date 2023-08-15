@@ -194,7 +194,7 @@ loop:
 }
 
 func (p *parser) parsePrimary() (expression, error) {
-	return withRecursionGuard(p, p.parsePrimaryImpl)
+	return p.withRecursionGuardExpr(p.parsePrimaryImpl)
 }
 
 func (p *parser) parsePrimaryImpl() (expression, error) {
@@ -406,16 +406,49 @@ func (p *parser) parseOr() (expression, error) {
 }
 
 func (p *parser) parseIfExpr() (expression, error) {
+	spn := p.stream.lastSpan
 	exp, err := p.parseOr()
 	if err != nil {
 		return nil, err
 	}
-	// not implemented
+	for {
+		if matched, err := p.skipToken(isIdentTokenWithName("if")); err != nil {
+			return nil, err
+		} else if matched {
+			exp2, err := p.parseOr()
+			if err != nil {
+				return nil, err
+			}
+			exp3 := option[expression]{}
+			if matched, err := p.skipToken(isIdentTokenWithName("else")); err != nil {
+				return nil, err
+			} else if matched {
+				ex, err := p.parseIfExpr()
+				if err != nil {
+					return nil, err
+				}
+				exp3 = option[expression]{valid: true, data: ex}
+			}
+			exp = ifExpr{
+				testExpr:  exp2,
+				trueExpr:  exp,
+				falseExpr: exp3,
+				span:      p.stream.expandSpan(spn),
+			}
+			spn = p.stream.lastSpan
+		} else {
+			break
+		}
+	}
 	return exp, nil
 }
 
 func (p *parser) parseExpr() (expression, error) {
-	return withRecursionGuard(p, p.parseIfExpr)
+	return p.withRecursionGuardExpr(p.parseIfExpr)
+}
+
+func (p *parser) parseExprNoIf() (expression, error) {
+	return p.parseOr()
 }
 
 func (p *parser) expectToken(f func(tkn token) bool, expected string) (token, span, error) {
@@ -456,7 +489,16 @@ func (p *parser) skipToken(f func(token) bool) (matched bool, err error) {
 
 const parseMaxRecursion = 150
 
-func withRecursionGuard(p *parser, f func() (expression, error)) (expression, error) {
+func (p *parser) withRecursionGuardExpr(f func() (expression, error)) (expression, error) {
+	p.depth++
+	if p.depth > parseMaxRecursion {
+		return nil, syntaxError("template exceeds maximum recursion limits")
+	}
+	defer func() { p.depth-- }()
+	return f()
+}
+
+func (p *parser) withRecursionGuardStmt(f func() (statement, error)) (statement, error) {
 	p.depth++
 	if p.depth > parseMaxRecursion {
 		return nil, syntaxError("template exceeds maximum recursion limits")
@@ -500,9 +542,9 @@ func (p *parser) subparse(endCheck func(token) bool) ([]statement, error) {
 		if tkn == nil {
 			break
 		}
-		switch tkn := tkn.(type) {
+		switch tk := tkn.(type) {
 		case templateDataToken:
-			raw := tkn.s
+			raw := tk.s
 			rv = append(rv, emitRawStmt{raw: raw, span: *spn})
 		case variableStartToken:
 			exp, err := p.parseExpr()
@@ -514,12 +556,99 @@ func (p *parser) subparse(endCheck func(token) bool) ([]statement, error) {
 				return nil, err
 			}
 		case blockStartToken:
-			panic("not implemented")
+			tkn, _, err := p.stream.current()
+			if err != nil {
+				return nil, err
+			}
+			if tkn == nil {
+				return nil, syntaxError("unexpected end of input, expected keyword")
+			}
+			if endCheck(tkn) {
+				return rv, nil
+			}
+			if st, err := p.parseStmt(); err != nil {
+				return nil, err
+			} else {
+				rv = append(rv, st)
+			}
+			if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+				return nil, err
+			}
 		default:
 			panic("lexer produced garbage")
 		}
 	}
 	return rv, nil
+}
+
+func (p *parser) parseStmt() (statement, error) {
+	return p.withRecursionGuardStmt(p.parseStmtUnprotected)
+}
+
+func (p *parser) parseStmtUnprotected() (statement, error) {
+	tkn, spn, err := p.expectToken(func(token) bool { return true }, "block keyword")
+	if err != nil {
+		return nil, err
+	}
+
+	var ident string
+	if identTkn, ok := tkn.(identToken); ok {
+		ident = identTkn.ident
+	} else {
+		return nil, syntaxError(fmt.Sprintf("unknown %s, expected statement", tkn))
+	}
+
+	switch ident {
+	case "if":
+		st, err := p.parseIfCond()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	default:
+		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
+	}
+}
+
+func (p *parser) parseIfCond() (ifCondStmt, error) {
+	exp, err := p.parseExprNoIf()
+	if err != nil {
+		return ifCondStmt{}, err
+	}
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return ifCondStmt{}, err
+	}
+
+	trueBody, err := p.subparse(isIdentTokenWithName("endif", "else", "elif"))
+	if err != nil {
+		return ifCondStmt{}, err
+	}
+
+	var falseBody []statement
+	tkn, spn, err := p.stream.next()
+	if err != nil {
+		return ifCondStmt{}, err
+	}
+	switch {
+	case isIdentTokenWithName("else")(tkn):
+		if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+			return ifCondStmt{}, err
+		}
+		falseBody, err = p.subparse(isIdentTokenWithName("endif"))
+		if _, _, err := p.stream.next(); err != nil {
+			return ifCondStmt{}, err
+		}
+	case isIdentTokenWithName("elif")(tkn):
+		st, err := p.parseIfCond()
+		if err != nil {
+			return ifCondStmt{}, err
+		}
+		st.span = p.stream.expandSpan(*spn)
+		falseBody = []statement{st}
+	}
+
+	return ifCondStmt{expr: exp, trueBody: trueBody, falseBody: falseBody}, nil
 }
 
 func (p *parser) parse() (statement, error) {

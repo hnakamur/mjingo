@@ -36,16 +36,16 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 		inst := state.instructions.instructions[pc]
 		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, instr.kind, instr)
 		switch inst := inst.(type) {
-		case emitRawInst:
+		case emitRawInstruction:
 			if _, err := io.WriteString(out, inst.val); err != nil {
 				return option[value]{}, err
 			}
-		case emitInst:
+		case emitInstruction:
 			v := stack.pop()
 			if err := m.env.format(v, state, out); err != nil {
 				return option[value]{}, err
 			}
-		case lookupInst:
+		case lookupInstruction:
 			var v value
 			if val := state.lookup(inst.name); val.valid {
 				v = val.data
@@ -53,7 +53,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				v = valueUndefined
 			}
 			stack.push(v)
-		case getAttrInst:
+		case getAttrInstruction:
 			a = stack.pop()
 			// This is a common enough operation that it's interesting to consider a fast
 			// path here.  This is slightly faster than the regular attr lookup because we
@@ -73,7 +73,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 					stack.push(v)
 				}
 			}
-		case getItemInst:
+		case getItemInstruction:
 			a = stack.pop()
 			b = stack.pop()
 			if v := b.getItemOpt(a); v.valid {
@@ -89,7 +89,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 					stack.push(v)
 				}
 			}
-		case sliceInst:
+		case sliceInstruction:
 			step := stack.pop()
 			stop := stack.pop()
 			b = stack.pop()
@@ -102,9 +102,9 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(s)
 			}
-		case loadConstInst:
+		case loadConstInstruction:
 			stack.push(inst.val)
-		case buildMapInst:
+		case buildMapInstruction:
 			m := valueMapWithCapacity(inst.pairCount)
 			for i := uint(0); i < inst.pairCount; i++ {
 				val := stack.pop()
@@ -112,14 +112,14 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				m[key.asStr().data] = val
 			}
 			stack.push(mapValue{m: m})
-		case buildListInst:
+		case buildListInstruction:
 			v := make([]value, 0, untrustedSizeHint(inst.count))
 			for i := uint(0); i < inst.count; i++ {
 				v = append(v, stack.pop())
 			}
 			slices.Reverse(v)
 			stack.push(seqValue{items: v})
-		case addInst:
+		case addInstruction:
 			b = stack.pop()
 			a = stack.pop()
 			if v, err := opsAdd(a, b); err != nil {
@@ -127,7 +127,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
-		case subInst:
+		case subInstruction:
 			b = stack.pop()
 			a = stack.pop()
 			if v, err := opsSub(a, b); err != nil {
@@ -135,7 +135,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
-		case powInst:
+		case powInstruction:
 			b = stack.pop()
 			a = stack.pop()
 			if v, err := opsPow(a, b); err != nil {
@@ -143,17 +143,26 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
-		case stringConcatInst:
+		case stringConcatInstruction:
 			b = stack.pop()
 			a = stack.pop()
 			v := opsStringConcat(a, b)
 			stack.push(v)
-		case negInst:
+		case negInstruction:
 			a = stack.pop()
 			if v, err := opsNeg(a); err != nil {
 				return option[value]{}, err
 			} else {
 				stack.push(v)
+			}
+		case jumpInstruction:
+			pc = inst.jumpTarget
+			continue
+		case jumpIfFalseInstruction:
+			a = stack.pop()
+			if !a.isTrue() {
+				pc = inst.jumpTarget
+				continue
 			}
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", inst.typ()))

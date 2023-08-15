@@ -14,6 +14,7 @@ type value interface {
 	kind() valueKind
 	isUndefined() bool
 	isNone() bool
+	isTrue() bool
 	getAttrFast(key string) option[value]
 	getItemOpt(key value) option[value]
 	asStr() option[string]
@@ -226,6 +227,21 @@ func (seqValue) kind() valueKind       { return valueKindSeq }
 func (mapValue) kind() valueKind       { return valueKindMap }
 func (dynamicValue) kind() valueKind   { panic("not implemented for valueTypeDynamic") }
 
+func (undefinedValue) isUndefined() bool { return true }
+func (boolValue) isUndefined() bool      { return false }
+func (u64Value) isUndefined() bool       { return false }
+func (i64Value) isUndefined() bool       { return false }
+func (f64Value) isUndefined() bool       { return false }
+func (noneValue) isUndefined() bool      { return false }
+func (invalidValue) isUndefined() bool   { return false }
+func (u128Value) isUndefined() bool      { return false }
+func (i128Value) isUndefined() bool      { return false }
+func (stringValue) isUndefined() bool    { return false }
+func (bytesValue) isUndefined() bool     { return false }
+func (seqValue) isUndefined() bool       { return false }
+func (mapValue) isUndefined() bool       { return false }
+func (dynamicValue) isUndefined() bool   { return false }
+
 func (undefinedValue) isNone() bool { return false }
 func (boolValue) isNone() bool      { return false }
 func (u64Value) isNone() bool       { return false }
@@ -241,20 +257,20 @@ func (seqValue) isNone() bool       { return false }
 func (mapValue) isNone() bool       { return false }
 func (dynamicValue) isNone() bool   { return false }
 
-func (undefinedValue) isUndefined() bool { return true }
-func (boolValue) isUndefined() bool      { return false }
-func (u64Value) isUndefined() bool       { return false }
-func (i64Value) isUndefined() bool       { return false }
-func (f64Value) isUndefined() bool       { return false }
-func (noneValue) isUndefined() bool      { return false }
-func (invalidValue) isUndefined() bool   { return false }
-func (u128Value) isUndefined() bool      { return false }
-func (i128Value) isUndefined() bool      { return false }
-func (stringValue) isUndefined() bool    { return false }
-func (bytesValue) isUndefined() bool     { return false }
-func (seqValue) isUndefined() bool       { return false }
-func (mapValue) isUndefined() bool       { return false }
-func (dynamicValue) isUndefined() bool   { return false }
+func (undefinedValue) isTrue() bool { return false }
+func (v boolValue) isTrue() bool    { return v.b }
+func (v u64Value) isTrue() bool     { return v.n != 0 }
+func (v i64Value) isTrue() bool     { return v.n != 0 }
+func (v f64Value) isTrue() bool     { return v.f != 0.0 }
+func (noneValue) isTrue() bool      { return false }
+func (invalidValue) isTrue() bool   { return false }
+func (v u128Value) isTrue() bool    { panic("not implemented") }
+func (v i128Value) isTrue() bool    { panic("not implemented") }
+func (v stringValue) isTrue() bool  { return len(v.s) != 0 }
+func (v bytesValue) isTrue() bool   { return len(v.b) != 0 }
+func (v seqValue) isTrue() bool     { return len(v.items) != 0 }
+func (v mapValue) isTrue() bool     { return len(v.m) != 0 }
+func (v dynamicValue) isTrue() bool { panic("not implemented for valueTypeDynamic") }
 
 func (undefinedValue) getAttrFast(key string) option[value] { return option[value]{} }
 func (boolValue) getAttrFast(key string) option[value]      { return option[value]{} }

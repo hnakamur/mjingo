@@ -174,6 +174,10 @@ type stack[T any] struct {
 	elems []T
 }
 
+func newStackWithCapacity[T any](capacity uint) stack[T] {
+	return stack[T]{elems: make([]T, 0, capacity)}
+}
+
 func (s *stack[T]) push(elem T) {
 	s.elems = append(s.elems, elem)
 }
