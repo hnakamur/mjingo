@@ -125,13 +125,29 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			}
 			slices.Reverse(v)
 			stack.push(value{typ: valueTypeSeq, data: v})
+		case instructionKindAdd:
+			b = stack.pop()
+			a = stack.pop()
+			if v, err := opsAdd(a, b); err != nil {
+				return option[value]{}, err
+			} else {
+				stack.push(v)
+			}
+		case instructionKindSub:
+			b = stack.pop()
+			a = stack.pop()
+			if v, err := opsSub(a, b); err != nil {
+				return option[value]{}, err
+			} else {
+				stack.push(v)
+			}
 		case instructionKindNeg:
 			a = stack.pop()
-			v, err := opsNeg(a)
-			if err != nil {
+			if v, err := opsNeg(a); err != nil {
 				return option[value]{}, err
+			} else {
+				stack.push(v)
 			}
-			stack.push(v)
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", instr.kind))
 		}

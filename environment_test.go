@@ -94,11 +94,36 @@ func TestEnvironment(t *testing.T) {
 			}},
 			want: "Hello Paul",
 		},
-		// {
-		// 	source:  `Hello {{ ["John", "Paul", "George", "Ringo"][-1] }}`,
-		// 	context: valueNone,
-		// 	want:    "Hello Ringo",
-		// },
+		{
+			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][-1] }}`,
+			context: valueNone,
+			want:    "Hello Ringo",
+		},
+		{
+			source:  `Hello {{ {"name": "John"}["nam" + "e"] }}`,
+			context: valueNone,
+			want:    "Hello John",
+		},
+		{
+			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1 + 2] }}`,
+			context: valueNone,
+			want:    "Hello Ringo",
+		},
+		{
+			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1.0 + 2.0] }}`,
+			context: valueNone,
+			want:    "Hello Ringo",
+		},
+		{
+			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3 - 2] }}`,
+			context: valueNone,
+			want:    "Hello Paul",
+		},
+		{
+			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3.0 - 2.0] }}`,
+			context: valueNone,
+			want:    "Hello Paul",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

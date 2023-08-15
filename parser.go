@@ -357,7 +357,16 @@ func (p *parser) parseConcat() (*expr, error) {
 }
 
 func (p *parser) parseMath1() (*expr, error) {
-	return p.parseConcat()
+	return p.binop(p.parseConcat, func(tkn token) option[binOpKind] {
+		switch tkn.kind {
+		case tokenKindPlus:
+			return option[binOpKind]{valid: true, data: binOpKindAdd}
+		case tokenKindMinus:
+			return option[binOpKind]{valid: true, data: binOpKindSub}
+		default:
+			return option[binOpKind]{}
+		}
+	})
 }
 
 func (p *parser) parseCompare() (*expr, error) {
@@ -540,6 +549,44 @@ func isTokenOfKind(k tokenKind) func(tkn token) bool {
 	}
 }
 
+func (p *parser) binop(next func() (*expr, error), matchFn func(tkn token) option[binOpKind]) (*expr, error) {
+	spn := p.stream.currentSpan()
+	left, err := next()
+	if err != nil {
+		return nil, err
+	}
+	for {
+		tkn, _, err := p.stream.current()
+		if err != nil {
+			return nil, err
+		}
+		if tkn == nil {
+			break
+		}
+		opKind := matchFn(*tkn)
+		if !opKind.valid {
+			break
+		}
+		if _, _, err := p.stream.next(); err != nil {
+			return nil, err
+		}
+		right, err := next()
+		if err != nil {
+			return nil, err
+		}
+		left = &expr{
+			kind: exprKindBinOp,
+			data: binOpExprData{
+				op:    opKind.data,
+				left:  *left,
+				right: *right,
+			},
+			span: p.stream.expandSpan(spn),
+		}
+	}
+	return left, nil
+}
+
 func (p *parser) unaryop(opFn, next func() (*expr, error), matchFn func(tkn token) option[unaryOpKind]) (*expr, error) {
 	spn := p.stream.currentSpan()
 	tkn, _, err := p.stream.current()
@@ -562,7 +609,7 @@ func (p *parser) unaryop(opFn, next func() (*expr, error), matchFn func(tkn toke
 	}
 	return &expr{
 		kind: exprKindUnaryOp,
-		data: unaryOpData{
+		data: unaryOpExprData{
 			op:   opKind.data,
 			expr: *exp,
 		},

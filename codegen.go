@@ -79,7 +79,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		g.add(instruction{kind: instructionKindSlice})
 		g.popSpan()
 	case exprKindUnaryOp:
-		data := exp.data.(unaryOpData)
+		data := exp.data.(unaryOpExprData)
 		g.setLineFromSpan(exp.span)
 		g.compileExpr(data.expr)
 		switch data.op {
@@ -88,6 +88,9 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		case unaryOpKindNeg:
 			g.addWithSpan(instruction{kind: instructionKindNeg}, exp.span)
 		}
+	case exprKindBinOp:
+		data := exp.data.(binOpExprData)
+		g.compileBinOp(spanned[binOpExprData]{data: data, span: exp.span})
 	case exprKindGetAttr:
 		data := exp.data.(getAttrExprData)
 		g.pushSpan(exp.span)
@@ -171,4 +174,47 @@ func (g *codeGenerator) add(instr instruction) uint {
 
 func (g *codeGenerator) addWithSpan(instr instruction, spn span) uint {
 	return g.instructions.addWithSpan(instr, spn)
+}
+
+func (g *codeGenerator) compileBinOp(data spanned[binOpExprData]) {
+	g.pushSpan(data.span)
+	var instr instruction
+	switch data.data.op {
+	case binOpKindEq:
+		instr = instruction{kind: instructionKindEq}
+	case binOpKindNe:
+		instr = instruction{kind: instructionKindNe}
+	case binOpKindLt:
+		instr = instruction{kind: instructionKindLt}
+	case binOpKindLte:
+		instr = instruction{kind: instructionKindLte}
+	case binOpKindGt:
+		instr = instruction{kind: instructionKindGt}
+	case binOpKindGte:
+		instr = instruction{kind: instructionKindGte}
+	case binOpKindScAnd, binOpKindScOr:
+		panic("not implemented yet")
+	case binOpKindAdd:
+		instr = instruction{kind: instructionKindAdd}
+	case binOpKindSub:
+		instr = instruction{kind: instructionKindSub}
+	case binOpKindMul:
+		instr = instruction{kind: instructionKindMul}
+	case binOpKindDiv:
+		instr = instruction{kind: instructionKindDiv}
+	case binOpKindFloorDiv:
+		instr = instruction{kind: instructionKindIntDiv}
+	case binOpKindRem:
+		instr = instruction{kind: instructionKindRem}
+	case binOpKindPow:
+		instr = instruction{kind: instructionKindPow}
+	case binOpKindConcat:
+		instr = instruction{kind: instructionKindStringConcat}
+	case binOpKindIn:
+		instr = instruction{kind: instructionKindIn}
+	}
+	g.compileExpr(data.data.left)
+	g.compileExpr(data.data.right)
+	g.add(instr)
+	g.popSpan()
 }

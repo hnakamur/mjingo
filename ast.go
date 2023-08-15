@@ -372,7 +372,7 @@ const (
 	unaryOpKindNeg
 )
 
-type unaryOpData struct {
+type unaryOpExprData struct {
 	op   unaryOpKind
 	expr expr
 }
@@ -399,7 +399,7 @@ const (
 	binOpKindIn
 )
 
-type binOpData struct {
+type binOpExprData struct {
 	op    binOpKind
 	left  expr
 	right expr

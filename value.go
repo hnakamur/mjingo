@@ -3,6 +3,8 @@ package mjingo
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type valueType int
@@ -248,5 +250,66 @@ func (v value) kind() valueKind {
 		panic("not implemented for valueTypeDynamic")
 	default:
 		panic(fmt.Sprintf("invalid valueType: %d", v.typ))
+	}
+}
+
+func (v value) asF64() option[float64] {
+	var f float64
+	switch v.typ {
+	case valueTypeBool:
+		if v.data.(boolValueData) {
+			f = 1
+		}
+	case valueTypeU64:
+		f = float64(v.data.(u64ValueData))
+	case valueTypeI64:
+		f = float64(v.data.(i64ValueData))
+	case valueTypeF64:
+		f = v.data.(f64ValueData)
+	case valueTypeI128, valueTypeU128:
+		panic("not implemented")
+	default:
+		return option[float64]{}
+	}
+	return option[float64]{valid: true, data: f}
+}
+
+func (v value) String() string {
+	switch v.typ {
+	case valueTypeUndefined:
+		return ""
+	case valueTypeBool, valueTypeU64, valueTypeI64:
+		return fmt.Sprintf("%v", v.data)
+	case valueTypeF64:
+		f := v.data.(f64ValueData)
+		if math.IsNaN(f) {
+			return "NaN"
+		} else if math.IsInf(f, 1) {
+			return "inf"
+		} else if math.IsInf(f, -1) {
+			return "-inf"
+		} else {
+			s := strconv.FormatFloat(f, 'f', -1, 64)
+			if strings.ContainsRune(s, '.') {
+				return s
+			}
+			return s + ".0"
+		}
+	case valueTypeNone:
+		return "none"
+	case valueTypeInvalid:
+		data := v.data.(invalidValueData)
+		return fmt.Sprintf("<invalid value: %s>", data)
+	case valueTypeString:
+		return v.data.(stringValueData)
+	case valueTypeBytes:
+		// TODO: equivalent impl as String::from_utf8_lossy
+		return string(v.data.(bytesValueData))
+	case valueTypeI128, valueTypeU128:
+		panic("not implemented")
+	case valueTypeDynamic:
+		panic("not implemented")
+	default:
+		panic("invalid value type")
 	}
 }

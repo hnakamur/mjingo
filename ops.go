@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"fmt"
+	"math"
 )
 
 func opsGetOffsetAndLen(start int64, stop option[int64], end func() uint) (uint, uint) {
@@ -142,4 +143,187 @@ func opsNeg(v value) (value, error) {
 		return value{}, err
 	}
 	return value{typ: valueTypeI64, data: -x}, nil
+}
+
+func opsAdd(lhs, rhs value) (value, error) {
+	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
+		cRes := cMayRes.data
+		switch cRes.typ {
+		case coerceResultTypeI64:
+			data := cRes.data.(i64CoerceResultData)
+			return value{
+				typ:  valueTypeI64,
+				data: data.lhs + data.rhs,
+			}, nil
+		case coerceResultTypeF64:
+			data := cRes.data.(f64CoerceResultData)
+			return value{
+				typ:  valueTypeF64,
+				data: data.lhs + data.rhs,
+			}, nil
+		case coerceResultTypeStr:
+			data := cRes.data.(strCoerceResultData)
+			return value{
+				typ:  valueTypeString,
+				data: data.lhs + data.rhs,
+			}, nil
+		}
+	}
+	return value{}, impossibleOp("+", lhs, rhs)
+}
+
+func opsSub(lhs, rhs value) (value, error) {
+	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
+		cRes := cMayRes.data
+		switch cRes.typ {
+		case coerceResultTypeI64:
+			data := cRes.data.(i64CoerceResultData)
+			if data.lhs < data.rhs {
+				return value{}, failedOp("-", lhs, rhs)
+			}
+			return value{
+				typ:  valueTypeI64,
+				data: data.lhs - data.rhs,
+			}, nil
+		case coerceResultTypeF64:
+			data := cRes.data.(f64CoerceResultData)
+			return value{
+				typ:  valueTypeF64,
+				data: data.lhs - data.rhs,
+			}, nil
+		}
+	}
+	return value{}, impossibleOp("-", lhs, rhs)
+}
+
+type coerceResultType int
+
+const (
+	// I64 here (for now) instead of I128 in MiniJinja
+	coerceResultTypeI64 coerceResultType = iota + 1
+	coerceResultTypeF64
+	coerceResultTypeStr
+)
+
+type coerceResult struct {
+	typ  coerceResultType
+	data any
+}
+
+type i64CoerceResultData struct {
+	lhs int64
+	rhs int64
+}
+
+type f64CoerceResultData struct {
+	lhs float64
+	rhs float64
+}
+
+type strCoerceResultData struct {
+	lhs string
+	rhs string
+}
+
+func coerce(a, b value) option[coerceResult] {
+	switch {
+	case a.typ == valueTypeU64 && b.typ == valueTypeU64:
+		aVal := a.data.(u64ValueData)
+		bVal := b.data.(u64ValueData)
+		if aVal > math.MaxInt64 || bVal > math.MaxInt64 {
+			return option[coerceResult]{}
+		}
+		return option[coerceResult]{
+			valid: true,
+			data: coerceResult{
+				typ:  coerceResultTypeI64,
+				data: i64CoerceResultData{lhs: int64(aVal), rhs: int64(bVal)},
+			},
+		}
+	case a.typ == valueTypeI64 && b.typ == valueTypeI64:
+		aVal := a.data.(i64ValueData)
+		bVal := b.data.(i64ValueData)
+		return option[coerceResult]{
+			valid: true,
+			data: coerceResult{
+				typ:  coerceResultTypeI64,
+				data: i64CoerceResultData{lhs: aVal, rhs: bVal},
+			},
+		}
+	case a.typ == valueTypeString && b.typ == valueTypeString:
+		aVal := a.data.(stringValueData)
+		bVal := b.data.(stringValueData)
+		return option[coerceResult]{
+			valid: true,
+			data: coerceResult{
+				typ:  coerceResultTypeStr,
+				data: strCoerceResultData{lhs: aVal, rhs: bVal},
+			},
+		}
+	case a.typ == valueTypeF64 || b.typ == valueTypeF64:
+		var aVal, bVal float64
+		if a.typ == valueTypeF64 {
+			aVal = a.data.(f64ValueData)
+			if bMayVal := b.asF64(); bMayVal.valid {
+				bVal = bMayVal.data
+			} else {
+				return option[coerceResult]{}
+			}
+		} else if b.typ == valueTypeF64 {
+			bVal = b.data.(f64ValueData)
+			if aMayVal := a.asF64(); aMayVal.valid {
+				aVal = aMayVal.data
+			} else {
+				return option[coerceResult]{}
+			}
+		}
+		return option[coerceResult]{
+			valid: true,
+			data: coerceResult{
+				typ:  coerceResultTypeF64,
+				data: f64CoerceResultData{lhs: aVal, rhs: bVal},
+			},
+		}
+	case a.typ == valueTypeI128 || a.typ == valueTypeU128 || b.typ == valueTypeI128 || b.typ == valueTypeU128:
+		panic("not implemented")
+	default:
+		// everything else goes up to i64 (different from i128 in MiniJinja)
+		aVal, err := a.tryToI64()
+		if err != nil {
+			return option[coerceResult]{}
+		}
+		bVal, err := b.tryToI64()
+		if err != nil {
+			return option[coerceResult]{}
+		}
+		return option[coerceResult]{
+			valid: true,
+			data: coerceResult{
+				typ:  coerceResultTypeI64,
+				data: i64CoerceResultData{lhs: aVal, rhs: bVal},
+			},
+		}
+	}
+}
+
+func failedOp(op string, lhs, rhs value) error {
+	return &Error{
+		kind: InvalidOperation,
+		detail: option[string]{
+			valid: true,
+			data: fmt.Sprintf("unable to calculate %s %s %s",
+				lhs, op, rhs),
+		},
+	}
+}
+
+func impossibleOp(op string, lhs, rhs value) error {
+	return &Error{
+		kind: InvalidOperation,
+		detail: option[string]{
+			valid: true,
+			data: fmt.Sprintf("tried to use %s operator on unsupported types %s and %s",
+				op, lhs, rhs),
+		},
+	}
 }
