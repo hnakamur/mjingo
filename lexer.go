@@ -65,7 +65,7 @@ func (s *tokenizerState) advance(bytes uint) string {
 	return skipped
 }
 
-func (s *tokenizerState) eatNumber() (*token, *span, error) {
+func (s *tokenizerState) eatNumber() (token, *span, error) {
 	type numberState int
 	const (
 		numberStateIntger numberState = iota
@@ -114,23 +114,23 @@ loop:
 		if err != nil {
 			return nil, nil, s.syntaxError("invalid float")
 		}
-		return &token{kind: tokenKindFloat, data: fVal}, s.span(oldLoc), nil
+		return floatToken{f: fVal}, s.span(oldLoc), nil
 	}
 	iVal, err := strconv.ParseInt(num, 10, 64)
 	if err != nil {
 		return nil, nil, s.syntaxError("invalid integer")
 	}
-	return &token{kind: tokenKindInt, data: iVal}, s.span(oldLoc), nil
+	return intToken{n: iVal}, s.span(oldLoc), nil
 }
 
-func (s *tokenizerState) eatIdentifier() (*token, *span, error) {
+func (s *tokenizerState) eatIdentifier() (token, *span, error) {
 	identLen := lexIndentifier(s.rest)
 	if identLen == 0 {
 		return nil, nil, s.syntaxError("unexpected character")
 	}
 	oldLoc := s.loc()
 	ident := s.advance(identLen)
-	return &token{kind: tokenKindIdent, data: ident}, s.span(oldLoc), nil
+	return identToken{s: ident}, s.span(oldLoc), nil
 }
 
 func lexIndentifier(s string) uint {
@@ -158,7 +158,7 @@ func isASCIIAlphaNumeric(r rune) bool {
 	return 'A' <= r && r <= 'Z' || 'a' <= r && r <= 'z' || '0' <= r && r <= '9'
 }
 
-func (s *tokenizerState) eatString(delim rune) (*token, *span, error) {
+func (s *tokenizerState) eatString(delim rune) (token, *span, error) {
 	oldLoc := s.loc()
 	escaped := false
 	hasEscapes := false
@@ -183,9 +183,9 @@ func (s *tokenizerState) eatString(delim rune) (*token, *span, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return &token{kind: tokenKindString, data: str}, s.span(oldLoc), nil
+		return stringToken{s: str}, s.span(oldLoc), nil
 	}
-	return &token{kind: tokenKindString, data: str[1 : len(str)-1]}, s.span(oldLoc), nil
+	return stringToken{s: str[1 : len(str)-1]}, s.span(oldLoc), nil
 }
 
 func (s *tokenizerState) skipWhitespace() {
@@ -280,7 +280,7 @@ func newTokenizeIterator(input string, inExpr bool, syntaxConfig *SyntaxConfig) 
 	}
 }
 
-func (i *tokenizeIterator) Next() (*token, *span, error) {
+func (i *tokenizeIterator) Next() (token, *span, error) {
 	for i.state.rest != "" && !i.state.failed {
 		oldLoc := i.state.loc()
 		if i.state.stack.empty() {
@@ -307,7 +307,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 						i.state.advance(skip)
 					}
 					i.state.stack.push(lexerStateInVariable)
-					return &token{kind: tokenKindVariableStart}, i.state.span(oldLoc), nil
+					return variableStartToken{}, i.state.span(oldLoc), nil
 				case startMarkerBlock:
 					// raw blocks require some special handling.  If we are at the beginning of a raw
 					// block we want to skip everything until {% endraw %} completely ignoring iterior
@@ -332,7 +332,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 								}
 								i.state.advance(uint(ptr) + endRaw)
 								i.trimLeadingWhitespace = trimNext
-								return &token{kind: tokenKindTemplateData, data: result}, i.state.span(oldLoc), nil
+								return templateDataToken{s: result}, i.state.span(oldLoc), nil
 							}
 						}
 						return nil, nil, i.state.syntaxError("unexpected end of raw block")
@@ -344,7 +344,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 					}
 
 					i.state.stack.push(lexerStateInBlock)
-					return &token{kind: tokenKindBlockStart}, i.state.span(oldLoc), nil
+					return blockStartToken{}, i.state.span(oldLoc), nil
 				}
 			}
 
@@ -375,7 +375,7 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 			if lead == "" {
 				continue
 			}
-			return &token{kind: tokenKindTemplateData, data: lead}, spn, nil
+			return templateDataToken{s: lead}, spn, nil
 
 		case lexerStateInBlock, lexerStateInVariable:
 			// in blocks whitespace is generally ignored, skip it.
@@ -390,43 +390,43 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 					i.state.stack.pop()
 					i.trimLeadingWhitespace = true
 					i.state.advance(1 + uint(len(i.blockEnd)))
-					return &token{kind: tokenKindBlockEnd}, i.state.span(oldLoc), nil
+					return blockEndToken{}, i.state.span(oldLoc), nil
 				}
 				if strings.HasPrefix(i.state.rest, i.blockEnd) {
 					i.state.stack.pop()
 					i.state.advance(uint(len(i.blockEnd)))
-					return &token{kind: tokenKindBlockEnd}, i.state.span(oldLoc), nil
+					return blockEndToken{}, i.state.span(oldLoc), nil
 				}
 			} else {
 				if strings.HasPrefix(i.state.rest, "-") && strings.HasPrefix(i.state.rest[1:], i.variableEnd) {
 					i.state.stack.pop()
 					i.trimLeadingWhitespace = true
 					i.state.advance(1 + uint(len(i.variableEnd)))
-					return &token{kind: tokenKindVariableEnd}, i.state.span(oldLoc), nil
+					return variableEndToken{}, i.state.span(oldLoc), nil
 				}
 				if strings.HasPrefix(i.state.rest, i.variableEnd) {
 					i.state.stack.pop()
 					i.state.advance(uint(len(i.variableEnd)))
-					return &token{kind: tokenKindVariableEnd}, i.state.span(oldLoc), nil
+					return variableEndToken{}, i.state.span(oldLoc), nil
 				}
 			}
 
 			// two character operators
 			if len(i.state.rest) >= 2 {
-				var tk *token
+				var tk token
 				switch i.state.rest[:2] {
 				case "//":
-					tk = &token{kind: tokenKindFloorDiv}
+					tk = floorDivToken{}
 				case "**":
-					tk = &token{kind: tokenKindPow}
+					tk = powToken{}
 				case "==":
-					tk = &token{kind: tokenKindEq}
+					tk = eqToken{}
 				case "!=":
-					tk = &token{kind: tokenKindNe}
+					tk = neToken{}
 				case ">=":
-					tk = &token{kind: tokenKindGte}
+					tk = gteToken{}
 				case "<=":
-					tk = &token{kind: tokenKindLte}
+					tk = lteToken{}
 				}
 				if tk != nil {
 					i.state.advance(2)
@@ -435,48 +435,48 @@ func (i *tokenizeIterator) Next() (*token, *span, error) {
 			}
 
 			if len(i.state.rest) >= 1 {
-				var tk *token
+				var tk token
 				switch i.state.rest[0] {
 				case '+':
-					tk = &token{kind: tokenKindPlus}
+					tk = plusToken{}
 				case '-':
-					tk = &token{kind: tokenKindMinus}
+					tk = minusToken{}
 				case '*':
-					tk = &token{kind: tokenKindMul}
+					tk = mulToken{}
 				case '/':
-					tk = &token{kind: tokenKindDiv}
+					tk = divToken{}
 				case '%':
-					tk = &token{kind: tokenKindMod}
+					tk = modToken{}
 				case '!':
-					tk = &token{kind: tokenKindBang}
+					tk = bangToken{}
 				case '.':
-					tk = &token{kind: tokenKindDot}
+					tk = dotToken{}
 				case ',':
-					tk = &token{kind: tokenKindComma}
+					tk = commaToken{}
 				case ':':
-					tk = &token{kind: tokenKindColon}
+					tk = colonToken{}
 				case '~':
-					tk = &token{kind: tokenKindTilde}
+					tk = tildeToken{}
 				case '|':
-					tk = &token{kind: tokenKindPipe}
+					tk = pipeToken{}
 				case '=':
-					tk = &token{kind: tokenKindAssign}
+					tk = assignToken{}
 				case '<':
-					tk = &token{kind: tokenKindLt}
+					tk = ltToken{}
 				case '>':
-					tk = &token{kind: tokenKindGt}
+					tk = gtToken{}
 				case '(':
-					tk = &token{kind: tokenKindParenOpen}
+					tk = parenOpenToken{}
 				case ')':
-					tk = &token{kind: tokenKindParenClose}
+					tk = parenCloseToken{}
 				case '[':
-					tk = &token{kind: tokenKindBracketOpen}
+					tk = bracketOpenToken{}
 				case ']':
-					tk = &token{kind: tokenKindBracketClose}
+					tk = bracketCloseToken{}
 				case '{':
-					tk = &token{kind: tokenKindBraceOpen}
+					tk = braceOpenToken{}
 				case '}':
-					tk = &token{kind: tokenKindBraceClose}
+					tk = braceCloseToken{}
 				case '\'':
 					return i.state.eatString('\'')
 				case '"':

@@ -2,247 +2,307 @@ package mjingo
 
 import "fmt"
 
-type tokenKind int
+type token interface {
+	String() string
+
+	typ() tokenType
+}
+
+type templateDataToken struct{ s string }
+type variableStartToken struct{}
+type variableEndToken struct{}
+type blockStartToken struct{}
+type blockEndToken struct{}
+type identToken struct{ s string }
+type stringToken struct{ s string }
+type intToken struct{ n int64 }
+type floatToken struct{ f float64 }
+type plusToken struct{}
+type minusToken struct{}
+type mulToken struct{}
+type divToken struct{}
+type floorDivToken struct{}
+type powToken struct{}
+type modToken struct{}
+type bangToken struct{}
+type dotToken struct{}
+type commaToken struct{}
+type colonToken struct{}
+type tildeToken struct{}
+type assignToken struct{}
+type pipeToken struct{}
+type eqToken struct{}
+type neToken struct{}
+type gtToken struct{}
+type gteToken struct{}
+type ltToken struct{}
+type lteToken struct{}
+type bracketOpenToken struct{}
+type bracketCloseToken struct{}
+type parenOpenToken struct{}
+type parenCloseToken struct{}
+type braceOpenToken struct{}
+type braceCloseToken struct{}
+
+var _ = token(templateDataToken{})
+var _ = token(variableStartToken{})
+var _ = token(variableEndToken{})
+var _ = token(blockStartToken{})
+var _ = token(blockEndToken{})
+var _ = token(identToken{})
+var _ = token(stringToken{})
+var _ = token(intToken{})
+var _ = token(floatToken{})
+var _ = token(plusToken{})
+var _ = token(minusToken{})
+var _ = token(mulToken{})
+var _ = token(divToken{})
+var _ = token(floorDivToken{})
+var _ = token(powToken{})
+var _ = token(modToken{})
+var _ = token(bangToken{})
+var _ = token(dotToken{})
+var _ = token(commaToken{})
+var _ = token(colonToken{})
+var _ = token(tildeToken{})
+var _ = token(assignToken{})
+var _ = token(pipeToken{})
+var _ = token(eqToken{})
+var _ = token(neToken{})
+var _ = token(gtToken{})
+var _ = token(gteToken{})
+var _ = token(ltToken{})
+var _ = token(lteToken{})
+var _ = token(bracketOpenToken{})
+var _ = token(bracketCloseToken{})
+var _ = token(parenOpenToken{})
+var _ = token(parenCloseToken{})
+var _ = token(braceOpenToken{})
+var _ = token(braceCloseToken{})
+
+func (t templateDataToken) String() string  { return t.typ().String() }
+func (t variableStartToken) String() string { return t.typ().String() }
+func (t variableEndToken) String() string   { return t.typ().String() }
+func (t blockStartToken) String() string    { return t.typ().String() }
+func (t blockEndToken) String() string      { return t.typ().String() }
+func (t identToken) String() string         { return t.typ().String() }
+func (t stringToken) String() string        { return t.typ().String() }
+func (t intToken) String() string           { return t.typ().String() }
+func (t floatToken) String() string         { return t.typ().String() }
+func (t plusToken) String() string          { return t.typ().String() }
+func (t minusToken) String() string         { return t.typ().String() }
+func (t mulToken) String() string           { return t.typ().String() }
+func (t divToken) String() string           { return t.typ().String() }
+func (t floorDivToken) String() string      { return t.typ().String() }
+func (t powToken) String() string           { return t.typ().String() }
+func (t modToken) String() string           { return t.typ().String() }
+func (t bangToken) String() string          { return t.typ().String() }
+func (t dotToken) String() string           { return t.typ().String() }
+func (t commaToken) String() string         { return t.typ().String() }
+func (t colonToken) String() string         { return t.typ().String() }
+func (t tildeToken) String() string         { return t.typ().String() }
+func (t assignToken) String() string        { return t.typ().String() }
+func (t pipeToken) String() string          { return t.typ().String() }
+func (t eqToken) String() string            { return t.typ().String() }
+func (t neToken) String() string            { return t.typ().String() }
+func (t gtToken) String() string            { return t.typ().String() }
+func (t gteToken) String() string           { return t.typ().String() }
+func (t ltToken) String() string            { return t.typ().String() }
+func (t lteToken) String() string           { return t.typ().String() }
+func (t bracketOpenToken) String() string   { return t.typ().String() }
+func (t bracketCloseToken) String() string  { return t.typ().String() }
+func (t parenOpenToken) String() string     { return t.typ().String() }
+func (t parenCloseToken) String() string    { return t.typ().String() }
+func (t braceOpenToken) String() string     { return t.typ().String() }
+func (t braceCloseToken) String() string    { return t.typ().String() }
+
+func (templateDataToken) typ() tokenType  { return tokenTypeTemplateData }
+func (variableStartToken) typ() tokenType { return tokenTypeVariableStart }
+func (variableEndToken) typ() tokenType   { return tokenTypeVariableEnd }
+func (blockStartToken) typ() tokenType    { return tokenTypeBlockStart }
+func (blockEndToken) typ() tokenType      { return tokenTypeBlockEnd }
+func (identToken) typ() tokenType         { return tokenTypeIdent }
+func (stringToken) typ() tokenType        { return tokenTypeString }
+func (intToken) typ() tokenType           { return tokenTypeInt }
+func (floatToken) typ() tokenType         { return tokenTypeFloat }
+func (plusToken) typ() tokenType          { return tokenTypePlus }
+func (minusToken) typ() tokenType         { return tokenTypeMinus }
+func (mulToken) typ() tokenType           { return tokenTypeMul }
+func (divToken) typ() tokenType           { return tokenTypeDiv }
+func (floorDivToken) typ() tokenType      { return tokenTypeFloorDiv }
+func (powToken) typ() tokenType           { return tokenTypePow }
+func (modToken) typ() tokenType           { return tokenTypeMod }
+func (bangToken) typ() tokenType          { return tokenTypeBang }
+func (dotToken) typ() tokenType           { return tokenTypeDot }
+func (commaToken) typ() tokenType         { return tokenTypeComma }
+func (colonToken) typ() tokenType         { return tokenTypeColon }
+func (tildeToken) typ() tokenType         { return tokenTypeTilde }
+func (assignToken) typ() tokenType        { return tokenTypeAssign }
+func (pipeToken) typ() tokenType          { return tokenTypePipe }
+func (eqToken) typ() tokenType            { return tokenTypeEq }
+func (neToken) typ() tokenType            { return tokenTypeNe }
+func (gtToken) typ() tokenType            { return tokenTypeGt }
+func (gteToken) typ() tokenType           { return tokenTypeGte }
+func (ltToken) typ() tokenType            { return tokenTypeLt }
+func (lteToken) typ() tokenType           { return tokenTypeLte }
+func (bracketOpenToken) typ() tokenType   { return tokenTypeBracketOpen }
+func (bracketCloseToken) typ() tokenType  { return tokenTypeBracketClose }
+func (parenOpenToken) typ() tokenType     { return tokenTypeParenOpen }
+func (parenCloseToken) typ() tokenType    { return tokenTypeParenClose }
+func (braceOpenToken) typ() tokenType     { return tokenTypeBraceOpen }
+func (braceCloseToken) typ() tokenType    { return tokenTypeBraceClose }
+
+type tokenType int
 
 const (
 	// Raw template data.
-	tokenKindTemplateData tokenKind = iota + 1
+	tokenTypeTemplateData tokenType = iota + 1
 	// Variable block start.
-	tokenKindVariableStart
+	tokenTypeVariableStart
 	// Variable block end
-	tokenKindVariableEnd
+	tokenTypeVariableEnd
 	// Statement block start
-	tokenKindBlockStart
+	tokenTypeBlockStart
 	// Statement block end
-	tokenKindBlockEnd
+	tokenTypeBlockEnd
 	// An identifier.
-	tokenKindIdent
+	tokenTypeIdent
 	// A borrowed string.
-	tokenKindStr
+	// NOTE: not used in mjingo
+	tokenTypeStr
 	// An allocated string.
-	tokenKindString
+	tokenTypeString
 	// An integer (limited to i64)
-	tokenKindInt
+	tokenTypeInt
 	// A float
-	tokenKindFloat
+	tokenTypeFloat
 	// A plus (`+`) operator.
-	tokenKindPlus
+	tokenTypePlus
 	// A plus (`-`) operator.
-	tokenKindMinus
+	tokenTypeMinus
 	// A mul (`*`) operator.
-	tokenKindMul
+	tokenTypeMul
 	// A div (`/`) operator.
-	tokenKindDiv
+	tokenTypeDiv
 	// A floor division (`//`) operator.
-	tokenKindFloorDiv
+	tokenTypeFloorDiv
 	// Power operator (`**`).
-	tokenKindPow
+	tokenTypePow
 	// A mod (`%`) operator.
-	tokenKindMod
+	tokenTypeMod
 	// The bang (`!`) operator.
-	tokenKindBang
+	tokenTypeBang
 	// A dot operator (`.`)
-	tokenKindDot
+	tokenTypeDot
 	// The comma operator (`,`)
-	tokenKindComma
+	tokenTypeComma
 	// The colon operator (`:`)
-	tokenKindColon
+	tokenTypeColon
 	// The tilde operator (`~`)
-	tokenKindTilde
+	tokenTypeTilde
 	// The assignment operator (`=`)
-	tokenKindAssign
+	tokenTypeAssign
 	// The pipe symbol.
-	tokenKindPipe
+	tokenTypePipe
 	// `==` operator
-	tokenKindEq
+	tokenTypeEq
 	// `!=` operator
-	tokenKindNe
+	tokenTypeNe
 	// `>` operator
-	tokenKindGt
+	tokenTypeGt
 	// `>=` operator
-	tokenKindGte
+	tokenTypeGte
 	// `<` operator
-	tokenKindLt
+	tokenTypeLt
 	// `<=` operator
-	tokenKindLte
+	tokenTypeLte
 	// Open Bracket
-	tokenKindBracketOpen
+	tokenTypeBracketOpen
 	// Close Bracket
-	tokenKindBracketClose
+	tokenTypeBracketClose
 	// Open Parenthesis
-	tokenKindParenOpen
+	tokenTypeParenOpen
 	// Close Parenthesis
-	tokenKindParenClose
+	tokenTypeParenClose
 	// Open Brace
-	tokenKindBraceOpen
+	tokenTypeBraceOpen
 	// Close Brace
-	tokenKindBraceClose
+	tokenTypeBraceClose
 )
 
-type templateDataTokenData = string
-type identTokenData = string
-type strTokenData = string
-type stringTokenData = string
-type intTokenData = int64
-type floatTokenData = float64
-
-type token struct {
-	kind tokenKind
-	data any
-}
-
-func (k tokenKind) String() string {
+func (k tokenType) String() string {
 	switch k {
-	case tokenKindTemplateData:
+	case tokenTypeTemplateData:
 		return "template-data"
-	case tokenKindVariableStart:
+	case tokenTypeVariableStart:
 		return "start of variable block"
-	case tokenKindVariableEnd:
+	case tokenTypeVariableEnd:
 		return "end of variable block"
-	case tokenKindBlockStart:
+	case tokenTypeBlockStart:
 		return "start of block"
-	case tokenKindBlockEnd:
+	case tokenTypeBlockEnd:
 		return "end of block"
-	case tokenKindIdent:
+	case tokenTypeIdent:
 		return "identifier"
-	case tokenKindStr:
+	case tokenTypeStr:
 		return "string"
-	case tokenKindString:
+	case tokenTypeString:
 		return "string"
-	case tokenKindInt:
+	case tokenTypeInt:
 		return "integer"
-	case tokenKindFloat:
+	case tokenTypeFloat:
 		return "float"
-	case tokenKindPlus:
+	case tokenTypePlus:
 		return "`+`"
-	case tokenKindMinus:
+	case tokenTypeMinus:
 		return "`-`"
-	case tokenKindMul:
+	case tokenTypeMul:
 		return "`*`"
-	case tokenKindDiv:
+	case tokenTypeDiv:
 		return "`/`"
-	case tokenKindFloorDiv:
+	case tokenTypeFloorDiv:
 		return "`//`"
-	case tokenKindPow:
+	case tokenTypePow:
 		return "`**`"
-	case tokenKindMod:
+	case tokenTypeMod:
 		return "`%`"
-	case tokenKindBang:
+	case tokenTypeBang:
 		return "`!`"
-	case tokenKindDot:
+	case tokenTypeDot:
 		return "`.`"
-	case tokenKindComma:
+	case tokenTypeComma:
 		return "`,`"
-	case tokenKindColon:
+	case tokenTypeColon:
 		return "`:`"
-	case tokenKindTilde:
+	case tokenTypeTilde:
 		return "`~`"
-	case tokenKindAssign:
+	case tokenTypeAssign:
 		return "`=`"
-	case tokenKindPipe:
+	case tokenTypePipe:
 		return "`|`"
-	case tokenKindEq:
+	case tokenTypeEq:
 		return "`==`"
-	case tokenKindNe:
+	case tokenTypeNe:
 		return "`!=`"
-	case tokenKindGt:
+	case tokenTypeGt:
 		return "`>`"
-	case tokenKindGte:
+	case tokenTypeGte:
 		return "`>=`"
-	case tokenKindLt:
+	case tokenTypeLt:
 		return "`<`"
-	case tokenKindLte:
+	case tokenTypeLte:
 		return "`<=`"
-	case tokenKindBracketOpen:
+	case tokenTypeBracketOpen:
 		return "`[`"
-	case tokenKindBracketClose:
+	case tokenTypeBracketClose:
 		return "`]`"
-	case tokenKindParenOpen:
+	case tokenTypeParenOpen:
 		return "`(`"
-	case tokenKindParenClose:
+	case tokenTypeParenClose:
 		return "`)`"
-	case tokenKindBraceOpen:
+	case tokenTypeBraceOpen:
 		return "`{`"
-	case tokenKindBraceClose:
-		return "`}`"
-	default:
-		return "unknown"
-	}
-}
-
-func (t *token) String() string {
-	switch t.kind {
-	case tokenKindTemplateData:
-		return "template-data"
-	case tokenKindVariableStart:
-		return "start of variable block"
-	case tokenKindVariableEnd:
-		return "end of variable block"
-	case tokenKindBlockStart:
-		return "start of block"
-	case tokenKindBlockEnd:
-		return "end of block"
-	case tokenKindIdent:
-		return "identifier"
-	case tokenKindStr:
-		return "string"
-	case tokenKindString:
-		return "string"
-	case tokenKindInt:
-		return "integer"
-	case tokenKindFloat:
-		return "float"
-	case tokenKindPlus:
-		return "`+`"
-	case tokenKindMinus:
-		return "`-`"
-	case tokenKindMul:
-		return "`*`"
-	case tokenKindDiv:
-		return "`/`"
-	case tokenKindFloorDiv:
-		return "`//`"
-	case tokenKindPow:
-		return "`**`"
-	case tokenKindMod:
-		return "`%`"
-	case tokenKindBang:
-		return "`!`"
-	case tokenKindDot:
-		return "`.`"
-	case tokenKindComma:
-		return "`,`"
-	case tokenKindColon:
-		return "`:`"
-	case tokenKindTilde:
-		return "`~`"
-	case tokenKindAssign:
-		return "`=`"
-	case tokenKindPipe:
-		return "`|`"
-	case tokenKindEq:
-		return "`==`"
-	case tokenKindNe:
-		return "`!=`"
-	case tokenKindGt:
-		return "`>`"
-	case tokenKindGte:
-		return "`>=`"
-	case tokenKindLt:
-		return "`<`"
-	case tokenKindLte:
-		return "`<=`"
-	case tokenKindBracketOpen:
-		return "`[`"
-	case tokenKindBracketClose:
-		return "`]`"
-	case tokenKindParenOpen:
-		return "`(`"
-	case tokenKindParenClose:
-		return "`)`"
-	case tokenKindBraceOpen:
-		return "`{`"
-	case tokenKindBraceClose:
+	case tokenTypeBraceClose:
 		return "`}`"
 	default:
 		return "unknown"

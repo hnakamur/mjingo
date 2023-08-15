@@ -11,11 +11,12 @@ func TestBasicIdentifiers(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if tk.kind != tokenKindIdent {
-				t.Errorf("token type mismatch, got=%v, want=%v, input=%q", tk.kind, tokenKindIdent, s)
-			}
-			if tk.data != s {
-				t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", tk.kind, s, s)
+			if tk, ok := tk.(identToken); ok {
+				if got, want := tk.s, s; got != want {
+					t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", got, want, s)
+				}
+			} else {
+				t.Errorf("token type mismatch, got=%v, want=%v, input=%q", tk.typ(), tokenTypeIdent, s)
 			}
 		}
 
@@ -28,9 +29,9 @@ func TestBasicIdentifiers(t *testing.T) {
 	t.Run("notIdent", func(t *testing.T) {
 		assertNotIdent := func(s string) {
 			it := Tokenize(s, true, nil)
-			tk, _, err := it.Next()
-			if err == nil && tk != nil && tk.kind == tokenKindIdent {
-				t.Errorf("token should not be an identifier, got=%s, input=%q", tk.kind, s)
+			tk, _, _ := it.Next()
+			if tk, ok := tk.(identToken); ok {
+				t.Errorf("token should not be an identifier, got=%s, input=%q", tk.typ(), s)
 			}
 		}
 
