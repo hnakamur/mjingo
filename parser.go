@@ -337,7 +337,20 @@ func (p *parser) parsePow() (expression, error) {
 }
 
 func (p *parser) parseMath2() (expression, error) {
-	return p.parsePow()
+	return p.binop(p.parsePow, func(tkn token) option[binOpType] {
+		switch tkn.(type) {
+		case mulToken:
+			return option[binOpType]{valid: true, data: binOpTypeMul}
+		case divToken:
+			return option[binOpType]{valid: true, data: binOpTypeDiv}
+		case floorDivToken:
+			return option[binOpType]{valid: true, data: binOpTypeFloorDiv}
+		case modToken:
+			return option[binOpType]{valid: true, data: binOpTypeRem}
+		default:
+			return option[binOpType]{}
+		}
+	})
 }
 
 func (p *parser) parseConcat() (expression, error) {
@@ -367,15 +380,31 @@ func (p *parser) parseCompare() (expression, error) {
 }
 
 func (p *parser) parseNot() (expression, error) {
-	return p.parseCompare()
+	return p.unaryop(p.parseNot, p.parseCompare,
+		func(tkn token) option[unaryOpType] {
+			if tkn, ok := tkn.(identToken); ok && tkn.s == "not" {
+				return option[unaryOpType]{valid: true, data: unaryOpTypeNot}
+			}
+			return option[unaryOpType]{}
+		})
 }
 
 func (p *parser) parseAnd() (expression, error) {
-	return p.parseNot()
+	return p.binop(p.parseNot, func(tkn token) option[binOpType] {
+		if tkn, ok := tkn.(identToken); ok && tkn.s == "and" {
+			return option[binOpType]{valid: true, data: binOpTypeScAnd}
+		}
+		return option[binOpType]{}
+	})
 }
 
 func (p *parser) parseOr() (expression, error) {
-	return p.parseAnd()
+	return p.binop(p.parseAnd, func(tkn token) option[binOpType] {
+		if tkn, ok := tkn.(identToken); ok && tkn.s == "or" {
+			return option[binOpType]{valid: true, data: binOpTypeScOr}
+		}
+		return option[binOpType]{}
+	})
 }
 
 func (p *parser) parseIfExpr() (expression, error) {
