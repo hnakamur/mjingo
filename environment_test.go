@@ -12,8 +12,8 @@ func TestEnvironment(t *testing.T) {
 	}{
 		{
 			source: "Hello {{ name }}",
-			context: value{typ: valueTypeMap, data: map[string]value{
-				"name": {typ: valueTypeString, data: "World"},
+			context: mapValue{m: map[string]value{
+				"name": stringValue{s: "World"},
 			}},
 			want: "Hello World",
 		},
@@ -45,22 +45,22 @@ func TestEnvironment(t *testing.T) {
 		{
 			source:  `Hello {{ none }}`,
 			context: valueNone,
-			want:    "Hello <nil>", // TODO: fix
+			want:    "Hello none",
 		},
 		{
 			source: `Hello {{ user.name }}`,
-			context: value{typ: valueTypeMap, data: map[string]value{
-				"user": {typ: valueTypeMap, data: map[string]value{
-					"name": {typ: valueTypeString, data: "John"},
+			context: mapValue{m: map[string]value{
+				"user": mapValue{m: map[string]value{
+					"name": stringValue{s: "John"},
 				}},
 			}},
 			want: "Hello John",
 		},
 		{
 			source: `Hello {{ user["name"] }}`,
-			context: value{typ: valueTypeMap, data: map[string]value{
-				"user": {typ: valueTypeMap, data: map[string]value{
-					"name": {typ: valueTypeString, data: "John"},
+			context: mapValue{m: map[string]value{
+				"user": mapValue{m: map[string]value{
+					"name": stringValue{s: "John"},
 				}},
 			}},
 			want: "Hello John",
@@ -77,8 +77,8 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ ["John", name][1] }}`,
-			context: value{typ: valueTypeMap, data: map[string]value{
-				"name": {typ: valueTypeString, data: "Paul"},
+			context: mapValue{m: map[string]value{
+				"name": stringValue{s: "Paul"},
 			}},
 			want: "Hello Paul",
 		},
@@ -89,8 +89,8 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ {"name": name}["name"] }}`,
-			context: value{typ: valueTypeMap, data: map[string]value{
-				"name": {typ: valueTypeString, data: "Paul"},
+			context: mapValue{m: map[string]value{
+				"name": stringValue{s: "Paul"},
 			}},
 			want: "Hello Paul",
 		},

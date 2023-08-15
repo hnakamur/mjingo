@@ -43,7 +43,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			}
 		case instructionKindEmit:
 			v := stack.pop()
-			if _, err := fmt.Fprintf(out, "%v", v.data); err != nil {
+			if err := m.env.format(v, state, out); err != nil {
 				return option[value]{}, err
 			}
 		case instructionKindLookup:
@@ -64,32 +64,32 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
 			if v := a.getAttrFast(name); v.valid {
-				if v2, err := assertValid(v.data, pc, state); err != nil {
+				if v, err := assertValid(v.data, pc, state); err != nil || !v.valid {
 					return option[value]{}, err
 				} else {
-					stack.push(v2)
+					stack.push(v.data)
 				}
 			} else {
-				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil {
+				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil || !v.valid {
 					return option[value]{}, processErr(err, pc, state)
 				} else {
-					stack.push(v)
+					stack.push(v.data)
 				}
 			}
 		case instructionKindGetItem:
 			a = stack.pop()
 			b = stack.pop()
 			if v := b.getItemOpt(a); v.valid {
-				if v2, err := assertValid(v.data, pc, state); err != nil {
+				if v, err := assertValid(v.data, pc, state); err != nil || !v.valid {
 					return option[value]{}, err
 				} else {
-					stack.push(v2)
+					stack.push(v.data)
 				}
 			} else {
-				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil {
+				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil || !v.valid {
 					return option[value]{}, processErr(err, pc, state)
 				} else {
-					stack.push(v)
+					stack.push(v.data)
 				}
 			}
 		case instructionKindSlice:
@@ -116,7 +116,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				key := stack.pop()
 				m[key.asStr().data] = val
 			}
-			stack.push(value{typ: valueTypeMap, data: m})
+			stack.push(mapValue{m: m})
 		case instructionKindBuildList:
 			count := instr.data.(buildListInstructionData)
 			v := make([]value, 0, untrustedSizeHint(count))
@@ -124,7 +124,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				v = append(v, stack.pop())
 			}
 			slices.Reverse(v)
-			stack.push(value{typ: valueTypeSeq, data: v})
+			stack.push(seqValue{items: v})
 		case instructionKindAdd:
 			b = stack.pop()
 			a = stack.pop()
@@ -156,17 +156,17 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 	return stack.tryPop(), nil
 }
 
-func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
-	if v.typ == valueTypeInvalid {
-		detail := v.data.(invalidValueData)
+func assertValid(v value, pc uint, st *virtualMachineState) (option[value], error) {
+	if vInvalid, ok := v.(invalidValue); ok {
+		detail := vInvalid.detail
 		err := &Error{
 			kind:   BadSerialization,
 			detail: option[string]{valid: true, data: detail},
 		}
 		processErr(err, pc, st)
-		return value{}, err
+		return option[value]{}, err
 	}
-	return v, nil
+	return option[value]{valid: true, data: v}, nil
 }
 
 func processErr(err error, pc uint, st *virtualMachineState) error {

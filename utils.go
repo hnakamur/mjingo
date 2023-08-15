@@ -35,12 +35,12 @@ const (
 	UndefinedBehaviorDefault = UndefinedBehaviorLenient
 )
 
-func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (value, error) {
+func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (option[value], error) {
 	switch {
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
-		return valueUndefined, nil
+		return option[value]{valid: true, data: valueUndefined}, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
-		return value{}, &Error{kind: UndefinedError}
+		return option[value]{}, &Error{kind: UndefinedError}
 	default:
 		panic("unreachable")
 	}

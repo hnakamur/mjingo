@@ -217,23 +217,23 @@ func (p *parser) parsePrimaryImpl() (*expr, error) {
 		data := tkn.data.(identTokenData)
 		switch data {
 		case "true", "True":
-			return makeConst(value{typ: valueTypeBool, data: true}, *spn), nil
+			return makeConst(boolValue{b: true}, *spn), nil
 		case "false", "False":
-			return makeConst(value{typ: valueTypeBool, data: false}, *spn), nil
+			return makeConst(boolValue{b: false}, *spn), nil
 		case "none", "None":
-			return makeConst(value{typ: valueTypeNone}, *spn), nil
+			return makeConst(valueNone, *spn), nil
 		default:
 			return &expr{kind: exprKindVar, data: varExprData{id: data}, span: *spn}, nil
 		}
 	case tokenKindString:
 		data := tkn.data.(stringTokenData)
-		return makeConst(value{typ: valueTypeString, data: data}, *spn), nil
+		return makeConst(stringValue{s: data}, *spn), nil
 	case tokenKindInt:
 		data := tkn.data.(intTokenData)
-		return makeConst(value{typ: valueTypeI64, data: data}, *spn), nil
+		return makeConst(i64Value{n: data}, *spn), nil
 	case tokenKindFloat:
 		data := tkn.data.(floatTokenData)
-		return makeConst(value{typ: valueTypeF64, data: data}, *spn), nil
+		return makeConst(f64Value{f: data}, *spn), nil
 	case tokenKindParenOpen:
 		return p.parseTupleOrExpression(*spn)
 	case tokenKindBracketOpen:

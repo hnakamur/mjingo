@@ -64,7 +64,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		if data.start.valid {
 			g.compileExpr(data.start.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: value{typ: valueTypeI64, data: int64(0)}})
+			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(0)}})
 		}
 		if data.stop.valid {
 			g.compileExpr(data.stop.data)
@@ -74,7 +74,7 @@ func (g *codeGenerator) compileExpr(exp expr) {
 		if data.step.valid {
 			g.compileExpr(data.step.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: value{typ: valueTypeI64, data: int64(1)}})
+			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(1)}})
 		}
 		g.add(instruction{kind: instructionKindSlice})
 		g.popSpan()

@@ -7,6 +7,21 @@ import (
 	"strings"
 )
 
+type value interface {
+	String() string
+
+	typ() valueType
+	kind() valueKind
+	isUndefined() bool
+	isNone() bool
+	getAttrFast(key string) option[value]
+	getItemOpt(key value) option[value]
+	asStr() option[string]
+	tryToI64() (int64, error)
+	asF64() option[float64]
+	// clone() value TODO: implment
+}
+
 type valueType int
 
 const (
@@ -47,8 +62,8 @@ const (
 	valueKindMap
 )
 
-var valueUndefined = value{typ: valueTypeUndefined}
-var valueNone = value{typ: valueTypeNone}
+var valueUndefined = undefinedValue{}
+var valueNone = noneValue{}
 
 func (t valueType) String() string {
 	switch t {
@@ -85,79 +100,202 @@ func (t valueType) String() string {
 	}
 }
 
-type boolValueData = bool
-type u64ValueData = uint64
-type i64ValueData = int64
-type f64ValueData = float64
-type invalidValueData = string
-
-type u128ValueData = struct {
-	hi uint64
-	lo uint64
-}
-
-type i128ValueData = struct {
+type undefinedValue struct{}
+type boolValue struct{ b bool }
+type u64Value struct{ n uint64 }
+type i64Value struct{ n int64 }
+type f64Value struct{ f float64 }
+type noneValue struct{}
+type invalidValue struct{ detail string }
+type u128Value struct{ hi, lo uint64 }
+type i128Value struct {
 	hi int64
 	lo uint64
 }
-
-type stringValueData = string
-type bytesValueData = []byte
-type seqValueData = []value
-type mapValueData = map[string]value
-
-type value struct {
-	typ  valueType
-	data any
+type stringValue struct{ s string }
+type bytesValue struct{ b []byte }
+type seqValue struct{ items []value }
+type mapValue struct {
+	// TODO: use an ordered map
+	// TODO: use keyRef as key
+	m map[string]value
+}
+type dynamicValue struct {
+	// TODO: implement
 }
 
-func (v *value) isUndefined() bool {
-	return v.typ == valueTypeUndefined
-}
+var _ = value(undefinedValue{})
+var _ = value(boolValue{})
+var _ = value(u64Value{})
+var _ = value(i64Value{})
+var _ = value(f64Value{})
+var _ = value(noneValue{})
+var _ = value(invalidValue{})
+var _ = value(u128Value{})
+var _ = value(i128Value{})
+var _ = value(stringValue{})
+var _ = value(bytesValue{})
+var _ = value(seqValue{})
+var _ = value(mapValue{})
+var _ = value(dynamicValue{})
 
-func (v *value) isNone() bool {
-	return v.typ == valueTypeNone
-}
-
-func (v *value) getAttrFast(key string) option[value] {
-	switch v.typ {
-	case valueTypeMap:
-		items := v.data.(mapValueData)
-		if v, ok := items[key]; ok {
-			return option[value]{valid: true, data: v}
+func (v undefinedValue) String() string { return "" }
+func (v boolValue) String() string      { return strconv.FormatBool(v.b) }
+func (v u64Value) String() string       { return strconv.FormatUint(v.n, 10) }
+func (v i64Value) String() string       { return strconv.FormatInt(v.n, 10) }
+func (v f64Value) String() string {
+	f := v.f
+	if math.IsNaN(f) {
+		return "NaN"
+	} else if math.IsInf(f, 1) {
+		return "inf"
+	} else if math.IsInf(f, -1) {
+		return "-inf"
+	} else {
+		s := strconv.FormatFloat(f, 'f', -1, 64)
+		if strings.ContainsRune(s, '.') {
+			return s
 		}
-	default:
-		panic(fmt.Sprintf("not implemented for valueType: %s", v.typ))
+		return s + ".0"
+	}
+}
+func (v noneValue) String() string    { return "none" }
+func (v invalidValue) String() string { return fmt.Sprintf("<invalid value: %s>", v.detail) }
+func (v u128Value) String() string    { panic("not implemented yet") }
+func (v i128Value) String() string    { panic("not implemented yet") }
+func (v stringValue) String() string  { return v.s }
+func (v bytesValue) String() string   { return string(v.b) } // TODO: equivalent impl as String::from_utf8_lossy
+func (v seqValue) String() string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i, item := range v.items {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(item.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+	}
+	b.WriteString("]")
+	return b.String()
+}
+func (v mapValue) String() string {
+	var b strings.Builder
+	b.WriteString("{")
+	first := true
+	for key, val := range v.m {
+		if first {
+			first = false
+		} else {
+			b.WriteString(", ")
+		}
+		b.WriteString(key)
+		b.WriteString(": ")
+		b.WriteString(val.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+	}
+	b.WriteString("}")
+	return b.String()
+}
+func (v dynamicValue) String() string { panic("not implemented yet") }
+
+func (undefinedValue) typ() valueType { return valueTypeUndefined }
+func (boolValue) typ() valueType      { return valueTypeBool }
+func (u64Value) typ() valueType       { return valueTypeU64 }
+func (i64Value) typ() valueType       { return valueTypeI64 }
+func (f64Value) typ() valueType       { return valueTypeF64 }
+func (noneValue) typ() valueType      { return valueTypeNone }
+func (invalidValue) typ() valueType   { return valueTypeInvalid }
+func (u128Value) typ() valueType      { return valueTypeU128 }
+func (i128Value) typ() valueType      { return valueTypeI128 }
+func (stringValue) typ() valueType    { return valueTypeString }
+func (bytesValue) typ() valueType     { return valueTypeBytes }
+func (seqValue) typ() valueType       { return valueTypeSeq }
+func (mapValue) typ() valueType       { return valueTypeMap }
+func (dynamicValue) typ() valueType   { return valueTypeDynamic }
+
+func (undefinedValue) kind() valueKind { return valueKindUndefined }
+func (boolValue) kind() valueKind      { return valueKindBool }
+func (u64Value) kind() valueKind       { return valueKindNumber }
+func (i64Value) kind() valueKind       { return valueKindNumber }
+func (f64Value) kind() valueKind       { return valueKindNumber }
+func (noneValue) kind() valueKind      { return valueKindNone }
+func (invalidValue) kind() valueKind   { return valueKindMap } // XXX: invalid values report themselves as maps which is a lie
+func (u128Value) kind() valueKind      { return valueKindNumber }
+func (i128Value) kind() valueKind      { return valueKindNumber }
+func (stringValue) kind() valueKind    { return valueKindString }
+func (bytesValue) kind() valueKind     { return valueKindBytes }
+func (seqValue) kind() valueKind       { return valueKindSeq }
+func (mapValue) kind() valueKind       { return valueKindMap }
+func (dynamicValue) kind() valueKind   { panic("not implemented for valueTypeDynamic") }
+
+func (undefinedValue) isNone() bool { return false }
+func (boolValue) isNone() bool      { return false }
+func (u64Value) isNone() bool       { return false }
+func (i64Value) isNone() bool       { return false }
+func (f64Value) isNone() bool       { return false }
+func (noneValue) isNone() bool      { return true }
+func (invalidValue) isNone() bool   { return false }
+func (u128Value) isNone() bool      { return false }
+func (i128Value) isNone() bool      { return false }
+func (stringValue) isNone() bool    { return false }
+func (bytesValue) isNone() bool     { return false }
+func (seqValue) isNone() bool       { return false }
+func (mapValue) isNone() bool       { return false }
+func (dynamicValue) isNone() bool   { return false }
+
+func (undefinedValue) isUndefined() bool { return true }
+func (boolValue) isUndefined() bool      { return false }
+func (u64Value) isUndefined() bool       { return false }
+func (i64Value) isUndefined() bool       { return false }
+func (f64Value) isUndefined() bool       { return false }
+func (noneValue) isUndefined() bool      { return false }
+func (invalidValue) isUndefined() bool   { return false }
+func (u128Value) isUndefined() bool      { return false }
+func (i128Value) isUndefined() bool      { return false }
+func (stringValue) isUndefined() bool    { return false }
+func (bytesValue) isUndefined() bool     { return false }
+func (seqValue) isUndefined() bool       { return false }
+func (mapValue) isUndefined() bool       { return false }
+func (dynamicValue) isUndefined() bool   { return false }
+
+func (undefinedValue) getAttrFast(key string) option[value] { return option[value]{} }
+func (boolValue) getAttrFast(key string) option[value]      { return option[value]{} }
+func (u64Value) getAttrFast(key string) option[value]       { return option[value]{} }
+func (i64Value) getAttrFast(key string) option[value]       { return option[value]{} }
+func (f64Value) getAttrFast(key string) option[value]       { return option[value]{} }
+func (noneValue) getAttrFast(key string) option[value]      { return option[value]{} }
+func (invalidValue) getAttrFast(key string) option[value]   { return option[value]{} }
+func (u128Value) getAttrFast(key string) option[value]      { return option[value]{} }
+func (i128Value) getAttrFast(key string) option[value]      { return option[value]{} }
+func (stringValue) getAttrFast(key string) option[value]    { return option[value]{} }
+func (bytesValue) getAttrFast(key string) option[value]     { return option[value]{} }
+func (seqValue) getAttrFast(key string) option[value]       { return option[value]{} }
+func (v mapValue) getAttrFast(key string) option[value] {
+	if val, ok := v.m[key]; ok {
+		return option[value]{valid: true, data: val}
 	}
 	return option[value]{}
 }
+func (dynamicValue) getAttrFast(key string) option[value] {
+	panic("not implemented yet")
+}
 
-func (v *value) getItemOpt(key value) option[value] {
+func (undefinedValue) getItemOpt(key value) option[value] { return option[value]{} }
+func (boolValue) getItemOpt(key value) option[value]      { return option[value]{} }
+func (u64Value) getItemOpt(key value) option[value]       { return option[value]{} }
+func (i64Value) getItemOpt(key value) option[value]       { return option[value]{} }
+func (f64Value) getItemOpt(key value) option[value]       { return option[value]{} }
+func (noneValue) getItemOpt(key value) option[value]      { return option[value]{} }
+func (invalidValue) getItemOpt(key value) option[value]   { return option[value]{} }
+func (u128Value) getItemOpt(key value) option[value]      { return option[value]{} }
+func (i128Value) getItemOpt(key value) option[value]      { return option[value]{} }
+func (stringValue) getItemOpt(key value) option[value]    { return option[value]{} }
+func (bytesValue) getItemOpt(key value) option[value]     { return option[value]{} }
+func (v seqValue) getItemOpt(key value) option[value] {
 	keyRf := keyRef{kind: keyRefKindValue, data: key}
-	var seq seqObject
-	switch v.typ {
-	case valueTypeMap:
-		items := v.data.(mapValueData)
-
-		// implementation here is different from minijinja.
-		if keyData := keyRf.asStr(); keyData.valid {
-			if v, ok := items[keyData.data]; ok {
-				return option[value]{valid: true, data: v}
-			}
-		} else {
-			panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
-		}
-	case valueTypeSeq:
-		items := v.data.(seqValueData)
-		seq = newSliceSeqObject(items)
-	default:
-		panic(fmt.Sprintf("not implemented for valueType: %s", v.typ))
-	}
-
 	if idx := keyRf.asI64(); idx.valid {
 		if idx.data < math.MinInt || math.MaxInt < idx.data {
 			return option[value]{}
 		}
+		seq := newSliceSeqObject(v.items)
 		var i uint
 		if idx.data < 0 {
 			c := seq.itemCount()
@@ -172,43 +310,83 @@ func (v *value) getItemOpt(key value) option[value] {
 	}
 	return option[value]{}
 }
-
-func (v value) asStr() option[string] {
-	switch v.typ {
-	case valueTypeString:
-		data := v.data.(stringValueData)
-		return option[string]{valid: true, data: data}
-	default:
-		return option[string]{}
+func (v mapValue) getItemOpt(key value) option[value] {
+	keyRf := keyRef{kind: keyRefKindValue, data: key}
+	// implementation here is different from minijinja.
+	if keyData := keyRf.asStr(); keyData.valid {
+		if v, ok := v.m[keyData.data]; ok {
+			return option[value]{valid: true, data: v}
+		}
+		return option[value]{}
 	}
+	panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
+}
+func (dynamicValue) getItemOpt(key value) option[value] {
+	panic("not implemented yet")
 }
 
-func (v value) tryToI64() (int64, error) {
-	switch v.typ {
-	case valueTypeBool:
-		data := v.data.(boolValueData)
-		if data {
-			return 1, nil
-		} else {
-			return 0, nil
-		}
-	case valueTypeI64:
-		data := v.data.(i64ValueData)
-		return data, nil
-	case valueTypeU64:
-		data := v.data.(u64ValueData)
-		return int64(data), nil
-	case valueTypeF64:
-		data := v.data.(f64ValueData)
-		if float64(int64(data)) == data {
-			return int64(data), nil
-		}
-	case valueTypeI128:
-		panic("not implemented")
-	case valueTypeU128:
-		panic("not implemented")
+func (undefinedValue) asStr() option[string] { return option[string]{} }
+func (boolValue) asStr() option[string]      { return option[string]{} }
+func (u64Value) asStr() option[string]       { return option[string]{} }
+func (i64Value) asStr() option[string]       { return option[string]{} }
+func (f64Value) asStr() option[string]       { return option[string]{} }
+func (noneValue) asStr() option[string]      { return option[string]{} }
+func (invalidValue) asStr() option[string]   { return option[string]{} }
+func (u128Value) asStr() option[string]      { return option[string]{} }
+func (i128Value) asStr() option[string]      { return option[string]{} }
+func (v stringValue) asStr() option[string]  { return option[string]{valid: true, data: v.s} }
+func (bytesValue) asStr() option[string]     { return option[string]{} }
+func (seqValue) asStr() option[string]       { return option[string]{} }
+func (v mapValue) asStr() option[string]     { return option[string]{} }
+func (dynamicValue) asStr() option[string] {
+	panic("not implemented yet")
+}
+
+func (v undefinedValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v boolValue) tryToI64() (int64, error) {
+	if v.b {
+		return 1, nil
 	}
-	return 0, unsupportedConversion(v.typ, "i64")
+	return 0, nil
+}
+func (v u64Value) tryToI64() (int64, error) { return int64(v.n), nil }
+func (v i64Value) tryToI64() (int64, error) { return v.n, nil }
+func (v f64Value) tryToI64() (int64, error) {
+	if float64(int64(v.f)) == v.f {
+		return int64(v.f), nil
+	}
+	return 0, unsupportedConversion(v.typ(), "i64")
+}
+func (v noneValue) tryToI64() (int64, error)    { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v invalidValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v u128Value) tryToI64() (int64, error)    { panic("not implemented yet") }
+func (v i128Value) tryToI64() (int64, error)    { panic("not implemented yet") }
+func (v stringValue) tryToI64() (int64, error)  { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v bytesValue) tryToI64() (int64, error)   { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v seqValue) tryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v mapValue) tryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v dynamicValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+
+func (undefinedValue) asF64() option[float64] { return option[float64]{} }
+func (v boolValue) asF64() option[float64] {
+	if v.b {
+		return option[float64]{valid: true, data: float64(1)}
+	}
+	return option[float64]{}
+}
+func (v u64Value) asF64() option[float64]    { return option[float64]{valid: true, data: float64(v.n)} }
+func (v i64Value) asF64() option[float64]    { return option[float64]{valid: true, data: float64(v.n)} }
+func (v f64Value) asF64() option[float64]    { return option[float64]{valid: true, data: v.f} }
+func (noneValue) asF64() option[float64]     { return option[float64]{} }
+func (invalidValue) asF64() option[float64]  { return option[float64]{} }
+func (u128Value) asF64() option[float64]     { panic("not implemented yet") }
+func (i128Value) asF64() option[float64]     { panic("not implemented yet") }
+func (v stringValue) asF64() option[float64] { return option[float64]{} }
+func (bytesValue) asF64() option[float64]    { return option[float64]{} }
+func (seqValue) asF64() option[float64]      { return option[float64]{} }
+func (mapValue) asF64() option[float64]      { return option[float64]{} }
+func (dynamicValue) asF64() option[float64] {
+	panic("not implemented yet")
 }
 
 func unsupportedConversion(kind valueType, target string) error {
@@ -223,93 +401,4 @@ func unsupportedConversion(kind valueType, target string) error {
 
 func valueMapWithCapacity(capacity uint) map[string]value {
 	return make(map[string]value, untrustedSizeHint(capacity))
-}
-
-func (v value) kind() valueKind {
-	switch v.typ {
-	case valueTypeUndefined:
-		return valueKindUndefined
-	case valueTypeBool:
-		return valueKindBool
-	case valueTypeU64, valueTypeI64, valueTypeF64, valueTypeU128, valueTypeI128:
-		return valueKindNumber
-	case valueTypeNone:
-		return valueKindNone
-	case valueTypeInvalid:
-		// XXX: invalid values report themselves as maps which is a lie
-		return valueKindMap
-	case valueTypeString:
-		return valueKindString
-	case valueTypeBytes:
-		return valueKindBytes
-	case valueTypeSeq:
-		return valueKindSeq
-	case valueTypeMap:
-		return valueKindMap
-	case valueTypeDynamic:
-		panic("not implemented for valueTypeDynamic")
-	default:
-		panic(fmt.Sprintf("invalid valueType: %d", v.typ))
-	}
-}
-
-func (v value) asF64() option[float64] {
-	var f float64
-	switch v.typ {
-	case valueTypeBool:
-		if v.data.(boolValueData) {
-			f = 1
-		}
-	case valueTypeU64:
-		f = float64(v.data.(u64ValueData))
-	case valueTypeI64:
-		f = float64(v.data.(i64ValueData))
-	case valueTypeF64:
-		f = v.data.(f64ValueData)
-	case valueTypeI128, valueTypeU128:
-		panic("not implemented")
-	default:
-		return option[float64]{}
-	}
-	return option[float64]{valid: true, data: f}
-}
-
-func (v value) String() string {
-	switch v.typ {
-	case valueTypeUndefined:
-		return ""
-	case valueTypeBool, valueTypeU64, valueTypeI64:
-		return fmt.Sprintf("%v", v.data)
-	case valueTypeF64:
-		f := v.data.(f64ValueData)
-		if math.IsNaN(f) {
-			return "NaN"
-		} else if math.IsInf(f, 1) {
-			return "inf"
-		} else if math.IsInf(f, -1) {
-			return "-inf"
-		} else {
-			s := strconv.FormatFloat(f, 'f', -1, 64)
-			if strings.ContainsRune(s, '.') {
-				return s
-			}
-			return s + ".0"
-		}
-	case valueTypeNone:
-		return "none"
-	case valueTypeInvalid:
-		data := v.data.(invalidValueData)
-		return fmt.Sprintf("<invalid value: %s>", data)
-	case valueTypeString:
-		return v.data.(stringValueData)
-	case valueTypeBytes:
-		// TODO: equivalent impl as String::from_utf8_lossy
-		return string(v.data.(bytesValueData))
-	case valueTypeI128, valueTypeU128:
-		panic("not implemented")
-	case valueTypeDynamic:
-		panic("not implemented")
-	default:
-		panic("invalid value type")
-	}
 }

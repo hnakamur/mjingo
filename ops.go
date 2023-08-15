@@ -36,70 +36,65 @@ func opsGetOffsetAndLen(start int64, stop option[int64], end func() uint) (uint,
 	return startIdx, stopIdx
 }
 
-func opsSlice(v, start, stop, step value) (value, error) {
+func opsSlice(val, start, stop, step value) (value, error) {
 	startVal := int64(0)
 	if !start.isNone() {
-		if start.typ != valueTypeI64 {
+		if s, ok := start.(i64Value); ok {
+			startVal = s.n
+		} else {
 			panic("opsSlice start must be an i64")
 		}
-		startVal = start.data.(i64ValueData)
 	}
 	stopVal := option[int64]{}
 	if !stop.isNone() {
-		if stop.typ != valueTypeI64 {
+		if s, ok := stop.(i64Value); ok {
+			stopVal = option[int64]{valid: true, data: s.n}
+		} else {
 			panic("opsSlice stop must be an i64")
 		}
-		stopVal = option[int64]{valid: true, data: stop.data.(i64ValueData)}
 	}
 	stepVal := int64(1)
 	if !step.isNone() {
-		if step.typ != valueTypeI64 {
+		if s, ok := step.(i64Value); ok {
+			stepVal = s.n
+			if stepVal < 0 {
+				return valueUndefined, &Error{
+					kind: InvalidOperation,
+					detail: option[string]{
+						valid: true,
+						data:  "cannot slice by negative step size",
+					},
+				}
+			}
+			if stepVal == 0 {
+				return valueUndefined, &Error{
+					kind: InvalidOperation,
+					detail: option[string]{
+						valid: true,
+						data:  "cannot slice by step size of 0",
+					},
+				}
+			}
+		} else {
 			panic("opsSlice step must be an i64")
-		}
-		stepVal = step.data.(i64ValueData)
-		if stepVal < 0 {
-			return value{}, &Error{
-				kind: InvalidOperation,
-				detail: option[string]{
-					valid: true,
-					data:  "cannot slice by negative step size",
-				},
-			}
-		}
-		if stepVal == 0 {
-			return value{}, &Error{
-				kind: InvalidOperation,
-				detail: option[string]{
-					valid: true,
-					data:  "cannot slice by step size of 0",
-				},
-			}
 		}
 	}
 
 	var maybeSeq seqObject
-	switch v.typ {
-	case valueTypeString:
-		data := v.data.(stringValueData)
-		chars := []rune(data)
+	switch v := val.(type) {
+	case stringValue:
+		chars := []rune(v.s)
 		startIdx, stopIdx := opsGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
 		sliced := make([]rune, 0, len(chars))
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
 			sliced = append(sliced, chars[i])
 		}
-		return value{
-			typ:  valueTypeString,
-			data: string(sliced),
-		}, nil
-	case valueTypeUndefined, valueTypeNone:
-		return value{
-			typ:  valueTypeSeq,
-			data: []value{},
-		}, nil
-	case valueTypeSeq:
-		data := v.data.(seqValueData)
-		maybeSeq = newSliceSeqObject(data)
-	case valueTypeDynamic:
+		return stringValue{s: string(sliced)}, nil
+	case undefinedValue, noneValue:
+		return seqValue{items: []value{}}, nil
+	case seqValue:
+		maybeSeq = newSliceSeqObject(v.items)
+	case dynamicValue:
 		panic("not implemented")
 	}
 
@@ -111,38 +106,34 @@ func opsSlice(v, start, stop, step value) (value, error) {
 				sliced = append(sliced, item.data)
 			}
 		}
-		return value{
-			typ:  valueTypeSeq,
-			data: sliced,
-		}, nil
+		return seqValue{items: sliced}, nil
 	}
-	return value{}, &Error{
+	return valueUndefined, &Error{
 		kind: InvalidOperation,
 		detail: option[string]{
 			valid: true,
-			data:  fmt.Sprintf("value of type %s cannot be sliced", v.typ),
+			data:  fmt.Sprintf("value of type %s cannot be sliced", val.typ()),
 		},
 	}
 }
 
-func opsNeg(v value) (value, error) {
-	if v.kind() != valueKindNumber {
-		return value{}, &Error{kind: InvalidOperation}
+func opsNeg(val value) (value, error) {
+	if val.kind() != valueKindNumber {
+		return valueUndefined, &Error{kind: InvalidOperation}
 	}
-	if v.typ == valueTypeF64 {
-		data := v.data.(f64ValueData)
-		return value{typ: valueTypeF64, data: -data}, nil
+	if v, ok := val.(f64Value); ok {
+		return f64Value{f: -v.f}, nil
 	}
 
-	if v.typ == valueTypeI128 || v.typ == valueTypeU128 {
+	if val.typ() == valueTypeI128 || val.typ() == valueTypeU128 {
 		panic("not implemented")
 	}
 
-	x, err := v.tryToI64()
-	if err != nil {
-		return value{}, err
+	if x, err := val.tryToI64(); err != nil {
+		return valueUndefined, err
+	} else {
+		return i64Value{n: -x}, nil
 	}
-	return value{typ: valueTypeI64, data: -x}, nil
 }
 
 func opsAdd(lhs, rhs value) (value, error) {
@@ -151,25 +142,16 @@ func opsAdd(lhs, rhs value) (value, error) {
 		switch cRes.typ {
 		case coerceResultTypeI64:
 			data := cRes.data.(i64CoerceResultData)
-			return value{
-				typ:  valueTypeI64,
-				data: data.lhs + data.rhs,
-			}, nil
+			return i64Value{n: data.lhs + data.rhs}, nil
 		case coerceResultTypeF64:
 			data := cRes.data.(f64CoerceResultData)
-			return value{
-				typ:  valueTypeF64,
-				data: data.lhs + data.rhs,
-			}, nil
+			return f64Value{f: data.lhs + data.rhs}, nil
 		case coerceResultTypeStr:
 			data := cRes.data.(strCoerceResultData)
-			return value{
-				typ:  valueTypeString,
-				data: data.lhs + data.rhs,
-			}, nil
+			return stringValue{s: data.lhs + data.rhs}, nil
 		}
 	}
-	return value{}, impossibleOp("+", lhs, rhs)
+	return valueUndefined, impossibleOp("+", lhs, rhs)
 }
 
 func opsSub(lhs, rhs value) (value, error) {
@@ -179,21 +161,15 @@ func opsSub(lhs, rhs value) (value, error) {
 		case coerceResultTypeI64:
 			data := cRes.data.(i64CoerceResultData)
 			if data.lhs < data.rhs {
-				return value{}, failedOp("-", lhs, rhs)
+				return valueUndefined, failedOp("-", lhs, rhs)
 			}
-			return value{
-				typ:  valueTypeI64,
-				data: data.lhs - data.rhs,
-			}, nil
+			return i64Value{n: data.lhs - data.rhs}, nil
 		case coerceResultTypeF64:
 			data := cRes.data.(f64CoerceResultData)
-			return value{
-				typ:  valueTypeF64,
-				data: data.lhs - data.rhs,
-			}, nil
+			return f64Value{f: data.lhs - data.rhs}, nil
 		}
 	}
-	return value{}, impossibleOp("-", lhs, rhs)
+	return valueUndefined, impossibleOp("-", lhs, rhs)
 }
 
 type coerceResultType int
@@ -227,9 +203,9 @@ type strCoerceResultData struct {
 
 func coerce(a, b value) option[coerceResult] {
 	switch {
-	case a.typ == valueTypeU64 && b.typ == valueTypeU64:
-		aVal := a.data.(u64ValueData)
-		bVal := b.data.(u64ValueData)
+	case a.typ() == valueTypeU64 && b.typ() == valueTypeU64:
+		aVal := a.(u64Value).n
+		bVal := b.(u64Value).n
 		if aVal > math.MaxInt64 || bVal > math.MaxInt64 {
 			return option[coerceResult]{}
 		}
@@ -240,9 +216,9 @@ func coerce(a, b value) option[coerceResult] {
 				data: i64CoerceResultData{lhs: int64(aVal), rhs: int64(bVal)},
 			},
 		}
-	case a.typ == valueTypeI64 && b.typ == valueTypeI64:
-		aVal := a.data.(i64ValueData)
-		bVal := b.data.(i64ValueData)
+	case a.typ() == valueTypeI64 && b.typ() == valueTypeI64:
+		aVal := a.(i64Value).n
+		bVal := b.(i64Value).n
 		return option[coerceResult]{
 			valid: true,
 			data: coerceResult{
@@ -250,9 +226,9 @@ func coerce(a, b value) option[coerceResult] {
 				data: i64CoerceResultData{lhs: aVal, rhs: bVal},
 			},
 		}
-	case a.typ == valueTypeString && b.typ == valueTypeString:
-		aVal := a.data.(stringValueData)
-		bVal := b.data.(stringValueData)
+	case a.typ() == valueTypeString && b.typ() == valueTypeString:
+		aVal := a.(stringValue).s
+		bVal := b.(stringValue).s
 		return option[coerceResult]{
 			valid: true,
 			data: coerceResult{
@@ -260,17 +236,17 @@ func coerce(a, b value) option[coerceResult] {
 				data: strCoerceResultData{lhs: aVal, rhs: bVal},
 			},
 		}
-	case a.typ == valueTypeF64 || b.typ == valueTypeF64:
+	case a.typ() == valueTypeF64 || b.typ() == valueTypeF64:
 		var aVal, bVal float64
-		if a.typ == valueTypeF64 {
-			aVal = a.data.(f64ValueData)
+		if af, ok := a.(f64Value); ok {
+			aVal = af.f
 			if bMayVal := b.asF64(); bMayVal.valid {
 				bVal = bMayVal.data
 			} else {
 				return option[coerceResult]{}
 			}
-		} else if b.typ == valueTypeF64 {
-			bVal = b.data.(f64ValueData)
+		} else if bf, ok := b.(f64Value); ok {
+			bVal = bf.f
 			if aMayVal := a.asF64(); aMayVal.valid {
 				aVal = aMayVal.data
 			} else {
@@ -284,7 +260,7 @@ func coerce(a, b value) option[coerceResult] {
 				data: f64CoerceResultData{lhs: aVal, rhs: bVal},
 			},
 		}
-	case a.typ == valueTypeI128 || a.typ == valueTypeU128 || b.typ == valueTypeI128 || b.typ == valueTypeU128:
+	case a.typ() == valueTypeI128 || a.typ() == valueTypeU128 || b.typ() == valueTypeI128 || b.typ() == valueTypeU128:
 		panic("not implemented")
 	default:
 		// everything else goes up to i64 (different from i128 in MiniJinja)

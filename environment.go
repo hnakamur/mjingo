@@ -1,6 +1,9 @@
 package mjingo
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 type Environment struct {
 	syntaxConfig      SyntaxConfig
@@ -32,4 +35,15 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 		return nil, ErrTemplateNotFound
 	}
 	return tpl, nil
+}
+
+func (e *Environment) format(v value, state *virtualMachineState, out io.Writer) error {
+	if v.isUndefined() && e.UndefinedBehavior == UndefinedBehaviorStrict {
+		return &Error{kind: UndefinedError}
+	}
+	// TODO: use formatter
+	if _, err := io.WriteString(out, v.String()); err != nil {
+		return err
+	}
+	return nil
 }
