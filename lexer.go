@@ -209,7 +209,7 @@ func isASCIIWhitespace(r rune) bool {
 
 func (s *tokenizerState) syntaxError(msg string) error {
 	s.failed = true
-	return &Error{kind: SyntaxError, detail: option[string]{valid: true, data: msg}}
+	return &Error{typ: SyntaxError, detail: option[string]{valid: true, data: msg}}
 }
 
 type tokenizeIterator struct {

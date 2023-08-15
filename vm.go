@@ -95,7 +95,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			b = stack.pop()
 			a = stack.pop()
 			if a.isUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
-				return option[value]{}, processErr(&Error{kind: UndefinedError}, pc, state)
+				return option[value]{}, processErr(&Error{typ: UndefinedError}, pc, state)
 			}
 			if s, err := opsSlice(a, b, stop, step); err != nil {
 				return option[value]{}, processErr(err, pc, state)
@@ -154,7 +154,7 @@ func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
 	if vInvalid, ok := v.(invalidValue); ok {
 		detail := vInvalid.detail
 		err := &Error{
-			kind:   BadSerialization,
+			typ:    BadSerialization,
 			detail: option[string]{valid: true, data: detail},
 		}
 		processErr(err, pc, st)

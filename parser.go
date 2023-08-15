@@ -430,7 +430,7 @@ func withRecursionGuard(p *parser, f func() (expression, error)) (expression, er
 
 func unexpected(unexpected any, expected string) error {
 	return &Error{
-		kind: SyntaxError,
+		typ: SyntaxError,
 		detail: option[string]{
 			valid: true,
 			data:  fmt.Sprintf("unexpected %v, expected %s", unexpected, expected),
@@ -448,7 +448,7 @@ func makeConst(v value, spn span) expression {
 
 func syntaxError(msg string) error {
 	return &Error{
-		kind:   SyntaxError,
+		typ:    SyntaxError,
 		detail: option[string]{valid: true, data: msg},
 	}
 }

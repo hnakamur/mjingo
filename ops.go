@@ -59,7 +59,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 			stepVal = s.n
 			if stepVal < 0 {
 				return valueUndefined, &Error{
-					kind: InvalidOperation,
+					typ: InvalidOperation,
 					detail: option[string]{
 						valid: true,
 						data:  "cannot slice by negative step size",
@@ -68,7 +68,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 			}
 			if stepVal == 0 {
 				return valueUndefined, &Error{
-					kind: InvalidOperation,
+					typ: InvalidOperation,
 					detail: option[string]{
 						valid: true,
 						data:  "cannot slice by step size of 0",
@@ -109,7 +109,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 		return seqValue{items: sliced}, nil
 	}
 	return valueUndefined, &Error{
-		kind: InvalidOperation,
+		typ: InvalidOperation,
 		detail: option[string]{
 			valid: true,
 			data:  fmt.Sprintf("value of type %s cannot be sliced", val.typ()),
@@ -119,7 +119,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 
 func opsNeg(val value) (value, error) {
 	if val.kind() != valueKindNumber {
-		return valueUndefined, &Error{kind: InvalidOperation}
+		return valueUndefined, &Error{typ: InvalidOperation}
 	}
 	if v, ok := val.(f64Value); ok {
 		return f64Value{f: -v.f}, nil
@@ -284,7 +284,7 @@ func coerce(a, b value) option[coerceResult] {
 
 func failedOp(op string, lhs, rhs value) error {
 	return &Error{
-		kind: InvalidOperation,
+		typ: InvalidOperation,
 		detail: option[string]{
 			valid: true,
 			data: fmt.Sprintf("unable to calculate %s %s %s",
@@ -295,7 +295,7 @@ func failedOp(op string, lhs, rhs value) error {
 
 func impossibleOp(op string, lhs, rhs value) error {
 	return &Error{
-		kind: InvalidOperation,
+		typ: InvalidOperation,
 		detail: option[string]{
 			valid: true,
 			data: fmt.Sprintf("tried to use %s operator on unsupported types %s and %s",

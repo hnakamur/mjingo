@@ -391,7 +391,7 @@ func (dynamicValue) asF64() option[float64] {
 
 func unsupportedConversion(kind valueType, target string) error {
 	return &Error{
-		kind: InvalidOperation,
+		typ: InvalidOperation,
 		detail: option[string]{
 			valid: true,
 			data:  fmt.Sprintf("cannot convert %s to %s", kind, target),

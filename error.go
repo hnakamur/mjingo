@@ -6,63 +6,63 @@ import (
 )
 
 type Error struct {
-	kind   ErrorKind
+	typ    ErrorType
 	detail option[string]
 	name   option[string]
 	lineno uint
 	span   option[span]
 }
 
-type ErrorKind int
+type ErrorType int
 
 const (
 	// A non primitive value was encountered where one was expected.
-	NonPrimitive ErrorKind = 1
+	NonPrimitive ErrorType = 1
 	// A value is not valid for a key in a map.
-	NonKey ErrorKind = 2
+	NonKey ErrorType = 2
 	// An invalid operation was attempted.
-	InvalidOperation ErrorKind = 3
+	InvalidOperation ErrorType = 3
 	// The template has a syntax error
-	SyntaxError ErrorKind = 4
+	SyntaxError ErrorType = 4
 	// A template was not found.
-	TemplateNotFound ErrorKind = 5
+	TemplateNotFound ErrorType = 5
 	// Too many arguments were passed to a function.
-	TooManyArguments ErrorKind = 6
+	TooManyArguments ErrorType = 6
 	// A expected argument was missing
-	MissingArgument ErrorKind = 7
+	MissingArgument ErrorType = 7
 	// A filter is unknown
-	UnknownFilter ErrorKind = 8
+	UnknownFilter ErrorType = 8
 	// A test is unknown
-	UnknownTest ErrorKind = 9
+	UnknownTest ErrorType = 9
 	// A function is unknown
-	UnknownFunction ErrorKind = 10
+	UnknownFunction ErrorType = 10
 	// Un unknown method was called
-	UnknownMethod ErrorKind = 11
+	UnknownMethod ErrorType = 11
 	// A bad escape sequence in a string was encountered.
-	BadEscape ErrorKind = 12
+	BadEscape ErrorType = 12
 	// An operation on an undefined value was attempted.
-	UndefinedError ErrorKind = 13
+	UndefinedError ErrorType = 13
 	// Not able to serialize this value.
-	BadSerialization ErrorKind = 14
+	BadSerialization ErrorType = 14
 	// Not able to deserialize this value.
-	CannotDeserialize ErrorKind = 15
+	CannotDeserialize ErrorType = 15
 	// An error happened in an include.
-	BadInclude ErrorKind = 16
+	BadInclude ErrorType = 16
 	// An error happened in a super block.
-	EvalBlock ErrorKind = 17
+	EvalBlock ErrorType = 17
 	// Unable to unpack a value.
-	CannotUnpack ErrorKind = 18
+	CannotUnpack ErrorType = 18
 	// Failed writing output.
-	WriteFailure ErrorKind = 19
+	WriteFailure ErrorType = 19
 	// Engine ran out of fuel
-	OutOfFuel ErrorKind = 20
+	OutOfFuel ErrorType = 20
 	// Error creating aho-corasick delimiters
-	InvalidDelimiter ErrorKind = 21
+	InvalidDelimiter ErrorType = 21
 	// An unknown block was called
-	UnknownBlock ErrorKind = 22
+	UnknownBlock ErrorType = 22
 )
 
-func (k ErrorKind) String() string {
+func (k ErrorType) String() string {
 	switch k {
 	case NonPrimitive:
 		return "not a primitive"
@@ -115,7 +115,7 @@ func (k ErrorKind) String() string {
 
 func (e *Error) Error() string {
 	var b strings.Builder
-	b.WriteString(e.kind.String())
+	b.WriteString(e.typ.String())
 	if e.detail.valid {
 		b.WriteString(": ")
 		b.WriteString(e.detail.data)
