@@ -40,7 +40,7 @@ func newCompiledTemplate(name, source string, syntax SyntaxConfig) (*compiledTem
 		return nil, err
 	}
 	gen := newCodeGenerator(name, source)
-	gen.compileStmt(*st)
+	gen.compileStmt(st)
 	instructions, blocks := gen.finish()
 	return &compiledTemplate{
 		instructions: instructions,

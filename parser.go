@@ -471,8 +471,8 @@ func syntaxError(msg string) error {
 	}
 }
 
-func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
-	var rv []stmt
+func (p *parser) subparse(endCheck func(*token) bool) ([]statement, error) {
+	var rv []statement
 	for {
 		tkn, spn, err := p.stream.next()
 		if err != nil {
@@ -484,21 +484,13 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
 		switch tkn := tkn.(type) {
 		case templateDataToken:
 			raw := tkn.s
-			rv = append(rv, stmt{
-				kind: stmtKindEmitRaw,
-				data: emitRawStmtData{raw: raw},
-				span: *spn,
-			})
+			rv = append(rv, emitRawStmt{raw: raw, span: *spn})
 		case variableStartToken:
 			exp, err := p.parseExpr()
 			if err != nil {
 				return nil, err
 			}
-			rv = append(rv, stmt{
-				kind: stmtKindEmitExpr,
-				data: emitExprStmtData{expr: *exp},
-				span: p.stream.expandSpan(*spn),
-			})
+			rv = append(rv, emitExprStmt{expr: *exp, span: p.stream.expandSpan(*spn)})
 			if _, _, err := p.expectToken(isTokenOfKind(tokenTypeVariableEnd), "end of variable block"); err != nil {
 				return nil, err
 			}
@@ -511,24 +503,20 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]stmt, error) {
 	return rv, nil
 }
 
-func (p *parser) parse() (*stmt, error) {
+func (p *parser) parse() (statement, error) {
 	spn := p.stream.lastSpan
 	ss, err := p.subparse(func(*token) bool { return false })
 	if err != nil {
 		return nil, err
 	}
-	return &stmt{
-		kind: stmtKindTemplate,
-		data: templateStmtData{children: ss},
-		span: p.stream.expandSpan(spn),
-	}, nil
+	return templateStmt{children: ss, span: p.stream.expandSpan(spn)}, nil
 }
 
-func parse(source, filename string) (*stmt, error) {
+func parse(source, filename string) (statement, error) {
 	return parseWithSyntax(source, filename, DefaultSyntaxConfig)
 }
 
-func parseWithSyntax(source, filename string, syntax SyntaxConfig) (*stmt, error) {
+func parseWithSyntax(source, filename string, syntax SyntaxConfig) (statement, error) {
 	// we want to chop off a single newline at the end.  This means that a template
 	// by default does not end in a newline which is a useful property to allow
 	// inline templates to work.  If someone wants a trailing newline the expectation

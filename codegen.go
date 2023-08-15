@@ -19,31 +19,28 @@ func newCodeGenerator(file, source string) *codeGenerator {
 	}
 }
 
-func (g *codeGenerator) compileStmt(s stmt) {
-	switch s.kind {
-	case stmtKindTemplate:
-		data := s.data.(templateStmtData)
-		for _, node := range data.children {
+func (g *codeGenerator) compileStmt(s statement) {
+	switch s := s.(type) {
+	case templateStmt:
+		for _, node := range s.children {
 			g.compileStmt(node)
 		}
-	case stmtKindEmitExpr:
-		expr := s.data.(emitExprStmtData)
-		g.compileEmitExpr(spanned[emitExprStmtData]{data: expr, span: s.span})
-	case stmtKindEmitRaw:
-		raw := s.data.(emitRawStmtData)
-		g.add(instruction{kind: instructionKindEmitRaw, data: raw.raw})
-		g.rawTemplateBytes += uint(len(raw.raw))
+	case emitExprStmt:
+		g.compileEmitExpr(emitExprStmt{expr: s.expr, span: s.span})
+	case emitRawStmt:
+		g.add(instruction{kind: instructionKindEmitRaw, data: s.raw})
+		g.rawTemplateBytes += uint(len(s.raw))
 	}
 }
 
-func (g *codeGenerator) compileEmitExpr(exp spanned[emitExprStmtData]) {
+func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	g.setLineFromSpan(exp.span)
 
-	if exp.data.expr.kind == exprKindCall {
+	if exp.expr.kind == exprKindCall {
 		panic("not implemented")
 	}
 
-	g.compileExpr(exp.data.expr)
+	g.compileExpr(exp.expr)
 	g.add(instruction{kind: instructionKindEmit})
 }
 

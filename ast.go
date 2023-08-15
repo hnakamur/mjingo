@@ -2,180 +2,104 @@ package mjingo
 
 import (
 	"fmt"
-	"strings"
 )
 
-type spanned[T any] struct {
-	data T
-	span span
+type statement interface {
+	typ() stmtType
 }
 
-type stmtKind int
-
-const (
-	stmtKindTemplate stmtKind = iota + 1
-	stmtKindEmitExpr
-	stmtKindEmitRaw
-	stmtKindForLoop
-	stmtKindIfCond
-	stmtKindWithBlock
-	stmtKindSet
-	stmtKindSetBlock
-	stmtKindAutoEscape
-	stmtKindFilterBlock
-	stmtKindBlock
-	stmtKindImport
-	stmtKindFromImport
-	stmtKindExtends
-	stmtKindInclude
-	stmtKindMacro
-	stmtKindCallBlock
-	stmtKindDo
-)
-
-func (k stmtKind) String() string {
-	switch k {
-	case stmtKindTemplate:
-		return "template"
-	case stmtKindEmitExpr:
-		return "emitExpr"
-	case stmtKindEmitRaw:
-		return "emitRaw"
-	case stmtKindForLoop:
-		return "forLoop"
-	case stmtKindIfCond:
-		return "ifCond"
-	case stmtKindWithBlock:
-		return "withBlock"
-	case stmtKindSet:
-		return "set"
-	case stmtKindSetBlock:
-		return "setBlock"
-	case stmtKindAutoEscape:
-		return "autoEscape"
-	case stmtKindFilterBlock:
-		return "filterBlock"
-	case stmtKindBlock:
-		return "block"
-	case stmtKindImport:
-		return "import"
-	case stmtKindFromImport:
-		return "fromImport"
-	case stmtKindExtends:
-		return "extends"
-	case stmtKindInclude:
-		return "include"
-	case stmtKindMacro:
-		return "macro"
-	case stmtKindCallBlock:
-		return "callBlock"
-	case stmtKindDo:
-		return "do"
-	default:
-		panic("invalid stmtKind")
-	}
+type templateStmt struct {
+	children []statement
+	span     span
 }
-
-type stmt struct {
-	kind stmtKind
-	data any
-	span span
-}
-
-func (s stmt) String() string {
-	switch s.kind {
-	case stmtKindTemplate:
-		return fmt.Sprintf("(template %s)", s.data)
-	case stmtKindEmitExpr:
-		return fmt.Sprintf("(emitExpr %s)", s.data)
-	case stmtKindEmitRaw:
-		return fmt.Sprintf("(emitRaw %s)", s.data)
-	case stmtKindForLoop:
-		return "forLoop"
-	case stmtKindIfCond:
-		return "ifCond"
-	case stmtKindWithBlock:
-		return "withBlock"
-	case stmtKindSet:
-		return "set"
-	case stmtKindSetBlock:
-		return "setBlock"
-	case stmtKindAutoEscape:
-		return "autoEscape"
-	case stmtKindFilterBlock:
-		return "filterBlock"
-	case stmtKindBlock:
-		return "block"
-	case stmtKindImport:
-		return "import"
-	case stmtKindFromImport:
-		return "fromImport"
-	case stmtKindExtends:
-		return "extends"
-	case stmtKindInclude:
-		return "include"
-	case stmtKindMacro:
-		return "macro"
-	case stmtKindCallBlock:
-		return "callBlock"
-	case stmtKindDo:
-		return "do"
-	default:
-		panic("invalid stmtKind")
-	}
-}
-
-type templateStmtData struct {
-	children []stmt
-}
-
-func (s templateStmtData) String() string {
-	var b strings.Builder
-	b.WriteRune('[')
-	for i, c := range s.children {
-		if i > 0 {
-			b.WriteRune(' ')
-		}
-		b.WriteString(c.String())
-	}
-	b.WriteRune(']')
-	return b.String()
-}
-
-type emitExprStmtData struct {
+type emitExprStmt struct {
 	expr expr
+	span span
 }
-
-func (s emitExprStmtData) String() string {
-	return s.expr.String()
+type emitRawStmt struct {
+	raw  string
+	span span
 }
-
-type emitRawStmtData struct {
-	raw string
-}
-
-func (s emitRawStmtData) String() string {
-	return fmt.Sprintf("%q", s.raw)
-}
-
-type forLoopStmtData struct {
+type forLoopStmt struct {
 	target     expr
 	iter       expr
 	filterExpr option[expr]
 	recursive  bool
-	body       []stmt
-	elseBody   []stmt
+	body       []statement
+	elseBody   []statement
+	span       span
 }
-
-type ifCondStmtData struct {
+type ifCondStmt struct {
 	expr      expr
-	trueBody  []stmt
-	falseBody []stmt
+	trueBody  []statement
+	falseBody []statement
+	span      span
 }
-
-type withBlockStmtData struct {
+type withBlockStmt struct {
 	assignments []assignment
-	body        []stmt
+	body        []statement
+	span        span
+}
+type setStmt struct {
+	target expr
+	expr   expr
+	span   span
+}
+type setBlockStmt struct {
+	target expr
+	filter option[expr]
+	body   []statement
+	span   span
+}
+type autoEscapeStmt struct {
+	enabled expr
+	body    []statement
+	span    span
+}
+type filterBlockStmt struct {
+	filter expr
+	body   []statement
+	span   span
+}
+type blockStmt struct {
+	name string
+	body []statement
+	span span
+}
+type importStmt struct {
+	expr expr
+	name expr
+	span span
+}
+type fromImportStmt struct {
+	expr  expr
+	names []importName
+	span  span
+}
+type extendsStmt struct {
+	name expr
+	span span
+}
+type includeStmt struct {
+	name          expr
+	ignoreMissing bool
+	span          span
+}
+type macroStmt struct {
+	name     string
+	args     []expr
+	defaults []expr
+	body     []statement
+	span     span
+}
+type callBlockStmt struct {
+	call      call
+	macroDecl macroStmt
+	span      span
+}
+type doStmt struct {
+	call call
+	span span
 }
 
 type assignment struct {
@@ -183,76 +107,124 @@ type assignment struct {
 	rhs expr
 }
 
-type setBlockStmtData struct {
-	target expr
-	expr   expr
-}
-
-type setStmtData struct {
-	target expr
-	filter option[expr]
-	body   []stmt
-}
-
-type autoEscapeStmtData struct {
-	enabled expr
-	body    []stmt
-}
-
-type filterBlockStmtData struct {
-	filter expr
-	body   []stmt
-}
-
-type blockStmtData struct {
-	target expr
-	filter option[expr]
-	body   []stmt
-}
-
-type importStmtData struct {
-	expr expr
-	name expr
-}
-
-type fromImportStmtData struct {
-	expr  expr
-	names []importName
-}
-
 type importName struct {
 	name expr
 	as   option[expr]
 }
 
-type extendsStmtData struct {
-	name expr
-}
-
-type includeStmtData struct {
-	name          expr
-	ignoreMissing bool
-}
-
-type macroStmtData struct {
-	name     string
-	args     []expr
-	defaults []expr
-	body     []stmt
-}
-
-type callBlockStmtData struct {
-	call      spanned[call]
-	macroDecl spanned[macroStmtData]
-}
-
-type doStmtData struct {
-	call spanned[call]
-}
-
 type call struct {
 	expr expr
 	args []expr
+	span span
+}
+
+var _ = statement(templateStmt{})
+var _ = statement(emitExprStmt{})
+var _ = statement(emitRawStmt{})
+var _ = statement(forLoopStmt{})
+var _ = statement(ifCondStmt{})
+var _ = statement(withBlockStmt{})
+var _ = statement(setStmt{})
+var _ = statement(setBlockStmt{})
+var _ = statement(autoEscapeStmt{})
+var _ = statement(filterBlockStmt{})
+var _ = statement(blockStmt{})
+var _ = statement(importStmt{})
+var _ = statement(fromImportStmt{})
+var _ = statement(extendsStmt{})
+var _ = statement(includeStmt{})
+var _ = statement(macroStmt{})
+var _ = statement(callBlockStmt{})
+var _ = statement(doStmt{})
+
+func (templateStmt) typ() stmtType    { return stmtTypeTemplate }
+func (emitExprStmt) typ() stmtType    { return stmtTypeEmitExpr }
+func (emitRawStmt) typ() stmtType     { return stmtTypeEmitRaw }
+func (forLoopStmt) typ() stmtType     { return stmtTypeForLoop }
+func (ifCondStmt) typ() stmtType      { return stmtTypeIfCond }
+func (withBlockStmt) typ() stmtType   { return stmtTypeWithBlock }
+func (setStmt) typ() stmtType         { return stmtTypeSet }
+func (setBlockStmt) typ() stmtType    { return stmtTypeSetBlock }
+func (autoEscapeStmt) typ() stmtType  { return stmtTypeAutoEscape }
+func (filterBlockStmt) typ() stmtType { return stmtTypeFilterBlock }
+func (blockStmt) typ() stmtType       { return stmtTypeBlock }
+func (importStmt) typ() stmtType      { return stmtTypeImport }
+func (fromImportStmt) typ() stmtType  { return stmtTypeFromImport }
+func (extendsStmt) typ() stmtType     { return stmtTypeExtends }
+func (includeStmt) typ() stmtType     { return stmtTypeInclude }
+func (macroStmt) typ() stmtType       { return stmtTypeMacro }
+func (callBlockStmt) typ() stmtType   { return stmtTypeCallBlock }
+func (doStmt) typ() stmtType          { return stmtTypeDo }
+
+type spanned[T any] struct {
+	data T
+	span span
+}
+
+type stmtType int
+
+const (
+	stmtTypeTemplate stmtType = iota + 1
+	stmtTypeEmitExpr
+	stmtTypeEmitRaw
+	stmtTypeForLoop
+	stmtTypeIfCond
+	stmtTypeWithBlock
+	stmtTypeSet
+	stmtTypeSetBlock
+	stmtTypeAutoEscape
+	stmtTypeFilterBlock
+	stmtTypeBlock
+	stmtTypeImport
+	stmtTypeFromImport
+	stmtTypeExtends
+	stmtTypeInclude
+	stmtTypeMacro
+	stmtTypeCallBlock
+	stmtTypeDo
+)
+
+func (k stmtType) String() string {
+	switch k {
+	case stmtTypeTemplate:
+		return "template"
+	case stmtTypeEmitExpr:
+		return "emitExpr"
+	case stmtTypeEmitRaw:
+		return "emitRaw"
+	case stmtTypeForLoop:
+		return "forLoop"
+	case stmtTypeIfCond:
+		return "ifCond"
+	case stmtTypeWithBlock:
+		return "withBlock"
+	case stmtTypeSet:
+		return "set"
+	case stmtTypeSetBlock:
+		return "setBlock"
+	case stmtTypeAutoEscape:
+		return "autoEscape"
+	case stmtTypeFilterBlock:
+		return "filterBlock"
+	case stmtTypeBlock:
+		return "block"
+	case stmtTypeImport:
+		return "import"
+	case stmtTypeFromImport:
+		return "fromImport"
+	case stmtTypeExtends:
+		return "extends"
+	case stmtTypeInclude:
+		return "include"
+	case stmtTypeMacro:
+		return "macro"
+	case stmtTypeCallBlock:
+		return "callBlock"
+	case stmtTypeDo:
+		return "do"
+	default:
+		panic("invalid stmtType")
+	}
 }
 
 type exprKind int
