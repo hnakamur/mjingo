@@ -131,7 +131,7 @@ loop:
 					start = option[expression]{valid: true, data: exp}
 				}
 			}
-			if matched, err := p.skipToken(tokenTypeColon); err != nil {
+			if matched, err := p.skipToken(isTokenOfType[colonToken]); err != nil {
 				return nil, err
 			} else if matched {
 				isSlice = true
@@ -146,7 +146,7 @@ loop:
 						stop = option[expression]{valid: true, data: exp}
 					}
 				}
-				if matched, err := p.skipToken(tokenTypeColon); err != nil {
+				if matched, err := p.skipToken(isTokenOfType[colonToken]); err != nil {
 					return nil, err
 				} else if matched {
 					if matched, err := p.matchesToken(isTokenOfType[bracketCloseToken]); err != nil {
@@ -237,7 +237,7 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 func (p *parser) parseListExpr(spn span) (expression, error) {
 	var items []expression
 	for {
-		if matched, err := p.skipToken(tokenTypeBracketClose); err != nil {
+		if matched, err := p.skipToken(isTokenOfType[bracketCloseToken]); err != nil {
 			return nil, err
 		} else if matched {
 			break
@@ -246,7 +246,7 @@ func (p *parser) parseListExpr(spn span) (expression, error) {
 			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
 				return nil, err
 			}
-			if matched, err := p.skipToken(tokenTypeBracketClose); err != nil {
+			if matched, err := p.skipToken(isTokenOfType[bracketCloseToken]); err != nil {
 				return nil, err
 			} else if matched {
 				break
@@ -264,7 +264,7 @@ func (p *parser) parseListExpr(spn span) (expression, error) {
 func (p *parser) parseMapExpr(spn span) (expression, error) {
 	var keys, values []expression
 	for {
-		if matched, err := p.skipToken(tokenTypeBraceClose); err != nil {
+		if matched, err := p.skipToken(isTokenOfType[braceCloseToken]); err != nil {
 			return nil, err
 		} else if matched {
 			break
@@ -273,7 +273,7 @@ func (p *parser) parseMapExpr(spn span) (expression, error) {
 			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
 				return nil, err
 			}
-			if matched, err := p.skipToken(tokenTypeBraceClose); err != nil {
+			if matched, err := p.skipToken(isTokenOfType[braceCloseToken]); err != nil {
 				return nil, err
 			} else if matched {
 				break
@@ -443,11 +443,11 @@ func (p *parser) matchesToken(f func(tkn token) bool) (bool, error) {
 	return f(tkn), nil
 }
 
-func (p *parser) skipToken(k tokenType) (matched bool, err error) {
+func (p *parser) skipToken(f func(token) bool) (matched bool, err error) {
 	if err = p.stream.curErr; err != nil {
 		return false, err
 	}
-	if p.stream.curToken.typ() == k {
+	if f(p.stream.curToken) {
 		p.stream.next()
 		return true, nil
 	}
