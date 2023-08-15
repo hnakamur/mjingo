@@ -490,7 +490,7 @@ func syntaxError(msg string) error {
 	}
 }
 
-func (p *parser) subparse(endCheck func(*token) bool) ([]statement, error) {
+func (p *parser) subparse(endCheck func(token) bool) ([]statement, error) {
 	var rv []statement
 	for {
 		tkn, spn, err := p.stream.next()
@@ -524,7 +524,7 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]statement, error) {
 
 func (p *parser) parse() (statement, error) {
 	spn := p.stream.lastSpan
-	ss, err := p.subparse(func(*token) bool { return false })
+	ss, err := p.subparse(func(token) bool { return false })
 	if err != nil {
 		return nil, err
 	}
