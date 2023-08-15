@@ -172,6 +172,10 @@ func opsSub(lhs, rhs value) (value, error) {
 	return valueUndefined, impossibleOp("-", lhs, rhs)
 }
 
+func opsStringConcat(left, right value) value {
+	return stringValue{s: fmt.Sprintf("%s%s", left, right)}
+}
+
 type coerceResultType int
 
 const (

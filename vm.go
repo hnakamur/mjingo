@@ -135,6 +135,11 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
+		case stringConcatInst:
+			b = stack.pop()
+			a = stack.pop()
+			v := opsStringConcat(a, b)
+			stack.push(v)
 		case negInst:
 			a = stack.pop()
 			if v, err := opsNeg(a); err != nil {

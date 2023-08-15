@@ -336,7 +336,12 @@ func (p *parser) parseMath2() (expression, error) {
 }
 
 func (p *parser) parseConcat() (expression, error) {
-	return p.parseMath2()
+	return p.binop(p.parseMath2, func(tkn token) option[binOpType] {
+		if _, ok := tkn.(tildeToken); ok {
+			return option[binOpType]{valid: true, data: binOpTypeConcat}
+		}
+		return option[binOpType]{}
+	})
 }
 
 func (p *parser) parseMath1() (expression, error) {
