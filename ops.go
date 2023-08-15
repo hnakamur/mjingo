@@ -58,7 +58,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 		if s, ok := step.(i64Value); ok {
 			stepVal = s.n
 			if stepVal < 0 {
-				return valueUndefined, &Error{
+				return nil, &Error{
 					typ: InvalidOperation,
 					detail: option[string]{
 						valid: true,
@@ -67,7 +67,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 				}
 			}
 			if stepVal == 0 {
-				return valueUndefined, &Error{
+				return nil, &Error{
 					typ: InvalidOperation,
 					detail: option[string]{
 						valid: true,
@@ -108,7 +108,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 		}
 		return seqValue{items: sliced}, nil
 	}
-	return valueUndefined, &Error{
+	return nil, &Error{
 		typ: InvalidOperation,
 		detail: option[string]{
 			valid: true,
@@ -119,7 +119,7 @@ func opsSlice(val, start, stop, step value) (value, error) {
 
 func opsNeg(val value) (value, error) {
 	if val.kind() != valueKindNumber {
-		return valueUndefined, &Error{typ: InvalidOperation}
+		return nil, &Error{typ: InvalidOperation}
 	}
 	if v, ok := val.(f64Value); ok {
 		return f64Value{f: -v.f}, nil
@@ -130,7 +130,7 @@ func opsNeg(val value) (value, error) {
 	}
 
 	if x, err := val.tryToI64(); err != nil {
-		return valueUndefined, err
+		return nil, err
 	} else {
 		return i64Value{n: -x}, nil
 	}
@@ -152,7 +152,7 @@ func opsSub(lhs, rhs value) (value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i64CoerceResult:
 		if c.lhs < c.rhs {
-			return valueUndefined, failedOp("-", lhs, rhs)
+			return nil, failedOp("-", lhs, rhs)
 		}
 		return i64Value{n: c.lhs - c.rhs}, nil
 	case f64CoerceResult:
@@ -165,7 +165,7 @@ func opsPow(lhs, rhs value) (value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i64CoerceResult:
 		if c.rhs < 0 {
-			return valueUndefined, failedOp("**", lhs, rhs)
+			return nil, failedOp("**", lhs, rhs)
 		}
 		// TODO: checked_pow
 		acc := int64(1)
