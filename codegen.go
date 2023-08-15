@@ -36,7 +36,7 @@ func (g *codeGenerator) compileStmt(s statement) {
 func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	g.setLineFromSpan(exp.span)
 
-	if exp.expr.kind == exprKindCall {
+	if _, ok := exp.expr.(callExpr); ok {
 		panic("not implemented")
 	}
 
@@ -44,98 +44,89 @@ func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	g.add(instruction{kind: instructionKindEmit})
 }
 
-func (g *codeGenerator) compileExpr(exp expr) {
-	switch exp.kind {
-	case exprKindVar:
-		data := exp.data.(varExprData)
+func (g *codeGenerator) compileExpr(exp expression) {
+	switch exp := exp.(type) {
+	case varExpr:
 		g.setLineFromSpan(exp.span)
-		g.add(instruction{kind: instructionKindLookup, data: data.id})
-	case exprKindConst:
-		data := exp.data.(constExprData)
+		g.add(instruction{kind: instructionKindLookup, data: exp.id})
+	case constExpr:
 		g.setLineFromSpan(exp.span)
-		g.add(instruction{kind: instructionKindLoadConst, data: data.value})
-	case exprKindSlice:
-		data := exp.data.(sliceExprData)
+		g.add(instruction{kind: instructionKindLoadConst, data: exp.value})
+	case sliceExpr:
 		g.pushSpan(exp.span)
-		g.compileExpr(data.expr)
-		if data.start.valid {
-			g.compileExpr(data.start.data)
+		g.compileExpr(exp.expr)
+		if exp.start.valid {
+			g.compileExpr(exp.start.data)
 		} else {
 			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(0)}})
 		}
-		if data.stop.valid {
-			g.compileExpr(data.stop.data)
+		if exp.stop.valid {
+			g.compileExpr(exp.stop.data)
 		} else {
 			g.add(instruction{kind: instructionKindLoadConst, data: valueNone})
 		}
-		if data.step.valid {
-			g.compileExpr(data.step.data)
+		if exp.step.valid {
+			g.compileExpr(exp.step.data)
 		} else {
 			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(1)}})
 		}
 		g.add(instruction{kind: instructionKindSlice})
 		g.popSpan()
-	case exprKindUnaryOp:
-		data := exp.data.(unaryOpExprData)
+	case unaryOpExpr:
 		g.setLineFromSpan(exp.span)
-		g.compileExpr(data.expr)
-		switch data.op {
+		g.compileExpr(exp.expr)
+		switch exp.op {
 		case unaryOpKindNot:
 			g.add(instruction{kind: instructionKindNot})
 		case unaryOpKindNeg:
 			g.addWithSpan(instruction{kind: instructionKindNeg}, exp.span)
 		}
-	case exprKindBinOp:
-		data := exp.data.(binOpExprData)
-		g.compileBinOp(spanned[binOpExprData]{data: data, span: exp.span})
-	case exprKindGetAttr:
-		data := exp.data.(getAttrExprData)
+	case binOpExpr:
+		g.compileBinOp(exp)
+	case getAttrExpr:
 		g.pushSpan(exp.span)
-		g.compileExpr(data.expr)
-		g.add(instruction{kind: instructionKindGetAttr, data: data.name})
+		g.compileExpr(exp.expr)
+		g.add(instruction{kind: instructionKindGetAttr, data: exp.name})
 		g.popSpan()
-	case exprKindGetItem:
-		data := exp.data.(getItemExprData)
+	case getItemExpr:
 		g.pushSpan(exp.span)
-		g.compileExpr(data.expr)
-		g.compileExpr(data.subscriptExpr)
+		g.compileExpr(exp.expr)
+		g.compileExpr(exp.subscriptExpr)
 		g.add(instruction{kind: instructionKindGetItem})
 		g.popSpan()
-	case exprKindList:
-		data := exp.data.(listExprData)
-		if v := data.asConst(); v.valid {
+	case listExpr:
+		if v := exp.asConst(); v.valid {
 			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
 		} else {
 			g.setLineFromSpan(exp.span)
-			for _, item := range data.items {
+			for _, item := range exp.items {
 				g.compileExpr(item)
 			}
 			g.add(instruction{
 				kind: instructionKindBuildList,
-				data: buildListInstructionData(len(data.items)),
+				data: buildListInstructionData(len(exp.items)),
 			})
 		}
-	case exprKindMap:
-		data := exp.data.(mapExprData)
-		if v := data.asConst(); v.valid {
+	case mapExpr:
+		if v := exp.asConst(); v.valid {
 			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
 		} else {
 			g.setLineFromSpan(exp.span)
-			if len(data.keys) != len(data.values) {
+			if len(exp.keys) != len(exp.values) {
 				panic("mismatch length of keys and values for a map")
 			}
-			for i, key := range data.keys {
-				v := data.values[i]
+			for i, key := range exp.keys {
+				v := exp.values[i]
 				g.compileExpr(key)
 				g.compileExpr(v)
 			}
 			g.add(instruction{
 				kind: instructionKindBuildMap,
-				data: buildMapInstructionData(len(data.keys)),
+				data: buildMapInstructionData(len(exp.keys)),
 			})
 		}
 	default:
-		panic(fmt.Sprintf("not implemented for exprKind: %s", exp.kind))
+		panic(fmt.Sprintf("not implemented for exprType: %s", exp.typ()))
 	}
 }
 
@@ -173,10 +164,10 @@ func (g *codeGenerator) addWithSpan(instr instruction, spn span) uint {
 	return g.instructions.addWithSpan(instr, spn)
 }
 
-func (g *codeGenerator) compileBinOp(data spanned[binOpExprData]) {
-	g.pushSpan(data.span)
+func (g *codeGenerator) compileBinOp(exp binOpExpr) {
+	g.pushSpan(exp.span)
 	var instr instruction
-	switch data.data.op {
+	switch exp.op {
 	case binOpKindEq:
 		instr = instruction{kind: instructionKindEq}
 	case binOpKindNe:
@@ -210,8 +201,8 @@ func (g *codeGenerator) compileBinOp(data spanned[binOpExprData]) {
 	case binOpKindIn:
 		instr = instruction{kind: instructionKindIn}
 	}
-	g.compileExpr(data.data.left)
-	g.compileExpr(data.data.right)
+	g.compileExpr(exp.left)
+	g.compileExpr(exp.right)
 	g.add(instr)
 	g.popSpan()
 }

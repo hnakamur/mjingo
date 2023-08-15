@@ -1,9 +1,5 @@
 package mjingo
 
-import (
-	"fmt"
-)
-
 type statement interface {
 	typ() stmtType
 }
@@ -13,7 +9,7 @@ type templateStmt struct {
 	span     span
 }
 type emitExprStmt struct {
-	expr expr
+	expr expression
 	span span
 }
 type emitRawStmt struct {
@@ -21,16 +17,16 @@ type emitRawStmt struct {
 	span span
 }
 type forLoopStmt struct {
-	target     expr
-	iter       expr
-	filterExpr option[expr]
+	target     expression
+	iter       expression
+	filterExpr option[expression]
 	recursive  bool
 	body       []statement
 	elseBody   []statement
 	span       span
 }
 type ifCondStmt struct {
-	expr      expr
+	expr      expression
 	trueBody  []statement
 	falseBody []statement
 	span      span
@@ -41,23 +37,23 @@ type withBlockStmt struct {
 	span        span
 }
 type setStmt struct {
-	target expr
-	expr   expr
+	target expression
+	expr   expression
 	span   span
 }
 type setBlockStmt struct {
-	target expr
-	filter option[expr]
+	target expression
+	filter option[expression]
 	body   []statement
 	span   span
 }
 type autoEscapeStmt struct {
-	enabled expr
+	enabled expression
 	body    []statement
 	span    span
 }
 type filterBlockStmt struct {
-	filter expr
+	filter expression
 	body   []statement
 	span   span
 }
@@ -67,28 +63,28 @@ type blockStmt struct {
 	span span
 }
 type importStmt struct {
-	expr expr
-	name expr
+	expr expression
+	name expression
 	span span
 }
 type fromImportStmt struct {
-	expr  expr
+	expr  expression
 	names []importName
 	span  span
 }
 type extendsStmt struct {
-	name expr
+	name expression
 	span span
 }
 type includeStmt struct {
-	name          expr
+	name          expression
 	ignoreMissing bool
 	span          span
 }
 type macroStmt struct {
 	name     string
-	args     []expr
-	defaults []expr
+	args     []expression
+	defaults []expression
 	body     []statement
 	span     span
 }
@@ -103,18 +99,18 @@ type doStmt struct {
 }
 
 type assignment struct {
-	lhs expr
-	rhs expr
+	lhs expression
+	rhs expression
 }
 
 type importName struct {
-	name expr
-	as   option[expr]
+	name expression
+	as   option[expression]
 }
 
 type call struct {
-	expr expr
-	args []expr
+	expr expression
+	args []expression
 	span span
 }
 
@@ -155,11 +151,6 @@ func (includeStmt) typ() stmtType     { return stmtTypeInclude }
 func (macroStmt) typ() stmtType       { return stmtTypeMacro }
 func (callBlockStmt) typ() stmtType   { return stmtTypeCallBlock }
 func (doStmt) typ() stmtType          { return stmtTypeDo }
-
-type spanned[T any] struct {
-	data T
-	span span
-}
 
 type stmtType int
 
@@ -227,114 +218,183 @@ func (k stmtType) String() string {
 	}
 }
 
-type exprKind int
-
-const (
-	exprKindVar exprKind = iota + 1
-	exprKindConst
-	exprKindSlice
-	exprKindUnaryOp
-	exprKindBinOp
-	exprKindIfExpr
-	exprKindFilter
-	exprKindTest
-	exprKindGetAttr
-	exprKindGetItem
-	exprKindCall
-	exprKindList
-	exprKindMap
-	exprKindKwargs
-)
-
-func (k exprKind) String() string {
-	switch k {
-	case exprKindVar:
-		return "var"
-	case exprKindConst:
-		return "const"
-	case exprKindSlice:
-		return "slice"
-	case exprKindUnaryOp:
-		return "unaryOp"
-	case exprKindBinOp:
-		return "binOp"
-	case exprKindIfExpr:
-		return "ifExpr"
-	case exprKindFilter:
-		return "filter"
-	case exprKindTest:
-		return "test"
-	case exprKindGetAttr:
-		return "getAttr"
-	case exprKindGetItem:
-		return "getItem"
-	case exprKindCall:
-		return "call"
-	case exprKindList:
-		return "list"
-	case exprKindMap:
-		return "map"
-	case exprKindKwargs:
-		return "kwargs"
-	default:
-		panic("invalid exprKind")
-	}
+type expression interface {
+	typ() exprType
 }
 
-type expr struct {
-	kind exprKind
-	data any
+type varExpr struct {
+	id   string
 	span span
 }
 
-func (e expr) String() string {
-	switch e.kind {
-	case exprKindVar:
-		return fmt.Sprintf("(var %s)", e.data)
-	case exprKindConst:
+type constExpr struct {
+	value value
+	span  span
+}
+
+type sliceExpr struct {
+	expr  expression
+	start option[expression]
+	stop  option[expression]
+	step  option[expression]
+	span  span
+}
+
+type unaryOpExpr struct {
+	op   unaryOpKind
+	expr expression
+	span span
+}
+
+type binOpExpr struct {
+	op    binOpKind
+	left  expression
+	right expression
+	span  span
+}
+
+type ifExpr struct {
+	testExpr  expression
+	trueExpr  expression
+	falseExpr option[expression]
+	span      span
+}
+
+type filterExpr struct {
+	name string
+	expr option[expression]
+	args []expression
+	span span
+}
+
+type testExpr struct {
+	name string
+	expr expression
+	args []expression
+	span span
+}
+
+type getAttrExpr struct {
+	expr expression
+	name string
+	span span
+}
+
+type getItemExpr struct {
+	expr          expression
+	subscriptExpr expression
+	span          span
+}
+
+type callExpr struct {
+	expr expression
+	args []expression
+	span span
+}
+
+type listExpr struct {
+	items []expression
+	span  span
+}
+
+type mapExpr struct {
+	keys   []expression
+	values []expression
+	span   span
+}
+
+type kwargsExpr struct {
+	pairs []kwarg
+	span  span
+}
+
+type kwarg struct {
+	key string
+	arg expression
+}
+
+var _ = expression(varExpr{})
+var _ = expression(constExpr{})
+var _ = expression(sliceExpr{})
+var _ = expression(unaryOpExpr{})
+var _ = expression(binOpExpr{})
+var _ = expression(ifExpr{})
+var _ = expression(filterExpr{})
+var _ = expression(testExpr{})
+var _ = expression(getAttrExpr{})
+var _ = expression(getItemExpr{})
+var _ = expression(callExpr{})
+var _ = expression(listExpr{})
+var _ = expression(mapExpr{})
+var _ = expression(kwargsExpr{})
+
+func (varExpr) typ() exprType     { return exprTypeVar }
+func (constExpr) typ() exprType   { return exprTypeConst }
+func (sliceExpr) typ() exprType   { return exprTypeSlice }
+func (unaryOpExpr) typ() exprType { return exprTypeUnaryOp }
+func (binOpExpr) typ() exprType   { return exprTypeBinOp }
+func (ifExpr) typ() exprType      { return exprTypeIfExpr }
+func (filterExpr) typ() exprType  { return exprTypeFilter }
+func (testExpr) typ() exprType    { return exprTypeTest }
+func (getAttrExpr) typ() exprType { return exprTypeGetAttr }
+func (getItemExpr) typ() exprType { return exprTypeGetItem }
+func (callExpr) typ() exprType    { return exprTypeCall }
+func (listExpr) typ() exprType    { return exprTypeList }
+func (mapExpr) typ() exprType     { return exprTypeMap }
+func (kwargsExpr) typ() exprType  { return exprTypeKwargs }
+
+type exprType int
+
+const (
+	exprTypeVar exprType = iota + 1
+	exprTypeConst
+	exprTypeSlice
+	exprTypeUnaryOp
+	exprTypeBinOp
+	exprTypeIfExpr
+	exprTypeFilter
+	exprTypeTest
+	exprTypeGetAttr
+	exprTypeGetItem
+	exprTypeCall
+	exprTypeList
+	exprTypeMap
+	exprTypeKwargs
+)
+
+func (k exprType) String() string {
+	switch k {
+	case exprTypeVar:
+		return "var"
+	case exprTypeConst:
 		return "const"
-	case exprKindSlice:
+	case exprTypeSlice:
 		return "slice"
-	case exprKindUnaryOp:
+	case exprTypeUnaryOp:
 		return "unaryOp"
-	case exprKindBinOp:
+	case exprTypeBinOp:
 		return "binOp"
-	case exprKindIfExpr:
+	case exprTypeIfExpr:
 		return "ifExpr"
-	case exprKindFilter:
+	case exprTypeFilter:
 		return "filter"
-	case exprKindTest:
+	case exprTypeTest:
 		return "test"
-	case exprKindGetAttr:
+	case exprTypeGetAttr:
 		return "getAttr"
-	case exprKindGetItem:
+	case exprTypeGetItem:
 		return "getItem"
-	case exprKindCall:
+	case exprTypeCall:
 		return "call"
-	case exprKindList:
+	case exprTypeList:
 		return "list"
-	case exprKindMap:
+	case exprTypeMap:
 		return "map"
-	case exprKindKwargs:
+	case exprTypeKwargs:
 		return "kwargs"
 	default:
-		panic("invalid exprKind")
+		panic("invalid exprType")
 	}
-}
-
-type varExprData struct {
-	id string
-}
-
-type constExprData struct {
-	value value
-}
-
-type sliceExprData struct {
-	expr  expr
-	start option[expr]
-	stop  option[expr]
-	step  option[expr]
 }
 
 type unaryOpKind int
@@ -343,11 +403,6 @@ const (
 	unaryOpKindNot unaryOpKind = iota + 1
 	unaryOpKindNeg
 )
-
-type unaryOpExprData struct {
-	op   unaryOpKind
-	expr expr
-}
 
 type binOpKind int
 
@@ -371,101 +426,41 @@ const (
 	binOpKindIn
 )
 
-type binOpExprData struct {
-	op    binOpKind
-	left  expr
-	right expr
-}
-
-type ifExprExprData struct {
-	testExpr  expr
-	trueExpr  expr
-	falseExpr option[expr]
-}
-
-type filterExprData struct {
-	name string
-	expr option[expr]
-	args []expr
-}
-
-type testExprData struct {
-	name string
-	expr expr
-	args []expr
-}
-
-type getAttrExprData struct {
-	expr expr
-	name string
-}
-
-type getItemExprData struct {
-	expr          expr
-	subscriptExpr expr
-}
-
-type callExprData struct {
-	expr expr
-	args []expr
-}
-
-type listExprData struct {
-	items []expr
-}
-
-func (l *listExprData) asConst() option[value] {
+func (l listExpr) asConst() option[value] {
 	for _, item := range l.items {
-		if item.kind != exprKindConst {
+		if _, ok := item.(constExpr); !ok {
 			return option[value]{}
 		}
 	}
 
 	seq := make([]value, 0, len(l.items))
 	for _, item := range l.items {
-		if item.kind == exprKindConst {
-			data := item.data.(constExprData)
-			seq = append(seq, data.value)
+		if item, ok := item.(constExpr); ok {
+			seq = append(seq, item.value)
 		}
 	}
 	return option[value]{valid: true, data: seqValue{items: seq}}
 }
 
-type kwargsExprData struct {
-	pairs []kwarg
-}
-
-type kwarg struct {
-	key string
-	arg expr
-}
-
-type mapExprData struct {
-	keys   []expr
-	values []expr
-}
-
-func (m *mapExprData) asConst() option[value] {
+func (m mapExpr) asConst() option[value] {
 	for _, key := range m.keys {
-		if key.kind != exprKindConst {
+		if _, ok := key.(constExpr); !ok {
 			return option[value]{}
 		}
 	}
-	for _, v := range m.values {
-		if v.kind != exprKindConst {
+	for _, val := range m.values {
+		if _, ok := val.(constExpr); !ok {
 			return option[value]{}
 		}
 	}
 
 	rv := make(map[string]value, len(m.keys))
 	for i, key := range m.keys {
-		v := m.values[i]
-		if key.kind == exprKindConst && v.kind == exprKindConst {
-			keyData := key.data.(constExprData)
+		val := m.values[i]
+		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
 			// implmentation here is different from minijinja
-			if keyStr := keyData.value.asStr(); keyStr.valid {
-				valData := v.data.(constExprData)
-				rv[keyStr.data] = valData.value
+			if keyStr := key.(constExpr).value.asStr(); keyStr.valid {
+				rv[keyStr.data] = val.(constExpr).value
 			}
 		}
 	}
