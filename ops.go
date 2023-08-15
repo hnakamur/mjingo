@@ -137,67 +137,80 @@ func opsNeg(val value) (value, error) {
 }
 
 func opsAdd(lhs, rhs value) (value, error) {
-	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
-		cRes := cMayRes.data
-		switch cRes.typ {
-		case coerceResultTypeI64:
-			data := cRes.data.(i64CoerceResultData)
-			return i64Value{n: data.lhs + data.rhs}, nil
-		case coerceResultTypeF64:
-			data := cRes.data.(f64CoerceResultData)
-			return f64Value{f: data.lhs + data.rhs}, nil
-		case coerceResultTypeStr:
-			data := cRes.data.(strCoerceResultData)
-			return stringValue{s: data.lhs + data.rhs}, nil
-		}
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		return i64Value{n: c.lhs + c.rhs}, nil
+	case f64CoerceResult:
+		return f64Value{f: c.lhs + c.rhs}, nil
+	case strCoerceResult:
+		return stringValue{s: c.lhs + c.rhs}, nil
 	}
-	return valueUndefined, impossibleOp("+", lhs, rhs)
+	return nil, impossibleOp("+", lhs, rhs)
 }
 
 func opsSub(lhs, rhs value) (value, error) {
-	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
-		cRes := cMayRes.data
-		switch cRes.typ {
-		case coerceResultTypeI64:
-			data := cRes.data.(i64CoerceResultData)
-			if data.lhs < data.rhs {
-				return valueUndefined, failedOp("-", lhs, rhs)
-			}
-			return i64Value{n: data.lhs - data.rhs}, nil
-		case coerceResultTypeF64:
-			data := cRes.data.(f64CoerceResultData)
-			return f64Value{f: data.lhs - data.rhs}, nil
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		if c.lhs < c.rhs {
+			return valueUndefined, failedOp("-", lhs, rhs)
 		}
+		return i64Value{n: c.lhs - c.rhs}, nil
+	case f64CoerceResult:
+		return f64Value{f: c.lhs - c.rhs}, nil
 	}
-	return valueUndefined, impossibleOp("-", lhs, rhs)
+	return nil, impossibleOp("-", lhs, rhs)
 }
 
 func opsPow(lhs, rhs value) (value, error) {
-	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
-		cRes := cMayRes.data
-		switch cRes.typ {
-		case coerceResultTypeI64:
-			data := cRes.data.(i64CoerceResultData)
-			if data.rhs < 0 {
-				return valueUndefined, failedOp("**", lhs, rhs)
-			}
-			// TODO: checked_pow
-			acc := int64(1)
-			for i := int64(0); i < data.rhs; i++ {
-				acc *= data.lhs
-			}
-			return i64Value{n: acc}, nil
-		case coerceResultTypeF64:
-			data := cRes.data.(f64CoerceResultData)
-			return f64Value{f: math.Pow(data.lhs, data.rhs)}, nil
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		if c.rhs < 0 {
+			return valueUndefined, failedOp("**", lhs, rhs)
 		}
+		// TODO: checked_pow
+		acc := int64(1)
+		for i := int64(0); i < c.rhs; i++ {
+			acc *= c.lhs
+		}
+		return i64Value{n: acc}, nil
+	case f64CoerceResult:
+		return f64Value{f: math.Pow(c.lhs, c.rhs)}, nil
 	}
-	return valueUndefined, impossibleOp("**", lhs, rhs)
+	return nil, impossibleOp("**", lhs, rhs)
 }
 
 func opsStringConcat(left, right value) value {
 	return stringValue{s: fmt.Sprintf("%s%s", left, right)}
 }
+
+type coerceResult interface {
+	typ() coerceResultType
+}
+
+type i64CoerceResult struct {
+	lhs int64
+	rhs int64
+}
+
+type f64CoerceResult struct {
+	lhs float64
+	rhs float64
+}
+
+type strCoerceResult struct {
+	lhs string
+	rhs string
+}
+
+func (i64CoerceResult) typ() coerceResultType { return coerceResultTypeI64 }
+func (f64CoerceResult) typ() coerceResultType { return coerceResultTypeF64 }
+func (strCoerceResult) typ() coerceResultType { return coerceResultTypeStr }
+
+/*
+i64CoerceResult
+f64CoerceResult
+strCoerceResult
+*/
 
 type coerceResultType int
 
@@ -208,61 +221,23 @@ const (
 	coerceResultTypeStr
 )
 
-type coerceResult struct {
-	typ  coerceResultType
-	data any
-}
-
-type i64CoerceResultData struct {
-	lhs int64
-	rhs int64
-}
-
-type f64CoerceResultData struct {
-	lhs float64
-	rhs float64
-}
-
-type strCoerceResultData struct {
-	lhs string
-	rhs string
-}
-
-func coerce(a, b value) option[coerceResult] {
+func coerce(a, b value) coerceResult {
 	switch {
 	case a.typ() == valueTypeU64 && b.typ() == valueTypeU64:
 		aVal := a.(u64Value).n
 		bVal := b.(u64Value).n
 		if aVal > math.MaxInt64 || bVal > math.MaxInt64 {
-			return option[coerceResult]{}
+			return nil
 		}
-		return option[coerceResult]{
-			valid: true,
-			data: coerceResult{
-				typ:  coerceResultTypeI64,
-				data: i64CoerceResultData{lhs: int64(aVal), rhs: int64(bVal)},
-			},
-		}
+		return i64CoerceResult{lhs: int64(aVal), rhs: int64(bVal)}
 	case a.typ() == valueTypeI64 && b.typ() == valueTypeI64:
 		aVal := a.(i64Value).n
 		bVal := b.(i64Value).n
-		return option[coerceResult]{
-			valid: true,
-			data: coerceResult{
-				typ:  coerceResultTypeI64,
-				data: i64CoerceResultData{lhs: aVal, rhs: bVal},
-			},
-		}
+		return i64CoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeString && b.typ() == valueTypeString:
 		aVal := a.(stringValue).s
 		bVal := b.(stringValue).s
-		return option[coerceResult]{
-			valid: true,
-			data: coerceResult{
-				typ:  coerceResultTypeStr,
-				data: strCoerceResultData{lhs: aVal, rhs: bVal},
-			},
-		}
+		return strCoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeF64 || b.typ() == valueTypeF64:
 		var aVal, bVal float64
 		if af, ok := a.(f64Value); ok {
@@ -270,42 +245,30 @@ func coerce(a, b value) option[coerceResult] {
 			if bMayVal := b.asF64(); bMayVal.valid {
 				bVal = bMayVal.data
 			} else {
-				return option[coerceResult]{}
+				return nil
 			}
 		} else if bf, ok := b.(f64Value); ok {
 			bVal = bf.f
 			if aMayVal := a.asF64(); aMayVal.valid {
 				aVal = aMayVal.data
 			} else {
-				return option[coerceResult]{}
+				return nil
 			}
 		}
-		return option[coerceResult]{
-			valid: true,
-			data: coerceResult{
-				typ:  coerceResultTypeF64,
-				data: f64CoerceResultData{lhs: aVal, rhs: bVal},
-			},
-		}
+		return f64CoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeI128 || a.typ() == valueTypeU128 || b.typ() == valueTypeI128 || b.typ() == valueTypeU128:
 		panic("not implemented")
 	default:
 		// everything else goes up to i64 (different from i128 in MiniJinja)
 		aVal, err := a.tryToI64()
 		if err != nil {
-			return option[coerceResult]{}
+			return nil
 		}
 		bVal, err := b.tryToI64()
 		if err != nil {
-			return option[coerceResult]{}
+			return nil
 		}
-		return option[coerceResult]{
-			valid: true,
-			data: coerceResult{
-				typ:  coerceResultTypeI64,
-				data: i64CoerceResultData{lhs: aVal, rhs: bVal},
-			},
-		}
+		return i64CoerceResult{lhs: aVal, rhs: bVal}
 	}
 }
 
