@@ -77,8 +77,7 @@ loop:
 		case pipeToken:
 			panic("not implemented")
 		case identToken:
-			ident := tkn.s
-			if ident == "is" {
+			if tkn.ident == "is" {
 				panic("not implemented")
 			} else {
 				break loop
@@ -106,7 +105,7 @@ loop:
 			if tkn, _, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
 				return nil, err
 			} else {
-				name := tkn.(identToken).s
+				name := tkn.(identToken).ident
 				exp = getAttrExpr{
 					expr: exp,
 					name: name,
@@ -208,8 +207,7 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	}
 	switch tkn := tkn.(type) {
 	case identToken:
-		ident := tkn.s
-		switch ident {
+		switch tkn.ident {
 		case "true", "True":
 			return makeConst(boolValue{b: true}, *spn), nil
 		case "false", "False":
@@ -217,7 +215,7 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 		case "none", "None":
 			return makeConst(valueNone, *spn), nil
 		default:
-			return varExpr{id: ident, span: *spn}, nil
+			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
 	case stringToken:
 		return makeConst(stringValue{s: tkn.s}, *spn), nil
@@ -382,7 +380,7 @@ func (p *parser) parseCompare() (expression, error) {
 func (p *parser) parseNot() (expression, error) {
 	return p.unaryop(p.parseNot, p.parseCompare,
 		func(tkn token) option[unaryOpType] {
-			if tkn, ok := tkn.(identToken); ok && tkn.s == "not" {
+			if isIdentTokenWithName(tkn, "not") {
 				return option[unaryOpType]{valid: true, data: unaryOpTypeNot}
 			}
 			return option[unaryOpType]{}
@@ -391,7 +389,7 @@ func (p *parser) parseNot() (expression, error) {
 
 func (p *parser) parseAnd() (expression, error) {
 	return p.binop(p.parseNot, func(tkn token) option[binOpType] {
-		if tkn, ok := tkn.(identToken); ok && tkn.s == "and" {
+		if isIdentTokenWithName(tkn, "and") {
 			return option[binOpType]{valid: true, data: binOpTypeScAnd}
 		}
 		return option[binOpType]{}
@@ -400,7 +398,7 @@ func (p *parser) parseAnd() (expression, error) {
 
 func (p *parser) parseOr() (expression, error) {
 	return p.binop(p.parseAnd, func(tkn token) option[binOpType] {
-		if tkn, ok := tkn.(identToken); ok && tkn.s == "or" {
+		if isIdentTokenWithName(tkn, "or") {
 			return option[binOpType]{valid: true, data: binOpTypeScOr}
 		}
 		return option[binOpType]{}

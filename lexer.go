@@ -130,7 +130,7 @@ func (s *tokenizerState) eatIdentifier() (token, *span, error) {
 	}
 	oldLoc := s.loc()
 	ident := s.advance(identLen)
-	return identToken{s: ident}, s.span(oldLoc), nil
+	return identToken{ident: ident}, s.span(oldLoc), nil
 }
 
 func lexIndentifier(s string) uint {

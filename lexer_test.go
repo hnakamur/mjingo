@@ -12,7 +12,7 @@ func TestBasicIdentifiers(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tk, ok := tk.(identToken); ok {
-				if got, want := tk.s, s; got != want {
+				if got, want := tk.ident, s; got != want {
 					t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", got, want, s)
 				}
 			} else {

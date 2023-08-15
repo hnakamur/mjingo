@@ -13,7 +13,7 @@ type variableStartToken struct{}
 type variableEndToken struct{}
 type blockStartToken struct{}
 type blockEndToken struct{}
-type identToken struct{ s string }
+type identToken struct{ ident string }
 type stringToken struct{ s string }
 type intToken struct{ n int64 }
 type floatToken struct{ f float64 }
@@ -155,6 +155,11 @@ func (braceCloseToken) typ() tokenType    { return tokenTypeBraceClose }
 func isTokenOfType[T any](tkn token) bool {
 	_, ok := tkn.(T)
 	return ok
+}
+
+func isIdentTokenWithName(tkn token, name string) bool {
+	identTkn, ok := tkn.(identToken)
+	return ok && identTkn.ident == name
 }
 
 type tokenType int
