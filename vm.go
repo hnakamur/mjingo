@@ -33,37 +33,34 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 	for pc < uint(len(state.instructions.instructions)) {
 		var a, b value
 
-		instr := state.instructions.instructions[pc]
+		inst := state.instructions.instructions[pc]
 		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, instr.kind, instr)
-		switch instr.kind {
-		case instructionKindEmitRaw:
-			val := instr.data.(emitRawInstructionData)
-			if _, err := io.WriteString(out, val); err != nil {
+		switch inst := inst.(type) {
+		case emitRawInst:
+			if _, err := io.WriteString(out, inst.val); err != nil {
 				return option[value]{}, err
 			}
-		case instructionKindEmit:
+		case emitInst:
 			v := stack.pop()
 			if err := m.env.format(v, state, out); err != nil {
 				return option[value]{}, err
 			}
-		case instructionKindLookup:
-			name := instr.data.(lookupInstructionData)
+		case lookupInst:
 			var v value
-			if val := state.lookup(name); val.valid {
+			if val := state.lookup(inst.name); val.valid {
 				v = val.data
 			} else {
 				v = valueUndefined
 			}
 			stack.push(v)
-		case instructionKindGetAttr:
-			name := instr.data.(getAttrInstructionData)
+		case getAttrInst:
 			a = stack.pop()
 			// This is a common enough operation that it's interesting to consider a fast
 			// path here.  This is slightly faster than the regular attr lookup because we
 			// do not need to pass down the error object for the more common success case.
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
-			if v := a.getAttrFast(name); v.valid {
+			if v := a.getAttrFast(inst.name); v.valid {
 				if v, err := assertValid(v.data, pc, state); err != nil {
 					return option[value]{}, err
 				} else {
@@ -76,7 +73,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 					stack.push(v)
 				}
 			}
-		case instructionKindGetItem:
+		case getItemInst:
 			a = stack.pop()
 			b = stack.pop()
 			if v := b.getItemOpt(a); v.valid {
@@ -92,7 +89,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 					stack.push(v)
 				}
 			}
-		case instructionKindSlice:
+		case sliceInst:
 			step := stack.pop()
 			stop := stack.pop()
 			b = stack.pop()
@@ -105,27 +102,24 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(s)
 			}
-		case instructionKindLoadConst:
-			v := instr.data.(loadConstInstructionData)
-			stack.push(v)
-		case instructionKindBuildMap:
-			pairCount := instr.data.(buildMapInstructionData)
-			m := valueMapWithCapacity(pairCount)
-			for i := uint(0); i < pairCount; i++ {
+		case loadConstInst:
+			stack.push(inst.val)
+		case buildMapInst:
+			m := valueMapWithCapacity(inst.pairCount)
+			for i := uint(0); i < inst.pairCount; i++ {
 				val := stack.pop()
 				key := stack.pop()
 				m[key.asStr().data] = val
 			}
 			stack.push(mapValue{m: m})
-		case instructionKindBuildList:
-			count := instr.data.(buildListInstructionData)
-			v := make([]value, 0, untrustedSizeHint(count))
-			for i := uint(0); i < count; i++ {
+		case buildListInst:
+			v := make([]value, 0, untrustedSizeHint(inst.count))
+			for i := uint(0); i < inst.count; i++ {
 				v = append(v, stack.pop())
 			}
 			slices.Reverse(v)
 			stack.push(seqValue{items: v})
-		case instructionKindAdd:
+		case addInst:
 			b = stack.pop()
 			a = stack.pop()
 			if v, err := opsAdd(a, b); err != nil {
@@ -133,7 +127,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
-		case instructionKindSub:
+		case subInst:
 			b = stack.pop()
 			a = stack.pop()
 			if v, err := opsSub(a, b); err != nil {
@@ -141,7 +135,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
-		case instructionKindNeg:
+		case negInst:
 			a = stack.pop()
 			if v, err := opsNeg(a); err != nil {
 				return option[value]{}, err
@@ -149,7 +143,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				stack.push(v)
 			}
 		default:
-			panic(fmt.Sprintf("not implemented for instruction %s", instr.kind))
+			panic(fmt.Sprintf("not implemented for instruction %s", inst.typ()))
 		}
 		pc++
 	}

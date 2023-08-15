@@ -28,7 +28,7 @@ func (g *codeGenerator) compileStmt(s statement) {
 	case emitExprStmt:
 		g.compileEmitExpr(emitExprStmt{expr: s.expr, span: s.span})
 	case emitRawStmt:
-		g.add(instruction{kind: instructionKindEmitRaw, data: s.raw})
+		g.add(emitRawInst{val: s.raw})
 		g.rawTemplateBytes += uint(len(s.raw))
 	}
 }
@@ -41,75 +41,72 @@ func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	}
 
 	g.compileExpr(exp.expr)
-	g.add(instruction{kind: instructionKindEmit})
+	g.add(emitInst{})
 }
 
 func (g *codeGenerator) compileExpr(exp expression) {
 	switch exp := exp.(type) {
 	case varExpr:
 		g.setLineFromSpan(exp.span)
-		g.add(instruction{kind: instructionKindLookup, data: exp.id})
+		g.add(lookupInst{name: exp.id})
 	case constExpr:
 		g.setLineFromSpan(exp.span)
-		g.add(instruction{kind: instructionKindLoadConst, data: exp.value})
+		g.add(loadConstInst{val: exp.value})
 	case sliceExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)
 		if exp.start.valid {
 			g.compileExpr(exp.start.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(0)}})
+			g.add(loadConstInst{val: i64Value{n: int64(0)}})
 		}
 		if exp.stop.valid {
 			g.compileExpr(exp.stop.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: valueNone})
+			g.add(loadConstInst{val: valueNone})
 		}
 		if exp.step.valid {
 			g.compileExpr(exp.step.data)
 		} else {
-			g.add(instruction{kind: instructionKindLoadConst, data: i64Value{n: int64(1)}})
+			g.add(loadConstInst{val: i64Value{n: int64(1)}})
 		}
-		g.add(instruction{kind: instructionKindSlice})
+		g.add(sliceInst{})
 		g.popSpan()
 	case unaryOpExpr:
 		g.setLineFromSpan(exp.span)
 		g.compileExpr(exp.expr)
 		switch exp.op {
 		case unaryOpTypeNot:
-			g.add(instruction{kind: instructionKindNot})
+			g.add(notInst{})
 		case unaryOpTypeNeg:
-			g.addWithSpan(instruction{kind: instructionKindNeg}, exp.span)
+			g.addWithSpan(negInst{}, exp.span)
 		}
 	case binOpExpr:
 		g.compileBinOp(exp)
 	case getAttrExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)
-		g.add(instruction{kind: instructionKindGetAttr, data: exp.name})
+		g.add(getAttrInst{name: exp.name})
 		g.popSpan()
 	case getItemExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)
 		g.compileExpr(exp.subscriptExpr)
-		g.add(instruction{kind: instructionKindGetItem})
+		g.add(getItemInst{})
 		g.popSpan()
 	case listExpr:
 		if v := exp.asConst(); v.valid {
-			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
+			g.add(loadConstInst{val: v.data})
 		} else {
 			g.setLineFromSpan(exp.span)
 			for _, item := range exp.items {
 				g.compileExpr(item)
 			}
-			g.add(instruction{
-				kind: instructionKindBuildList,
-				data: buildListInstructionData(len(exp.items)),
-			})
+			g.add(buildListInst{count: uint(len(exp.items))})
 		}
 	case mapExpr:
 		if v := exp.asConst(); v.valid {
-			g.add(instruction{kind: instructionKindLoadConst, data: v.data})
+			g.add(loadConstInst{val: v.data})
 		} else {
 			g.setLineFromSpan(exp.span)
 			if len(exp.keys) != len(exp.values) {
@@ -120,10 +117,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 				g.compileExpr(key)
 				g.compileExpr(v)
 			}
-			g.add(instruction{
-				kind: instructionKindBuildMap,
-				data: buildMapInstructionData(len(exp.keys)),
-			})
+			g.add(buildMapInst{pairCount: uint(len(exp.keys))})
 		}
 	default:
 		panic(fmt.Sprintf("not implemented for exprType: %s", exp.typ()))
@@ -169,37 +163,37 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	var instr instruction
 	switch exp.op {
 	case binOpTypeEq:
-		instr = instruction{kind: instructionKindEq}
+		instr = eqInst{}
 	case binOpTypeNe:
-		instr = instruction{kind: instructionKindNe}
+		instr = neInst{}
 	case binOpTypeLt:
-		instr = instruction{kind: instructionKindLt}
+		instr = ltInst{}
 	case binOpTypeLte:
-		instr = instruction{kind: instructionKindLte}
+		instr = lteInst{}
 	case binOpTypeGt:
-		instr = instruction{kind: instructionKindGt}
+		instr = gtInst{}
 	case binOpTypeGte:
-		instr = instruction{kind: instructionKindGte}
+		instr = gteInst{}
 	case binOpTypeScAnd, binOpTypeScOr:
 		panic("not implemented yet")
 	case binOpTypeAdd:
-		instr = instruction{kind: instructionKindAdd}
+		instr = addInst{}
 	case binOpTypeSub:
-		instr = instruction{kind: instructionKindSub}
+		instr = subInst{}
 	case binOpTypeMul:
-		instr = instruction{kind: instructionKindMul}
+		instr = mulInst{}
 	case binOpTypeDiv:
-		instr = instruction{kind: instructionKindDiv}
+		instr = divInst{}
 	case binOpTypeFloorDiv:
-		instr = instruction{kind: instructionKindIntDiv}
+		instr = intDivInst{}
 	case binOpTypeRem:
-		instr = instruction{kind: instructionKindRem}
+		instr = remInst{}
 	case binOpTypePow:
-		instr = instruction{kind: instructionKindPow}
+		instr = powInst{}
 	case binOpTypeConcat:
-		instr = instruction{kind: instructionKindStringConcat}
+		instr = stringConcatInst{}
 	case binOpTypeIn:
-		instr = instruction{kind: instructionKindIn}
+		instr = inInst{}
 	}
 	g.compileExpr(exp.left)
 	g.compileExpr(exp.right)
