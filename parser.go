@@ -103,7 +103,7 @@ loop:
 			if _, _, err := p.stream.next(); err != nil {
 				return nil, err
 			}
-			if tkn, _, err := p.expectToken(isTokenOfType(tokenTypeIdent), "identifier"); err != nil {
+			if tkn, _, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
 				return nil, err
 			} else {
 				name := tkn.(identToken).s
@@ -123,7 +123,7 @@ loop:
 			step := option[expression]{}
 			isSlice := false
 
-			if matched, err := p.matchesToken(isTokenOfType(tokenTypeColon)); err != nil {
+			if matched, err := p.matchesToken(isTokenOfType[colonToken]); err != nil {
 				return nil, err
 			} else if !matched {
 				if exp, err := p.parseExpr(); err != nil {
@@ -150,7 +150,7 @@ loop:
 				if matched, err := p.skipToken(tokenTypeColon); err != nil {
 					return nil, err
 				} else if matched {
-					if matched, err := p.matchesToken(isTokenOfType(tokenTypeBracketClose)); err != nil {
+					if matched, err := p.matchesToken(isTokenOfType[bracketCloseToken]); err != nil {
 						return nil, err
 					} else if !matched {
 						if exp, err := p.parseExpr(); err != nil {
@@ -161,7 +161,7 @@ loop:
 					}
 				}
 			}
-			if _, _, err := p.expectToken(isTokenOfType(tokenTypeBracketClose), "`]`"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfType[bracketCloseToken], "`]`"); err != nil {
 				return nil, err
 			}
 
@@ -245,7 +245,7 @@ func (p *parser) parseListExpr(spn span) (expression, error) {
 			break
 		}
 		if len(items) > 0 {
-			if _, _, err := p.expectToken(isTokenOfType(tokenTypeComma), "`,`"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
 				return nil, err
 			}
 			if matched, err := p.skipToken(tokenTypeBracketClose); err != nil {
@@ -272,7 +272,7 @@ func (p *parser) parseMapExpr(spn span) (expression, error) {
 			break
 		}
 		if len(keys) > 0 {
-			if _, _, err := p.expectToken(isTokenOfType(tokenTypeComma), "`,`"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
 				return nil, err
 			}
 			if matched, err := p.skipToken(tokenTypeBraceClose); err != nil {
@@ -286,7 +286,7 @@ func (p *parser) parseMapExpr(spn span) (expression, error) {
 		} else {
 			keys = append(keys, key)
 		}
-		if _, _, err := p.expectToken(isTokenOfType(tokenTypeColon), "`:`"); err != nil {
+		if _, _, err := p.expectToken(isTokenOfType[colonToken], "`:`"); err != nil {
 			return nil, err
 		}
 		if value, err := p.parseExpr(); err != nil {
@@ -512,7 +512,7 @@ func (p *parser) subparse(endCheck func(*token) bool) ([]statement, error) {
 				return nil, err
 			}
 			rv = append(rv, emitExprStmt{expr: exp, span: p.stream.expandSpan(*spn)})
-			if _, _, err := p.expectToken(isTokenOfType(tokenTypeVariableEnd), "end of variable block"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfType[variableEndToken], "end of variable block"); err != nil {
 				return nil, err
 			}
 		case blockStartToken:
@@ -547,12 +547,6 @@ func parseWithSyntax(source, filename string, syntax SyntaxConfig) (statement, e
 
 	parser := newParser(source, false, &syntax)
 	return parser.parse()
-}
-
-func isTokenOfType(k tokenType) func(tkn token) bool {
-	return func(tkn token) bool {
-		return tkn.typ() == k
-	}
 }
 
 func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) option[binOpType]) (expression, error) {

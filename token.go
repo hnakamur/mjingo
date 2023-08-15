@@ -152,6 +152,11 @@ func (parenCloseToken) typ() tokenType    { return tokenTypeParenClose }
 func (braceOpenToken) typ() tokenType     { return tokenTypeBraceOpen }
 func (braceCloseToken) typ() tokenType    { return tokenTypeBraceClose }
 
+func isTokenOfType[T any](tkn token) bool {
+	_, ok := tkn.(T)
+	return ok
+}
+
 type tokenType int
 
 const (
