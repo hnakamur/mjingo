@@ -64,32 +64,32 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
 			if v := a.getAttrFast(name); v.valid {
-				if v, err := assertValid(v.data, pc, state); err != nil || !v.valid {
+				if v, err := assertValid(v.data, pc, state); err != nil {
 					return option[value]{}, err
 				} else {
-					stack.push(v.data)
+					stack.push(v)
 				}
 			} else {
-				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil || !v.valid {
+				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil {
 					return option[value]{}, processErr(err, pc, state)
 				} else {
-					stack.push(v.data)
+					stack.push(v)
 				}
 			}
 		case instructionKindGetItem:
 			a = stack.pop()
 			b = stack.pop()
 			if v := b.getItemOpt(a); v.valid {
-				if v, err := assertValid(v.data, pc, state); err != nil || !v.valid {
+				if v, err := assertValid(v.data, pc, state); err != nil {
 					return option[value]{}, err
 				} else {
-					stack.push(v.data)
+					stack.push(v)
 				}
 			} else {
-				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil || !v.valid {
+				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil {
 					return option[value]{}, processErr(err, pc, state)
 				} else {
-					stack.push(v.data)
+					stack.push(v)
 				}
 			}
 		case instructionKindSlice:
@@ -156,7 +156,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 	return stack.tryPop(), nil
 }
 
-func assertValid(v value, pc uint, st *virtualMachineState) (option[value], error) {
+func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
 	if vInvalid, ok := v.(invalidValue); ok {
 		detail := vInvalid.detail
 		err := &Error{
@@ -164,9 +164,9 @@ func assertValid(v value, pc uint, st *virtualMachineState) (option[value], erro
 			detail: option[string]{valid: true, data: detail},
 		}
 		processErr(err, pc, st)
-		return option[value]{}, err
+		return nil, err
 	}
-	return option[value]{valid: true, data: v}, nil
+	return v, nil
 }
 
 func processErr(err error, pc uint, st *virtualMachineState) error {
