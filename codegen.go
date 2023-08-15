@@ -168,37 +168,37 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	g.pushSpan(exp.span)
 	var instr instruction
 	switch exp.op {
-	case binOpKindEq:
+	case binOpTypeEq:
 		instr = instruction{kind: instructionKindEq}
-	case binOpKindNe:
+	case binOpTypeNe:
 		instr = instruction{kind: instructionKindNe}
-	case binOpKindLt:
+	case binOpTypeLt:
 		instr = instruction{kind: instructionKindLt}
-	case binOpKindLte:
+	case binOpTypeLte:
 		instr = instruction{kind: instructionKindLte}
-	case binOpKindGt:
+	case binOpTypeGt:
 		instr = instruction{kind: instructionKindGt}
-	case binOpKindGte:
+	case binOpTypeGte:
 		instr = instruction{kind: instructionKindGte}
-	case binOpKindScAnd, binOpKindScOr:
+	case binOpTypeScAnd, binOpTypeScOr:
 		panic("not implemented yet")
-	case binOpKindAdd:
+	case binOpTypeAdd:
 		instr = instruction{kind: instructionKindAdd}
-	case binOpKindSub:
+	case binOpTypeSub:
 		instr = instruction{kind: instructionKindSub}
-	case binOpKindMul:
+	case binOpTypeMul:
 		instr = instruction{kind: instructionKindMul}
-	case binOpKindDiv:
+	case binOpTypeDiv:
 		instr = instruction{kind: instructionKindDiv}
-	case binOpKindFloorDiv:
+	case binOpTypeFloorDiv:
 		instr = instruction{kind: instructionKindIntDiv}
-	case binOpKindRem:
+	case binOpTypeRem:
 		instr = instruction{kind: instructionKindRem}
-	case binOpKindPow:
+	case binOpTypePow:
 		instr = instruction{kind: instructionKindPow}
-	case binOpKindConcat:
+	case binOpTypeConcat:
 		instr = instruction{kind: instructionKindStringConcat}
-	case binOpKindIn:
+	case binOpTypeIn:
 		instr = instruction{kind: instructionKindIn}
 	}
 	g.compileExpr(exp.left)

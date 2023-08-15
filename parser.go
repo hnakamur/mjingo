@@ -340,14 +340,14 @@ func (p *parser) parseConcat() (expression, error) {
 }
 
 func (p *parser) parseMath1() (expression, error) {
-	return p.binop(p.parseConcat, func(tkn token) option[binOpKind] {
+	return p.binop(p.parseConcat, func(tkn token) option[binOpType] {
 		switch tkn.(type) {
 		case plusToken:
-			return option[binOpKind]{valid: true, data: binOpKindAdd}
+			return option[binOpType]{valid: true, data: binOpTypeAdd}
 		case minusToken:
-			return option[binOpKind]{valid: true, data: binOpKindSub}
+			return option[binOpType]{valid: true, data: binOpTypeSub}
 		default:
-			return option[binOpKind]{}
+			return option[binOpType]{}
 		}
 	})
 }
@@ -516,7 +516,7 @@ func isTokenOfType(k tokenType) func(tkn token) bool {
 	}
 }
 
-func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) option[binOpKind]) (expression, error) {
+func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) option[binOpType]) (expression, error) {
 	spn := p.stream.currentSpan()
 	left, err := next()
 	if err != nil {

@@ -247,7 +247,7 @@ type unaryOpExpr struct {
 }
 
 type binOpExpr struct {
-	op    binOpKind
+	op    binOpType
 	left  expression
 	right expression
 	span  span
@@ -404,26 +404,26 @@ const (
 	unaryOpTypeNeg
 )
 
-type binOpKind int
+type binOpType int
 
 const (
-	binOpKindEq binOpKind = iota + 1
-	binOpKindNe
-	binOpKindLt
-	binOpKindLte
-	binOpKindGt
-	binOpKindGte
-	binOpKindScAnd
-	binOpKindScOr
-	binOpKindAdd
-	binOpKindSub
-	binOpKindMul
-	binOpKindDiv
-	binOpKindFloorDiv
-	binOpKindRem
-	binOpKindPow
-	binOpKindConcat
-	binOpKindIn
+	binOpTypeEq binOpType = iota + 1
+	binOpTypeNe
+	binOpTypeLt
+	binOpTypeLte
+	binOpTypeGt
+	binOpTypeGte
+	binOpTypeScAnd
+	binOpTypeScOr
+	binOpTypeAdd
+	binOpTypeSub
+	binOpTypeMul
+	binOpTypeDiv
+	binOpTypeFloorDiv
+	binOpTypeRem
+	binOpTypePow
+	binOpTypeConcat
+	binOpTypeIn
 )
 
 func (l listExpr) asConst() option[value] {
