@@ -157,9 +157,11 @@ func isTokenOfType[T any](tkn token) bool {
 	return ok
 }
 
-func isIdentTokenWithName(tkn token, name string) bool {
-	identTkn, ok := tkn.(identToken)
-	return ok && identTkn.ident == name
+func isIdentTokenWithName(name string) func(token) bool {
+	return func(tkn token) bool {
+		identTkn, ok := tkn.(identToken)
+		return ok && identTkn.ident == name
+	}
 }
 
 type tokenType int

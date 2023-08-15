@@ -380,7 +380,7 @@ func (p *parser) parseCompare() (expression, error) {
 func (p *parser) parseNot() (expression, error) {
 	return p.unaryop(p.parseNot, p.parseCompare,
 		func(tkn token) option[unaryOpType] {
-			if isIdentTokenWithName(tkn, "not") {
+			if isIdentTokenWithName("not")(tkn) {
 				return option[unaryOpType]{valid: true, data: unaryOpTypeNot}
 			}
 			return option[unaryOpType]{}
@@ -389,7 +389,7 @@ func (p *parser) parseNot() (expression, error) {
 
 func (p *parser) parseAnd() (expression, error) {
 	return p.binop(p.parseNot, func(tkn token) option[binOpType] {
-		if isIdentTokenWithName(tkn, "and") {
+		if isIdentTokenWithName("and")(tkn) {
 			return option[binOpType]{valid: true, data: binOpTypeScAnd}
 		}
 		return option[binOpType]{}
@@ -398,7 +398,7 @@ func (p *parser) parseAnd() (expression, error) {
 
 func (p *parser) parseOr() (expression, error) {
 	return p.binop(p.parseAnd, func(tkn token) option[binOpType] {
-		if isIdentTokenWithName(tkn, "or") {
+		if isIdentTokenWithName("or")(tkn) {
 			return option[binOpType]{valid: true, data: binOpTypeScOr}
 		}
 		return option[binOpType]{}
