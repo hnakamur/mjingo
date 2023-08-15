@@ -290,7 +290,7 @@ func (i128Value) getItemOpt(key value) option[value]      { return option[value]
 func (stringValue) getItemOpt(key value) option[value]    { return option[value]{} }
 func (bytesValue) getItemOpt(key value) option[value]     { return option[value]{} }
 func (v seqValue) getItemOpt(key value) option[value] {
-	keyRf := keyRef{kind: keyRefKindValue, data: key}
+	keyRf := valueKeyRef{val: key}
 	if idx := keyRf.asI64(); idx.valid {
 		if idx.data < math.MinInt || math.MaxInt < idx.data {
 			return option[value]{}
@@ -311,7 +311,7 @@ func (v seqValue) getItemOpt(key value) option[value] {
 	return option[value]{}
 }
 func (v mapValue) getItemOpt(key value) option[value] {
-	keyRf := keyRef{kind: keyRefKindValue, data: key}
+	keyRf := valueKeyRef{val: key}
 	// implementation here is different from minijinja.
 	if keyData := keyRf.asStr(); keyData.valid {
 		if v, ok := v.m[keyData.data]; ok {

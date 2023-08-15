@@ -1,41 +1,32 @@
 package mjingo
 
-type keyRefKind uint
+type keyRef interface {
+	typ() keyRefType
+	asStr() option[string]
+	asI64() option[int64]
+}
+
+type valueKeyRef struct{ val value }
+type strKeyRef struct{ str string }
+
+func (valueKeyRef) typ() keyRefType { return keyRefTypeValue }
+func (strKeyRef) typ() keyRefType   { return keyRefTypeStr }
+
+func (k valueKeyRef) asStr() option[string] { return k.val.asStr() }
+func (k strKeyRef) asStr() option[string]   { return option[string]{valid: true, data: k.str} }
+
+func (k valueKeyRef) asI64() option[int64] {
+	if i, err := k.val.tryToI64(); err != nil {
+		return option[int64]{}
+	} else {
+		return option[int64]{valid: true, data: i}
+	}
+}
+func (k strKeyRef) asI64() option[int64] { return option[int64]{} }
+
+type keyRefType uint
 
 const (
-	keyRefKindValue keyRefKind = iota
-	keyRefKindStr
+	keyRefTypeValue keyRefType = iota
+	keyRefTypeStr
 )
-
-type keyRef struct {
-	kind keyRefKind
-	data any
-}
-
-type valueKeyRefData = value
-type strKeyRefData = string
-
-func (k *keyRef) asStr() option[string] {
-	switch k.kind {
-	case keyRefKindValue:
-		data := k.data.(valueKeyRefData)
-		return data.asStr()
-	case keyRefKindStr:
-		data := k.data.(strKeyRefData)
-		return option[string]{valid: true, data: data}
-	default:
-		panic("invalid keyRef kind")
-	}
-}
-
-func (k *keyRef) asI64() option[int64] {
-	if k.kind == keyRefKindValue {
-		data := k.data.(valueKeyRefData)
-		if i, err := data.tryToI64(); err != nil {
-			return option[int64]{}
-		} else {
-			return option[int64]{valid: true, data: i}
-		}
-	}
-	return option[int64]{}
-}
