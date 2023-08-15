@@ -306,11 +306,11 @@ func (p *parser) parseTupleOrExpression(spn span) (expression, error) {
 
 func (p *parser) parseUnaryOnly() (expression, error) {
 	return p.unaryop(p.parseUnaryOnly, p.parsePrimary,
-		func(tkn token) option[unaryOpKind] {
+		func(tkn token) option[unaryOpType] {
 			if _, ok := tkn.(minusToken); ok {
-				return option[unaryOpKind]{valid: true, data: unaryOpKindNeg}
+				return option[unaryOpType]{valid: true, data: unaryOpTypeNeg}
 			}
-			return option[unaryOpKind]{}
+			return option[unaryOpType]{}
 		})
 }
 
@@ -551,7 +551,7 @@ func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) 
 	return left, nil
 }
 
-func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn token) option[unaryOpKind]) (expression, error) {
+func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn token) option[unaryOpType]) (expression, error) {
 	spn := p.stream.currentSpan()
 	tkn, _, err := p.stream.current()
 	if err != nil {

@@ -241,7 +241,7 @@ type sliceExpr struct {
 }
 
 type unaryOpExpr struct {
-	op   unaryOpKind
+	op   unaryOpType
 	expr expression
 	span span
 }
@@ -397,11 +397,11 @@ func (k exprType) String() string {
 	}
 }
 
-type unaryOpKind int
+type unaryOpType int
 
 const (
-	unaryOpKindNot unaryOpKind = iota + 1
-	unaryOpKindNeg
+	unaryOpTypeNot unaryOpType = iota + 1
+	unaryOpTypeNeg
 )
 
 type binOpKind int

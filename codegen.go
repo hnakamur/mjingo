@@ -76,9 +76,9 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		g.setLineFromSpan(exp.span)
 		g.compileExpr(exp.expr)
 		switch exp.op {
-		case unaryOpKindNot:
+		case unaryOpTypeNot:
 			g.add(instruction{kind: instructionKindNot})
-		case unaryOpKindNeg:
+		case unaryOpTypeNeg:
 			g.addWithSpan(instruction{kind: instructionKindNeg}, exp.span)
 		}
 	case binOpExpr:
