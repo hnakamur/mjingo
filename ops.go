@@ -172,6 +172,29 @@ func opsSub(lhs, rhs value) (value, error) {
 	return valueUndefined, impossibleOp("-", lhs, rhs)
 }
 
+func opsPow(lhs, rhs value) (value, error) {
+	if cMayRes := coerce(lhs, rhs); cMayRes.valid {
+		cRes := cMayRes.data
+		switch cRes.typ {
+		case coerceResultTypeI64:
+			data := cRes.data.(i64CoerceResultData)
+			if data.rhs < 0 {
+				return valueUndefined, failedOp("**", lhs, rhs)
+			}
+			// TODO: checked_pow
+			acc := int64(1)
+			for i := int64(0); i < data.rhs; i++ {
+				acc *= data.lhs
+			}
+			return i64Value{n: acc}, nil
+		case coerceResultTypeF64:
+			data := cRes.data.(f64CoerceResultData)
+			return f64Value{f: math.Pow(data.lhs, data.rhs)}, nil
+		}
+	}
+	return valueUndefined, impossibleOp("**", lhs, rhs)
+}
+
 func opsStringConcat(left, right value) value {
 	return stringValue{s: fmt.Sprintf("%s%s", left, right)}
 }

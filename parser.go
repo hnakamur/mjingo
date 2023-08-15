@@ -328,7 +328,12 @@ func (p *parser) parseUnary() (expression, error) {
 }
 
 func (p *parser) parsePow() (expression, error) {
-	return p.parseUnary()
+	return p.binop(p.parseUnary, func(tkn token) option[binOpType] {
+		if _, ok := tkn.(powToken); ok {
+			return option[binOpType]{valid: true, data: binOpTypePow}
+		}
+		return option[binOpType]{}
+	})
 }
 
 func (p *parser) parseMath2() (expression, error) {

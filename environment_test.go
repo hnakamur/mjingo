@@ -131,6 +131,11 @@ func TestEnvironment(t *testing.T) {
 			}},
 			want: "Hello John!",
 		},
+		{
+			source:  `{{ 2 ** 3 }}`,
+			context: valueNone,
+			want:    "8",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

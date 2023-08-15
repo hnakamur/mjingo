@@ -135,6 +135,14 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
+		case powInst:
+			b = stack.pop()
+			a = stack.pop()
+			if v, err := opsPow(a, b); err != nil {
+				return option[value]{}, err
+			} else {
+				stack.push(v)
+			}
 		case stringConcatInst:
 			b = stack.pop()
 			a = stack.pop()
