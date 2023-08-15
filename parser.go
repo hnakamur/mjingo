@@ -530,8 +530,8 @@ func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) 
 		if tkn == nil {
 			break
 		}
-		opKind := matchFn(tkn)
-		if !opKind.valid {
+		opType := matchFn(tkn)
+		if !opType.valid {
 			break
 		}
 		if _, _, err := p.stream.next(); err != nil {
@@ -542,7 +542,7 @@ func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) 
 			return nil, err
 		}
 		left = binOpExpr{
-			op:    opKind.data,
+			op:    opType.data,
 			left:  left,
 			right: right,
 			span:  p.stream.expandSpan(spn),
@@ -560,8 +560,8 @@ func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn
 	if tkn == nil {
 		return next()
 	}
-	opKind := matchFn(tkn)
-	if !opKind.valid {
+	opType := matchFn(tkn)
+	if !opType.valid {
 		return next()
 	}
 	if _, _, err := p.stream.next(); err != nil {
@@ -571,5 +571,5 @@ func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn
 	if err != nil {
 		return nil, err
 	}
-	return unaryOpExpr{op: opKind.data, expr: exp, span: p.stream.expandSpan(spn)}, nil
+	return unaryOpExpr{op: opType.data, expr: exp, span: p.stream.expandSpan(spn)}, nil
 }
