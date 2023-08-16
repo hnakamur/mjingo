@@ -72,6 +72,21 @@ func (g *codeGenerator) compileStmt(stmt statement) {
 			g.compileStmt(node)
 		}
 		g.add(popFrameInstruction{})
+	case setStmt:
+		g.setLineFromSpan(st.span)
+		g.compileExpr(st.expr)
+		g.compileAssignment(st.target)
+	case setBlockStmt:
+		g.setLineFromSpan(st.span)
+		g.add(beginCaptureInstruction{mode: captureModeCapture})
+		for _, node := range st.body {
+			g.compileStmt(node)
+		}
+		g.add(endCaptureInstruction{})
+		if st.filter.valid {
+			g.compileExpr(st.filter.data)
+		}
+		g.compileAssignment(st.target)
 	}
 }
 

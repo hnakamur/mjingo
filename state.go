@@ -4,6 +4,7 @@ type virtualMachineState struct {
 	env          *Environment
 	ctx          context
 	currentBlock option[string]
+	autoEscape   autoEscape
 	instructions instructions
 	blocks       map[string]blockStack
 }

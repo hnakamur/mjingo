@@ -83,13 +83,13 @@ func opsSlice(val, start, stop, step value) (value, error) {
 	var maybeSeq seqObject
 	switch v := val.(type) {
 	case stringValue:
-		chars := []rune(v.s)
+		chars := []rune(v.str)
 		startIdx, stopIdx := opsGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
 		sliced := make([]rune, 0, len(chars))
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
 			sliced = append(sliced, chars[i])
 		}
-		return stringValue{s: string(sliced)}, nil
+		return stringValue{str: string(sliced)}, nil
 	case undefinedValue, noneValue:
 		return seqValue{items: []value{}}, nil
 	case seqValue:
@@ -143,7 +143,7 @@ func opsAdd(lhs, rhs value) (value, error) {
 	case f64CoerceResult:
 		return f64Value{f: c.lhs + c.rhs}, nil
 	case strCoerceResult:
-		return stringValue{s: c.lhs + c.rhs}, nil
+		return stringValue{str: c.lhs + c.rhs}, nil
 	}
 	return nil, impossibleOp("+", lhs, rhs)
 }
@@ -180,7 +180,7 @@ func opsPow(lhs, rhs value) (value, error) {
 }
 
 func opsStringConcat(left, right value) value {
-	return stringValue{s: fmt.Sprintf("%s%s", left, right)}
+	return stringValue{str: fmt.Sprintf("%s%s", left, right)}
 }
 
 type coerceResult interface {
@@ -235,8 +235,8 @@ func coerce(a, b value) coerceResult {
 		bVal := b.(i64Value).n
 		return i64CoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeString && b.typ() == valueTypeString:
-		aVal := a.(stringValue).s
-		bVal := b.(stringValue).s
+		aVal := a.(stringValue).str
+		bVal := b.(stringValue).str
 		return strCoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeF64 || b.typ() == valueTypeF64:
 		var aVal, bVal float64

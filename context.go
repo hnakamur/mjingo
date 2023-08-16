@@ -85,7 +85,7 @@ func (c *context) load(env *Environment, key string) option[value] {
 			return rv
 		}
 	}
-	panic("not implemented")
+	return env.getGlobal(key)
 }
 
 func (c *context) pushFrame(f frame) error {

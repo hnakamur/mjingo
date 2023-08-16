@@ -8,6 +8,35 @@ import (
 	"unicode/utf8"
 )
 
+// Controls the autoescaping behavior.
+type autoEscape interface {
+	typ() autoEscapeType
+}
+
+type autoEscapeNone struct{}
+type autoEscapeHTML struct{}
+type autoEscapeJSON struct{}
+type autoEscapeCustom struct{ custom string }
+
+func (autoEscapeNone) typ() autoEscapeType   { return autoEscapeTypeNone }
+func (autoEscapeHTML) typ() autoEscapeType   { return autoEscapeTypeHTML }
+func (autoEscapeJSON) typ() autoEscapeType   { return autoEscapeTypeJSON }
+func (autoEscapeCustom) typ() autoEscapeType { return autoEscapeTypeCustom }
+
+var _ = (autoEscape)(autoEscapeNone{})
+var _ = (autoEscape)(autoEscapeHTML{})
+var _ = (autoEscape)(autoEscapeJSON{})
+var _ = (autoEscape)(autoEscapeCustom{})
+
+type autoEscapeType uint
+
+const (
+	autoEscapeTypeNone autoEscapeType = iota
+	autoEscapeTypeHTML
+	autoEscapeTypeJSON
+	autoEscapeTypeCustom
+)
+
 type UndefinedBehavior uint
 
 const (

@@ -14,21 +14,26 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 	return &virtualMachine{env: env}
 }
 
-func (m *virtualMachine) eval(instructions instructions, root value, blocks map[string]instructions, out io.Writer) (option[value], error) {
+func (m *virtualMachine) eval(instructions instructions, root value, blocks map[string]instructions, out *Output, escape autoEscape) (option[value], error) {
 	state := virtualMachineState{
 		env:          m.env,
 		instructions: instructions,
 		ctx:          *newContext(*newFrame(root)),
+		autoEscape:   escape,
 	}
 	return m.evalState(&state, out)
 }
 
-func (m *virtualMachine) evalState(state *virtualMachineState, out io.Writer) (option[value], error) {
+func (m *virtualMachine) evalState(state *virtualMachineState, out *Output) (option[value], error) {
 	return m.evalImpl(state, out, newVMStack(), 0)
 }
 
-func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, stack vmStack, pc uint) (option[value], error) {
+type autoEscapeStack = stack[autoEscape]
+
+func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack vmStack, pc uint) (option[value], error) {
+	initialAutoEscape := state.autoEscape
 	undefinedBehavior := state.undefinedBehavior()
+	autoEscapeStack := autoEscapeStack{}
 	nextRecursionJump := option[recursionJump]{}
 
 	for pc < uint(len(state.instructions.instructions)) {
@@ -195,6 +200,24 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				pc = inst.jumpTarget
 				continue
 			}
+		case pushAutoEscapeInstruction:
+			a = stack.pop()
+			autoEscapeStack.push(state.autoEscape)
+			if escape, err := m.deriveAutoEscape(a, initialAutoEscape); err != nil {
+				return option[value]{}, processErr(err, pc, state)
+			} else {
+				state.autoEscape = escape
+			}
+		case popAutoEscapeInstruction:
+			if mayAutoEsc := autoEscapeStack.pop(); mayAutoEsc != nil {
+				state.autoEscape = *mayAutoEsc
+			} else {
+				panic("unreachable")
+			}
+		case beginCaptureInstruction:
+			out.beginCapture(inst.mode)
+		case endCaptureInstruction:
+			stack.push(out.endCapture(state.autoEscape))
 		case dupTopInstruction:
 			if val := stack.peek(); val == nil {
 				panic("stack must not be empty")
@@ -242,6 +265,26 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 		pc++
 	}
 	return stack.tryPop(), nil
+}
+
+func (m *virtualMachine) deriveAutoEscape(val value, initialAutoEscape autoEscape) (autoEscape, error) {
+	strVal := val.asStr()
+	if strVal.valid {
+		switch strVal.data {
+		case "html":
+			return autoEscapeHTML{}, nil
+		case "json":
+			return autoEscapeJSON{}, nil
+		case "none":
+			return autoEscapeNone{}, nil
+		}
+	} else if v, ok := val.(boolValue); ok && v.b {
+		if _, ok := initialAutoEscape.(autoEscapeNone); ok {
+			return autoEscapeHTML{}, nil
+		}
+		return initialAutoEscape, nil
+	}
+	return nil, newError(InvalidOperation, "invalid value to autoescape tag")
 }
 
 func (m *virtualMachine) pushLoop(state *virtualMachineState, iterable value,

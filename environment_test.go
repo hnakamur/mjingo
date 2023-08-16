@@ -13,7 +13,7 @@ func TestEnvironment(t *testing.T) {
 		{
 			source: "Hello {{ name }}",
 			context: mapValue{m: map[string]value{
-				"name": stringValue{s: "World"},
+				"name": stringValue{str: "World"},
 			}},
 			want: "Hello World",
 		},
@@ -51,7 +51,7 @@ func TestEnvironment(t *testing.T) {
 			source: `Hello {{ user.name }}`,
 			context: mapValue{m: map[string]value{
 				"user": mapValue{m: map[string]value{
-					"name": stringValue{s: "John"},
+					"name": stringValue{str: "John"},
 				}},
 			}},
 			want: "Hello John",
@@ -60,7 +60,7 @@ func TestEnvironment(t *testing.T) {
 			source: `Hello {{ user["name"] }}`,
 			context: mapValue{m: map[string]value{
 				"user": mapValue{m: map[string]value{
-					"name": stringValue{s: "John"},
+					"name": stringValue{str: "John"},
 				}},
 			}},
 			want: "Hello John",
@@ -78,7 +78,7 @@ func TestEnvironment(t *testing.T) {
 		{
 			source: `Hello {{ ["John", name][1] }}`,
 			context: mapValue{m: map[string]value{
-				"name": stringValue{s: "Paul"},
+				"name": stringValue{str: "Paul"},
 			}},
 			want: "Hello Paul",
 		},
@@ -90,7 +90,7 @@ func TestEnvironment(t *testing.T) {
 		{
 			source: `Hello {{ {"name": name}["name"] }}`,
 			context: mapValue{m: map[string]value{
-				"name": stringValue{s: "Paul"},
+				"name": stringValue{str: "Paul"},
 			}},
 			want: "Hello Paul",
 		},
@@ -127,7 +127,7 @@ func TestEnvironment(t *testing.T) {
 		{
 			source: `{{ "Hello " ~ name ~ "!" }}`,
 			context: mapValue{m: map[string]value{
-				"name": stringValue{s: "John"},
+				"name": stringValue{str: "John"},
 			}},
 			want: "Hello John!",
 		},
@@ -168,8 +168,8 @@ func TestEnvironment(t *testing.T) {
 			source: `{% for name in names %}{{ name }} {% endfor %}`,
 			context: mapValue{m: map[string]value{
 				"names": seqValue{items: []value{
-					stringValue{s: "John"},
-					stringValue{s: "Paul"},
+					stringValue{str: "John"},
+					stringValue{str: "Paul"},
 				}},
 			}},
 			want: "John Paul ",
@@ -183,6 +183,28 @@ func TestEnvironment(t *testing.T) {
 			source:  `{% with foo = 42 %}{{ foo }}{% endwith %}`,
 			context: valueNone,
 			want:    "42",
+		},
+		{
+			source:  `{% set name = "John" %}Hello {{ name }}`,
+			context: valueNone,
+			want:    "Hello John",
+		},
+		{
+			source: "{% set navigation %}\n" +
+				"<li><a href=\"/\">Index</a>\n" +
+				"<li><a href=\"/downloads\">Downloads</a>\n" +
+				"{% endset %}\n" +
+				"<ul>\n" +
+				"{{ navigation }}\n" +
+				"</ul>\n",
+			context: valueNone,
+			want: "\n" +
+				"<ul>\n" +
+				"\n" +
+				"<li><a href=\"/\">Index</a>\n" +
+				"<li><a href=\"/downloads\">Downloads</a>\n" +
+				"\n" +
+				"</ul>",
 		},
 	}
 	for i, tc := range testCases {
@@ -201,7 +223,7 @@ func TestEnvironment(t *testing.T) {
 			t.Fatal(err)
 		}
 		if got != tc.want {
-			t.Errorf("result mismatch, i=%d, source=%s, got=%s, want=%s", i, tc.source, got, tc.want)
+			t.Errorf("result mismatch, i=%d, source=%s,\n got=%q,\nwant=%q", i, tc.source, got, tc.want)
 		}
 	}
 }

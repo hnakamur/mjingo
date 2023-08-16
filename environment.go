@@ -3,20 +3,27 @@ package mjingo
 import (
 	"errors"
 	"io"
+	"strings"
 )
 
 type Environment struct {
 	syntaxConfig      SyntaxConfig
 	templates         map[string]*Template
+	globals           map[string]value
+	defaultAutoEscape autoEscapeCallBack
 	UndefinedBehavior UndefinedBehavior
 }
+
+type autoEscapeCallBack func(name string) autoEscape
 
 var ErrTemplateNotFound = errors.New("template not found")
 
 func NewEnvironment() *Environment {
 	return &Environment{
-		syntaxConfig: DefaultSyntaxConfig,
-		templates:    make(map[string]*Template),
+		syntaxConfig:      DefaultSyntaxConfig,
+		templates:         make(map[string]*Template),
+		globals:           make(map[string]value),
+		defaultAutoEscape: defaultAutoEscapeCallback,
 	}
 }
 
@@ -34,7 +41,11 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	if tpl == nil {
 		return nil, ErrTemplateNotFound
 	}
-	return tpl, nil
+	return &Template{
+		env:               e,
+		compiled:          tpl.compiled,
+		initialAutoEscape: e.initialAutoEscape(name),
+	}, nil
 }
 
 func (e *Environment) format(v value, state *virtualMachineState, out io.Writer) error {
@@ -46,4 +57,31 @@ func (e *Environment) format(v value, state *virtualMachineState, out io.Writer)
 		return err
 	}
 	return nil
+}
+
+func (e *Environment) getGlobal(name string) option[value] {
+	val := e.globals[name]
+	if val != nil {
+		return option[value]{valid: true, data: val.clone()}
+	}
+	return option[value]{}
+}
+
+func (e *Environment) initialAutoEscape(name string) autoEscape {
+	return e.defaultAutoEscape(name)
+}
+
+func noAutoEscape(_ string) autoEscape { return autoEscapeNone{} }
+
+func defaultAutoEscapeCallback(name string) autoEscape {
+	_, suffix, found := strings.Cut(name, ".")
+	if found {
+		switch suffix {
+		case "html", "htm", "xml":
+			return autoEscapeHTML{}
+		case "json", "json5", "js", "yaml", "yml":
+			return autoEscapeJSON{}
+		}
+	}
+	return autoEscapeNone{}
 }

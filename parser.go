@@ -90,6 +90,69 @@ loop:
 	return exp, nil
 }
 
+func (p *parser) parseArgs() ([]expression, error) {
+	args := []expression{}
+	firstSpan := option[span]{}
+	kwargs := []kwarg{}
+
+	if _, _, err := p.expectToken(isTokenOfType[parenOpenToken], "`(`"); err != nil {
+		return nil, err
+	}
+	for {
+		if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+			return nil, err
+		} else if matched {
+			break
+		}
+
+		if len(args) != 0 || len(kwargs) != 0 {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				return nil, err
+			}
+			if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+				return nil, err
+			} else if matched {
+				break
+			}
+		}
+
+		expr, err := p.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		// keyword argument
+		getVarInVarAssign := func(expr expression) (option[varExpr], error) {
+			if varExp, ok := expr.(varExpr); ok {
+				if matched, err := p.skipToken(isTokenOfType[assignToken]); err != nil {
+					return option[varExpr]{}, err
+				} else if matched {
+					return option[varExpr]{valid: true, data: varExp}, nil
+				}
+			}
+			return option[varExpr]{}, nil
+		}
+		if optVarExp, err := getVarInVarAssign(expr); err != nil {
+			return nil, err
+		} else if optVarExp.valid {
+			varExp := optVarExp.data
+			if firstSpan.valid {
+				firstSpan = option[span]{valid: true, data: varExp.span}
+			}
+			arg, err := p.parseExprNoIf()
+			if err != nil {
+				return nil, err
+			}
+			kwargs = append(kwargs, kwarg{key: varExp.id, arg: arg})
+		} else if len(kwargs) != 0 {
+			return nil, syntaxError("non-keyword arg after keyword arg")
+		} else {
+			args = append(args, expr)
+		}
+	}
+	return args, nil
+}
+
 func (p *parser) parsePostfix(exp expression, spn span) (expression, error) {
 loop:
 	for {
@@ -219,7 +282,7 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
 	case stringToken:
-		return makeConst(stringValue{s: tkn.s}, *spn), nil
+		return makeConst(stringValue{str: tkn.s}, *spn), nil
 	case intToken:
 		return makeConst(i64Value{n: tkn.n}, *spn), nil
 	case floatToken:
@@ -621,6 +684,21 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "set":
+		res, err := p.parseSet()
+		if err != nil {
+			return nil, err
+		}
+		switch r := res.(type) {
+		case setStmtSetParseResult:
+			r.stmt.span = p.stream.expandSpan(spn)
+			return r.stmt, nil
+		case setBlockStmtSetParseResult:
+			r.stmt.span = p.stream.expandSpan(spn)
+			return r.stmt, nil
+		default:
+			panic("unreachable")
+		}
 	default:
 		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
 	}
@@ -853,6 +931,121 @@ func (p *parser) parseWithBlock() (withBlockStmt, error) {
 	return withBlockStmt{assignments: assignments, body: body}, nil
 }
 
+func (p *parser) parseSet() (setParseResult, error) {
+	var target expression
+	inParen := false
+	if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+		return nil, err
+	} else if matched {
+		target, err = p.parseAssignment()
+		if _, _, err := p.expectToken(isTokenOfType[parenCloseToken], "`)`"); err != nil {
+			return nil, err
+		}
+		inParen = true
+	} else {
+		target, err = p.parseAssignName()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	isSetBlock := false
+	if !inParen {
+		if matched, err := p.matchesToken(func(tkn token) bool {
+			return isTokenOfType[blockEndToken](tkn) || isTokenOfType[pipeToken](tkn)
+		}); err != nil {
+			return nil, err
+		} else if matched {
+			isSetBlock = true
+		}
+	}
+	if isSetBlock {
+		filter := option[expression]{}
+		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+			return nil, err
+		} else if matched {
+			if exp, err := p.parseFilterChain(); err != nil {
+				return nil, err
+			} else {
+				filter = option[expression]{valid: true, data: exp}
+			}
+		}
+		if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+			return nil, err
+		}
+		body, err := p.subparse(isIdentTokenWithName("endset"))
+		if err != nil {
+			return nil, err
+		}
+		if _, _, err := p.stream.next(); err != nil {
+			return nil, err
+		}
+		return setBlockStmtSetParseResult{stmt: setBlockStmt{
+			target: target,
+			filter: filter,
+			body:   body,
+		}}, nil
+	} else {
+		if _, _, err := p.expectToken(isTokenOfType[assignToken], "assignment operator"); err != nil {
+			return nil, err
+		}
+		expr, err := p.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+		return setStmtSetParseResult{stmt: setStmt{
+			target: target,
+			expr:   expr,
+		}}, nil
+	}
+}
+
+func (p *parser) parseFilterChain() (expression, error) {
+	filter := option[expression]{}
+
+	for {
+		if matched, err := p.matchesToken(isTokenOfType[blockEndToken]); err != nil {
+			return nil, err
+		} else if matched {
+			break
+		}
+		if filter.valid {
+			var name string
+			var spn span
+			if tkn, s, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
+				return nil, err
+			} else {
+				name = tkn.(identToken).ident
+				spn = s
+			}
+			args := []expression{}
+			if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
+				return nil, err
+			} else if matched {
+				if a, err := p.parseArgs(); err != nil {
+					return nil, err
+				} else {
+					args = a
+				}
+			}
+			filter = option[expression]{
+				valid: true,
+				data: filterExpr{
+					name: name,
+					expr: filter,
+					args: args,
+					span: p.stream.expandSpan(spn),
+				},
+			}
+		}
+	}
+	if filter.valid {
+		return filter.data, nil
+	} else {
+		return nil, syntaxError("expected a filter")
+	}
+}
+
 func (p *parser) parse() (statement, error) {
 	spn := p.stream.lastSpan
 	ss, err := p.subparse(func(token) bool { return false })
@@ -935,3 +1128,23 @@ func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn
 	}
 	return unaryOpExpr{op: opType.data, expr: exp, span: p.stream.expandSpan(spn)}, nil
 }
+
+type setParseResult interface {
+	typ() setParseResultType
+}
+
+type setStmtSetParseResult struct{ stmt setStmt }
+type setBlockStmtSetParseResult struct{ stmt setBlockStmt }
+
+func (setStmtSetParseResult) typ() setParseResultType      { return setParseResultTypeSetStmt }
+func (setBlockStmtSetParseResult) typ() setParseResultType { return setParseResultTypeSetBlockStmt }
+
+var _ = setParseResult(setStmtSetParseResult{})
+var _ = setParseResult(setBlockStmtSetParseResult{})
+
+type setParseResultType uint
+
+const (
+	setParseResultTypeSetStmt setParseResultType = iota + 1
+	setParseResultTypeSetBlockStmt
+)

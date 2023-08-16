@@ -26,6 +26,19 @@ type value interface {
 	tryIter() (valueIterator, error)
 }
 
+func newValueFromString(s string) value {
+	return stringValue{str: s, strTyp: stringTypeNormal}
+}
+
+// Creates a value from a safe string.
+//
+// A safe string is one that will bypass auto escaping.  For instance if you
+// want to have the template engine render some HTML without the user having to
+// supply the `|safe` filter, you can use a value of this type instead.
+func newValueFromSafeString(s string) value {
+	return stringValue{str: s, strTyp: stringTypeSafe}
+}
+
 type valueType int
 
 const (
@@ -139,7 +152,10 @@ type i128Value struct {
 	hi int64
 	lo uint64
 }
-type stringValue struct{ s string }
+type stringValue struct {
+	str    string
+	strTyp stringType
+}
 type bytesValue struct{ b []byte }
 type seqValue struct{ items []value }
 type mapValue struct {
@@ -150,6 +166,13 @@ type mapValue struct {
 type dynamicValue struct {
 	// TODO: implement
 }
+
+type stringType uint
+
+const (
+	stringTypeNormal stringType = iota
+	stringTypeSafe
+)
 
 var _ = value(undefinedValue{})
 var _ = value(boolValue{})
@@ -190,7 +213,7 @@ func (v noneValue) String() string    { return "none" }
 func (v invalidValue) String() string { return fmt.Sprintf("<invalid value: %s>", v.detail) }
 func (v u128Value) String() string    { panic("not implemented yet") }
 func (v i128Value) String() string    { panic("not implemented yet") }
-func (v stringValue) String() string  { return v.s }
+func (v stringValue) String() string  { return v.str }
 func (v bytesValue) String() string   { return string(v.b) } // TODO: equivalent impl as String::from_utf8_lossy
 func (v seqValue) String() string {
 	var b strings.Builder
@@ -292,7 +315,7 @@ func (noneValue) isTrue() bool      { return false }
 func (invalidValue) isTrue() bool   { return false }
 func (v u128Value) isTrue() bool    { panic("not implemented") }
 func (v i128Value) isTrue() bool    { panic("not implemented") }
-func (v stringValue) isTrue() bool  { return len(v.s) != 0 }
+func (v stringValue) isTrue() bool  { return len(v.str) != 0 }
 func (v bytesValue) isTrue() bool   { return len(v.b) != 0 }
 func (v seqValue) isTrue() bool     { return len(v.items) != 0 }
 func (v mapValue) isTrue() bool     { return len(v.m) != 0 }
@@ -376,7 +399,7 @@ func (noneValue) asStr() option[string]      { return option[string]{} }
 func (invalidValue) asStr() option[string]   { return option[string]{} }
 func (u128Value) asStr() option[string]      { return option[string]{} }
 func (i128Value) asStr() option[string]      { return option[string]{} }
-func (v stringValue) asStr() option[string]  { return option[string]{valid: true, data: v.s} }
+func (v stringValue) asStr() option[string]  { return option[string]{valid: true, data: v.str} }
 func (bytesValue) asStr() option[string]     { return option[string]{} }
 func (seqValue) asStr() option[string]       { return option[string]{} }
 func (v mapValue) asStr() option[string]     { return option[string]{} }
@@ -513,7 +536,7 @@ func (v i128Value) tryIter() (valueIterator, error) {
 	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v stringValue) tryIter() (valueIterator, error) {
-	return valueIterator{iterState: &charsValueIteratorState{s: v.s}, len: uint(utf8.RuneCountInString(v.s))}, nil
+	return valueIterator{iterState: &charsValueIteratorState{s: v.str}, len: uint(utf8.RuneCountInString(v.str))}, nil
 }
 func (v bytesValue) tryIter() (valueIterator, error) {
 	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
@@ -584,7 +607,7 @@ func (s *charsValueIteratorState) advanceState() option[value] {
 	if s.offset < uint(len(s.s)) {
 		r, size := utf8.DecodeRuneInString(s.s[s.offset:])
 		s.offset += uint(size)
-		return option[value]{valid: true, data: stringValue{s: string(r)}}
+		return option[value]{valid: true, data: stringValue{str: string(r)}}
 	}
 	return option[value]{}
 }
@@ -600,7 +623,7 @@ func (s *stringsValueIteratorState) advanceState() option[value] {
 	if s.idx < uint(len(s.items)) {
 		item := s.items[s.idx]
 		s.idx++
-		return option[value]{valid: true, data: stringValue{s: item}}
+		return option[value]{valid: true, data: stringValue{str: item}}
 	}
 	return option[value]{}
 }
