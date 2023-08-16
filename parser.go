@@ -67,7 +67,7 @@ func newParser(source string, inExpr bool, syntax *SyntaxConfig) *parser {
 	}
 }
 
-func (p *parser) parseFilterExpr(exp expression) (expression, error) {
+func (p *parser) parseFilterExpr(expr expression) (expression, error) {
 loop:
 	for {
 		tkn, _, err := p.stream.current()
@@ -79,7 +79,46 @@ loop:
 			panic("not implemented")
 		case identToken:
 			if tkn.ident == "is" {
-				panic("not implemented")
+				if _, _, err := p.stream.next(); err != nil {
+					return nil, err
+				}
+				negated := false
+				if matched, err := p.skipToken(isIdentTokenWithName("not")); err != nil {
+					return nil, err
+				} else if matched {
+					negated = true
+				}
+				var name string
+				var spn span
+				if tk, sp, err := p.expectToken(isTokenOfType[identToken], "`(`"); err != nil {
+					return nil, err
+				} else {
+					name = tk.(identToken).ident
+					spn = sp
+				}
+				args := []expression{}
+				if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
+					return nil, err
+				} else if matched {
+					if a, err := p.parseArgs(); err != nil {
+						return nil, err
+					} else {
+						args = a
+					}
+				}
+				expr = testExpr{
+					name: name,
+					expr: expr,
+					args: args,
+					span: p.stream.expandSpan(spn),
+				}
+				if negated {
+					expr = unaryOpExpr{
+						op:   unaryOpTypeNot,
+						expr: expr,
+						span: p.stream.expandSpan(spn),
+					}
+				}
 			} else {
 				break loop
 			}
@@ -87,7 +126,7 @@ loop:
 			break loop
 		}
 	}
-	return exp, nil
+	return expr, nil
 }
 
 func (p *parser) parseArgs() ([]expression, error) {

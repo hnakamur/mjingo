@@ -206,6 +206,11 @@ func TestEnvironment(t *testing.T) {
 				"\n" +
 				"</ul>",
 		},
+		{
+			source:  `{% if seq is not defined %}I'm fallback{% endif %}`,
+			context: valueNone,
+			want:    "I'm fallback",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

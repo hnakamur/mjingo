@@ -10,6 +10,8 @@ type codeGenerator struct {
 	pendingBlock     stack[pendingBlock]
 	currentLine      uint32
 	spanStack        stack[span]
+	filterLocalIds   map[string]localId
+	testLocalIds     map[string]localId
 	rawTemplateBytes uint
 }
 
@@ -41,9 +43,11 @@ const (
 
 func newCodeGenerator(file, source string) *codeGenerator {
 	return &codeGenerator{
-		instructions: newInstructions(file, source),
-		blocks:       make(map[string]instructions),
-		pendingBlock: newStackWithCapacity[pendingBlock](32),
+		instructions:   newInstructions(file, source),
+		blocks:         make(map[string]instructions),
+		pendingBlock:   newStackWithCapacity[pendingBlock](32),
+		filterLocalIds: make(map[string]localId),
+		testLocalIds:   make(map[string]localId),
 	}
 }
 
@@ -219,6 +223,15 @@ func (g *codeGenerator) compileExpr(exp expression) {
 			g.add(loadConstInstruction{val: valueUndefined})
 		}
 		g.endIf()
+	case testExpr:
+		g.pushSpan(exp.span)
+		g.compileExpr(exp.expr)
+		for _, arg := range exp.args {
+			g.compileExpr(arg)
+		}
+		localId := getLocalId(g.testLocalIds, exp.name)
+		g.add(performTestInstruction{name: exp.name, argCount: uint(len(exp.args)), localId: localId})
+		g.popSpan()
 	case getAttrExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)
@@ -406,4 +419,16 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	g.compileExpr(exp.right)
 	g.add(instr)
 	g.popSpan()
+}
+
+func getLocalId(ids map[string]localId, name string) localId {
+	if id, ok := ids[name]; ok {
+		return id
+	} else if len(ids) >= maxLocals {
+		return ^localId(0)
+	} else {
+		nextId := localId(len(ids))
+		ids[name] = nextId
+		return nextId
+	}
 }

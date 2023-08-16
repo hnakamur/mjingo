@@ -9,6 +9,7 @@ import (
 type Environment struct {
 	syntaxConfig      SyntaxConfig
 	templates         map[string]*Template
+	tests             map[string]TestFunc
 	globals           map[string]value
 	defaultAutoEscape autoEscapeCallBack
 	UndefinedBehavior UndefinedBehavior
@@ -22,6 +23,7 @@ func NewEnvironment() *Environment {
 	return &Environment{
 		syntaxConfig:      DefaultSyntaxConfig,
 		templates:         make(map[string]*Template),
+		tests:             make(map[string]TestFunc),
 		globals:           make(map[string]value),
 		defaultAutoEscape: defaultAutoEscapeCallback,
 	}
@@ -69,6 +71,13 @@ func (e *Environment) getGlobal(name string) option[value] {
 
 func (e *Environment) initialAutoEscape(name string) autoEscape {
 	return e.defaultAutoEscape(name)
+}
+
+func (e *Environment) getTest(name string) option[TestFunc] {
+	if f, ok := e.tests[name]; ok {
+		return option[TestFunc]{valid: true, data: f}
+	}
+	return option[TestFunc]{}
 }
 
 func noAutoEscape(_ string) autoEscape { return autoEscapeNone{} }

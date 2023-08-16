@@ -13,6 +13,12 @@ const (
 	loopFlagRecursive = 2
 )
 
+// Go type to represent locals.
+type localId = uint8
+
+// The maximum number of filters/tests that can be cached.
+const maxLocals = 50
+
 type instructions struct {
 	instructions []instruction
 	lineInfos    []lineInfo
@@ -64,9 +70,9 @@ type applyFilterInstruction struct {
 	localId localId
 }
 type performTestInstruction struct {
-	str     string
-	size    uint
-	localId localId
+	name     string
+	argCount uint
+	localId  localId
 }
 type emitInstruction struct{}
 type pushLoopInstruction struct{ flags uint8 }
@@ -631,8 +637,6 @@ func (k instType) String() string {
 		panic("invalid instType")
 	}
 }
-
-type localId uint8
 
 func newInstructions(name, source string) instructions {
 	return instructions{

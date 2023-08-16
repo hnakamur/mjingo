@@ -35,6 +35,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack
 	undefinedBehavior := state.undefinedBehavior()
 	autoEscapeStack := autoEscapeStack{}
 	nextRecursionJump := option[recursionJump]{}
+	loadedTests := [maxLocals]option[TestFunc]{}
 
 	for pc < uint(len(state.instructions.instructions)) {
 		var a, b value
@@ -218,6 +219,22 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack
 			out.beginCapture(inst.mode)
 		case endCaptureInstruction:
 			stack.push(out.endCapture(state.autoEscape))
+		case performTestInstruction:
+			f := func() option[TestFunc] { return state.env.getTest(inst.name) }
+			var tf TestFunc
+			if optVal := getOrLookupLocal(loadedTests[:], inst.localId, f); optVal.valid {
+				tf = optVal.data
+			} else {
+				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.name))
+				return option[value]{}, processErr(err, pc, state)
+			}
+			args := stack.sliceTop(inst.argCount)
+			if rv, err := tf(state, args); err != nil {
+				return option[value]{}, processErr(err, pc, state)
+			} else {
+				stack.dropTop(inst.argCount)
+				stack.push(boolValue{b: rv})
+			}
 		case dupTopInstruction:
 			if val := stack.peek(); val == nil {
 				panic("stack must not be empty")
@@ -346,6 +363,28 @@ func (m *virtualMachine) unpackList(stack *vmStack, count uint) error {
 		stack.push(item)
 	}
 	return nil
+}
+
+func getOrLookupLocal[T any](vec []option[T], localId uint8, f func() option[T]) option[T] {
+	tryGetItem := func(vec []option[T], localId uint8) option[T] {
+		if localId < uint8(len(vec)) {
+			return vec[localId]
+		}
+		return option[T]{}
+	}
+
+	if localId == ^(uint8)(0) {
+		return f()
+	} else if optVal := tryGetItem(vec, localId); optVal.valid {
+		return optVal
+	} else {
+		optVal := f()
+		if !optVal.valid {
+			return option[T]{}
+		}
+		vec[localId] = optVal
+		return optVal
+	}
 }
 
 func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {
