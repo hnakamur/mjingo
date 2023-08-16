@@ -46,6 +46,30 @@ func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (value, erro
 	}
 }
 
+// Tries to iterate over a value while handling the undefined value.
+//
+// If the value is undefined, then iteration fails if the behavior is set to strict,
+// otherwise it succeeds with an empty iteration.  This is also internally used in the
+// engine to convert values to lists.
+func (b UndefinedBehavior) tryIter(val value) (valueIterator, error) {
+	if err := b.assertIterable(val); err != nil {
+		return valueIterator{}, err
+	}
+	iter, err := val.tryIter()
+	if err != nil {
+		return valueIterator{}, err
+	}
+	return iter, nil
+}
+
+// Are we strict on iteration?
+func (b UndefinedBehavior) assertIterable(val value) error {
+	if b == UndefinedBehaviorStrict && val.isUndefined() {
+		return &Error{typ: UndefinedError}
+	}
+	return nil
+}
+
 // Un-escape a string, following JSON rules.
 func unescape(s string) (string, error) {
 	return (&unescaper{}).unescape(s)

@@ -5,6 +5,14 @@ import (
 	"slices"
 )
 
+const (
+	// / This loop has the loop var.
+	loopFlagWithLoopVar = 1
+
+	// / This loop is recursive.
+	loopFlagRecursive = 2
+)
+
 type instructions struct {
 	instructions []instruction
 	lineInfos    []lineInfo

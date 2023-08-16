@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -599,6 +600,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 	}
 
 	switch ident {
+	case "for":
+		st, err := p.parseForStmt()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	case "if":
 		st, err := p.parseIfCond()
 		if err != nil {
@@ -609,6 +617,144 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 	default:
 		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
 	}
+}
+
+var reservedNames = []string{"true", "True", "false", "False", "none", "None", "loop", "self"}
+
+func (p *parser) parseAssignName() (expression, error) {
+	var id string
+	var spn span
+	if tkn, sp, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
+		return nil, err
+	} else {
+		id = tkn.(identToken).ident
+		spn = sp
+	}
+
+	if slices.Contains(reservedNames, id) {
+		return nil, syntaxError(fmt.Sprintf("cannot assign to reserved variable name %s", id))
+	}
+	return varExpr{id: id, span: spn}, nil
+}
+
+func (p *parser) parseAssignment() (expression, error) {
+	spn := p.stream.currentSpan()
+	var items []expression
+	isTuple := false
+
+	for {
+		if len(items) > 0 {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				return nil, err
+			}
+		}
+		if matched, err := p.matchesToken(func(tkn token) bool {
+			return isTokenOfType[parenCloseToken](tkn) ||
+				isTokenOfType[variableEndToken](tkn) ||
+				isTokenOfType[blockEndToken](tkn) ||
+				isIdentTokenWithName("in")(tkn)
+		}); err != nil {
+			return nil, err
+		} else if matched {
+			break
+		}
+
+		var item expression
+		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+			return nil, err
+		} else if matched {
+			if rv, err := p.parseAssignment(); err != nil {
+				return nil, err
+			} else {
+				if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+					return nil, err
+				}
+				item = rv
+			}
+		} else {
+			if exp, err := p.parseAssignName(); err != nil {
+				return nil, err
+			} else {
+				item = exp
+			}
+		}
+		items = append(items, item)
+
+		if matched, err := p.matchesToken(isTokenOfType[commaToken]); err != nil {
+			return nil, err
+		} else if matched {
+			isTuple = true
+		} else {
+			break
+		}
+	}
+
+	if !isTuple && len(items) == 1 {
+		return items[0], nil
+	}
+	return listExpr{items: items, span: p.stream.expandSpan(spn)}, nil
+}
+
+func (p *parser) parseForStmt() (forLoopStmt, error) {
+	target, err := p.parseAssignment()
+	if err != nil {
+		return forLoopStmt{}, err
+	}
+	if _, _, err := p.expectToken(isIdentTokenWithName("in"), "in"); err != nil {
+		return forLoopStmt{}, err
+	}
+	iter, err := p.parseExprNoIf()
+	if err != nil {
+		return forLoopStmt{}, err
+	}
+	filterExpr := option[expression]{}
+	if matched, err := p.skipToken(isIdentTokenWithName("if")); err != nil {
+		return forLoopStmt{}, err
+	} else if matched {
+		if exp, err := p.parseExpr(); err != nil {
+			return forLoopStmt{}, err
+		} else {
+			filterExpr = option[expression]{valid: true, data: exp}
+		}
+	}
+	recursive := false
+	if matched, err := p.skipToken(isIdentTokenWithName("recursive")); err != nil {
+		return forLoopStmt{}, err
+	} else if matched {
+		recursive = true
+	}
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return forLoopStmt{}, err
+	}
+	body, err := p.subparse(func(tkn token) bool {
+		return isIdentTokenWithName("endfor")(tkn) || isIdentTokenWithName("else")(tkn)
+	})
+	if err != nil {
+		return forLoopStmt{}, err
+	}
+	elseBody := []statement{}
+	if matched, err := p.skipToken(isIdentTokenWithName("else")); err != nil {
+		return forLoopStmt{}, err
+	} else if matched {
+		if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+			return forLoopStmt{}, err
+		}
+		elseBody, err = p.subparse(isIdentTokenWithName("endfor"))
+		if err != nil {
+			return forLoopStmt{}, err
+		}
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return forLoopStmt{}, err
+	}
+	return forLoopStmt{
+		target:     target,
+		iter:       iter,
+		filterExpr: filterExpr,
+		recursive:  recursive,
+		body:       body,
+		elseBody:   elseBody,
+	}, nil
 }
 
 func (p *parser) parseIfCond() (ifCondStmt, error) {

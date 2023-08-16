@@ -29,6 +29,7 @@ func (m *virtualMachine) evalState(state *virtualMachineState, out io.Writer) (o
 
 func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, stack vmStack, pc uint) (option[value], error) {
 	undefinedBehavior := state.undefinedBehavior()
+	nextRecursionJump := option[recursionJump]{}
 
 	for pc < uint(len(state.instructions.instructions)) {
 		var a, b value
@@ -45,6 +46,8 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			if err := m.env.format(v, state, out); err != nil {
 				return option[value]{}, err
 			}
+		case storeLocalInstruction:
+			state.ctx.store(inst.name, stack.pop())
 		case lookupInstruction:
 			var v value
 			if val := state.lookup(inst.name); val.valid {
@@ -119,6 +122,20 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			}
 			slices.Reverse(v)
 			stack.push(seqValue{items: v})
+		case unpackListInstruction:
+			if err := m.unpackList(&stack, inst.count); err != nil {
+				return option[value]{}, err
+			}
+		case listAppendInstruction:
+			a = stack.pop()
+			// this intentionally only works with actual sequences
+			if v, ok := stack.pop().(seqValue); ok {
+				v.items = append(v.items, a)
+				stack.push(v)
+			} else {
+				err := newError(InvalidOperation, "cannot append to non-list")
+				return option[value]{}, processErr(err, pc, state)
+			}
 		case addInstruction:
 			b = stack.pop()
 			a = stack.pop()
@@ -155,6 +172,20 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 			} else {
 				stack.push(v)
 			}
+		case popFrameInstruction:
+			if optLoopCtx := state.ctx.popFrame().currentLoop; optLoopCtx.valid {
+				loopCtx := optLoopCtx.data
+				if loopCtx.currentRecursionJump.valid {
+					recurJump := loopCtx.currentRecursionJump.data
+					loopCtx.currentRecursionJump = option[recursionJump]{}
+					pc = recurJump.target
+					if recurJump.endCapture {
+						// TODO: implement
+						// stack.push()
+					}
+					continue
+				}
+			}
 		case jumpInstruction:
 			pc = inst.jumpTarget
 			continue
@@ -164,12 +195,114 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out io.Writer, sta
 				pc = inst.jumpTarget
 				continue
 			}
+		case dupTopInstruction:
+			if val := stack.peek(); val == nil {
+				panic("stack must not be empty")
+			} else {
+				stack.push((*val).clone())
+			}
+		case discardTopInstruction:
+			stack.pop()
+		case pushLoopInstruction:
+			a = stack.pop()
+			if err := m.pushLoop(state, a, inst.flags, pc, nextRecursionJump); err != nil {
+				return option[value]{}, processErr(err, pc, state)
+			}
+		case iterateInstruction:
+			var l *loopState
+			if mayLoopState := state.ctx.currentLoop(); mayLoopState.valid {
+				l = mayLoopState.data
+			} else {
+				panic("no currentLoop")
+			}
+			l.object.idx++
+			next := option[value]{}
+			triple := &l.object.valueTriple
+			triple[0] = triple[1]
+			triple[1] = triple[2]
+			triple[2] = l.iterator.next()
+			if triple[1].valid {
+				next = option[value]{valid: true, data: triple[1].data.clone()}
+			}
+			if next.valid {
+				item := next.data
+				if v, err := assertValid(item, pc, state); err != nil {
+					return option[value]{}, err
+				} else {
+					stack.push(v)
+				}
+			} else {
+				pc = inst.jumpTarget
+				continue
+			}
+			//  Instruction::PushDidNotIterate
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", inst.typ()))
 		}
 		pc++
 	}
 	return stack.tryPop(), nil
+}
+
+func (m *virtualMachine) pushLoop(state *virtualMachineState, iterable value,
+	flags uint8, pc uint, currentRecursionJump option[recursionJump]) error {
+	it, err := state.undefinedBehavior().tryIter(iterable)
+	if err != nil {
+		return err
+	}
+	l := it.len
+	depth := uint(0)
+	if optLoopState := state.ctx.currentLoop(); optLoopState.valid {
+		loopState := optLoopState.data
+		if loopState.recurseJumpTarget.valid {
+			depth = loopState.object.depth + 1
+		}
+	}
+	recursive := (flags & loopFlagRecursive) != 0
+	withLoopVar := (flags & loopFlagWithLoopVar) != 0
+	recurseJumpTarget := option[uint]{}
+	if recursive {
+		recurseJumpTarget = option[uint]{valid: true, data: pc}
+	}
+	f := newFrameDefault()
+	f.currentLoop = option[loopState]{
+		valid: true,
+		data: loopState{
+			withLoopVar:          withLoopVar,
+			recurseJumpTarget:    recurseJumpTarget,
+			currentRecursionJump: currentRecursionJump,
+			object: loop{
+				idx:         uint(0),
+				len:         l,
+				depth:       depth,
+				valueTriple: optValueTriple{option[value]{}, option[value]{}, it.next()},
+			},
+			iterator: it,
+		},
+	}
+	if err := state.ctx.pushFrame(*f); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *virtualMachine) unpackList(stack *vmStack, count uint) error {
+	top := stack.pop()
+	var seq seqObject
+	if optSeq := top.asSeq(); optSeq.valid {
+		seq = optSeq.data
+	} else {
+		return newError(CannotUnpack, "not a sequence")
+	}
+	if seq.itemCount() != count {
+		return newError(CannotUnpack,
+			fmt.Sprintf("sequence of wrong length (expected %d, got %d)", count, seq.itemCount()))
+	}
+	for i := uint(0); i < count; i++ {
+		item := seq.getItem(i).data
+		stack.push(item)
+	}
+	return nil
 }
 
 func assertValid(v value, pc uint, st *virtualMachineState) (value, error) {

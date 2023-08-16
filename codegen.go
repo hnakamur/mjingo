@@ -58,8 +58,72 @@ func (g *codeGenerator) compileStmt(stmt statement) {
 	case emitRawStmt:
 		g.add(emitRawInstruction{val: st.raw})
 		g.rawTemplateBytes += uint(len(st.raw))
+	case forLoopStmt:
+		g.compileForLoop(st)
 	case ifCondStmt:
 		g.compileIfStmt(st)
+	}
+}
+
+func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
+	g.setLineFromSpan(exp.span)
+
+	if _, ok := exp.expr.(callExpr); ok {
+		panic("not implemented")
+	}
+
+	g.compileExpr(exp.expr)
+	g.add(emitInstruction{})
+}
+
+func (g *codeGenerator) compileForLoop(forLoop forLoopStmt) {
+	g.setLineFromSpan(forLoop.span)
+	if forLoop.filterExpr.valid {
+		// filter expressions work like a nested for loop without
+		// the special loop variable that append into a new list
+		// just outside of the loop.
+		g.add(buildListInstruction{count: 0})
+		g.compileExpr(forLoop.iter)
+		g.startForLoop(false, false)
+		g.add(dupTopInstruction{})
+		g.compileAssignment(forLoop.target)
+		g.compileExpr(forLoop.filterExpr.data)
+		g.startIf()
+		g.add(listAppendInstruction{})
+		g.startElse()
+		g.add(discardTopInstruction{})
+		g.endIf()
+		g.endForLoop(false)
+	} else {
+		g.compileExpr(forLoop.iter)
+	}
+	g.startForLoop(true, forLoop.recursive)
+	g.compileAssignment(forLoop.target)
+	for _, node := range forLoop.body {
+		g.compileStmt(node)
+	}
+	g.endForLoop(len(forLoop.elseBody) != 0)
+	if len(forLoop.elseBody) != 0 {
+		g.startIf()
+		for _, node := range forLoop.elseBody {
+			g.compileStmt(node)
+		}
+		g.endIf()
+	}
+}
+func (g *codeGenerator) compileAssignment(expr expression) {
+	switch exp := expr.(type) {
+	case varExpr:
+		g.add(storeLocalInstruction{name: exp.id})
+	case listExpr:
+		g.pushSpan(exp.span)
+		g.add(unpackListInstruction{count: uint(len(exp.items))})
+		for _, expr := range exp.items {
+			g.compileAssignment(expr)
+		}
+		g.popSpan()
+	default:
+		panic("unreachable")
 	}
 }
 
@@ -77,17 +141,6 @@ func (g *codeGenerator) compileIfStmt(ifCond ifCondStmt) {
 		}
 	}
 	g.endIf()
-}
-
-func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
-	g.setLineFromSpan(exp.span)
-
-	if _, ok := exp.expr.(callExpr); ok {
-		panic("not implemented")
-	}
-
-	g.compileExpr(exp.expr)
-	g.add(emitInstruction{})
 }
 
 func (g *codeGenerator) compileExpr(exp expression) {
@@ -179,6 +232,41 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		}
 	default:
 		panic(fmt.Sprintf("not implemented for exprType: %s", exp.typ()))
+	}
+}
+
+func (g *codeGenerator) startForLoop(withLoopVar, recursive bool) {
+	flags := uint8(0)
+	if withLoopVar {
+		flags |= loopFlagWithLoopVar
+	}
+	if recursive {
+		flags |= loopFlagRecursive
+	}
+	g.add(pushLoopInstruction{flags: flags})
+	iterInst := g.add(iterateInstruction{jumpTarget: 0})
+	g.pendingBlock.push(loopPendingBlock{iterInst: iterInst})
+}
+
+func (g *codeGenerator) endForLoop(pushDidNotIterate bool) {
+	b := g.pendingBlock.pop()
+	if b == nil {
+		panic("pendingBlock should not be empty in endForLoop")
+	}
+	if b, ok := (*b).(loopPendingBlock); ok {
+		g.add(jumpInstruction{jumpTarget: b.iterInst})
+		loopEnd := g.nextInstruction()
+		if pushDidNotIterate {
+			g.add(pushDidNotIterateInstruction{})
+		}
+		g.add(popFrameInstruction{})
+		if _, ok := g.instructions.instructions[b.iterInst].(iterateInstruction); ok {
+			g.instructions.instructions[b.iterInst] = iterateInstruction{jumpTarget: loopEnd}
+		} else {
+			panic("must be iterateInstruction")
+		}
+	} else {
+		panic("must be loopPendingBlock")
 	}
 }
 

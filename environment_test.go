@@ -164,6 +164,16 @@ func TestEnvironment(t *testing.T) {
 			}},
 			want: "I'm up",
 		},
+		{
+			source: `{% for name in names %}{{ name }} {% endfor %}`,
+			context: mapValue{m: map[string]value{
+				"names": seqValue{items: []value{
+					stringValue{s: "John"},
+					stringValue{s: "Paul"},
+				}},
+			}},
+			want: "John Paul ",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

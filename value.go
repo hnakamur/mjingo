@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 type value interface {
@@ -20,7 +21,9 @@ type value interface {
 	asStr() option[string]
 	tryToI64() (int64, error)
 	asF64() option[float64]
-	// clone() value TODO: implment
+	asSeq() option[seqObject]
+	clone() value
+	tryIter() (valueIterator, error)
 }
 
 type valueType int
@@ -98,6 +101,29 @@ func (t valueType) String() string {
 		return "dynamic"
 	default:
 		panic(fmt.Sprintf("invalid valueType: %d", t))
+	}
+}
+
+func (k valueKind) String() string {
+	switch k {
+	case valueKindUndefined:
+		return "undefined"
+	case valueKindBool:
+		return "bool"
+	case valueKindNumber:
+		return "number"
+	case valueKindNone:
+		return "none"
+	case valueKindString:
+		return "string"
+	case valueKindBytes:
+		return "bytes"
+	case valueKindSeq:
+		return "seq"
+	case valueKindMap:
+		return "map"
+	default:
+		panic(fmt.Sprintf("invalid valueKind: %d", k))
 	}
 }
 
@@ -405,6 +431,101 @@ func (dynamicValue) asF64() option[float64] {
 	panic("not implemented yet")
 }
 
+func (undefinedValue) asSeq() option[seqObject] { return option[seqObject]{} }
+func (boolValue) asSeq() option[seqObject]      { return option[seqObject]{} }
+func (u64Value) asSeq() option[seqObject]       { return option[seqObject]{} }
+func (i64Value) asSeq() option[seqObject]       { return option[seqObject]{} }
+func (f64Value) asSeq() option[seqObject]       { return option[seqObject]{} }
+func (noneValue) asSeq() option[seqObject]      { return option[seqObject]{} }
+func (invalidValue) asSeq() option[seqObject]   { return option[seqObject]{} }
+func (u128Value) asSeq() option[seqObject]      { return option[seqObject]{} }
+func (i128Value) asSeq() option[seqObject]      { return option[seqObject]{} }
+func (stringValue) asSeq() option[seqObject]    { return option[seqObject]{} }
+func (bytesValue) asSeq() option[seqObject]     { return option[seqObject]{} }
+func (v seqValue) asSeq() option[seqObject] {
+	return option[seqObject]{valid: true, data: newSliceSeqObject(v.items)}
+}
+func (mapValue) asSeq() option[seqObject] { return option[seqObject]{} }
+func (dynamicValue) asSeq() option[seqObject] {
+	panic("not implemented yet")
+}
+
+func (v undefinedValue) clone() value { return v }
+func (v boolValue) clone() value      { return v }
+func (v u64Value) clone() value       { return v }
+func (v i64Value) clone() value       { return v }
+func (v f64Value) clone() value       { return v }
+func (v noneValue) clone() value      { return v }
+func (v invalidValue) clone() value   { return v }
+func (v u128Value) clone() value      { return v }
+func (v i128Value) clone() value      { return v }
+func (v stringValue) clone() value    { return v }
+func (v bytesValue) clone() value {
+	b := make([]byte, len(v.b))
+	copy(b, v.b)
+	return bytesValue{b: b}
+}
+func (v seqValue) clone() value {
+	items := make([]value, len(v.items))
+	for i, item := range v.items {
+		// Is shallow copy OK?
+		items[i] = item
+	}
+	return seqValue{items: items}
+}
+func (v mapValue) clone() value {
+	m := make(map[string]value, len(v.m))
+	for key, val := range v.m {
+		// Is shallow copy OK?
+		m[key] = val
+	}
+	return mapValue{m: m}
+}
+func (dynamicValue) clone() value {
+	panic("not implemented yet")
+}
+
+func (undefinedValue) tryIter() (valueIterator, error) {
+	return valueIterator{iterState: &emptyValueIteratorState{}}, nil
+}
+func (v boolValue) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v u64Value) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v i64Value) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v f64Value) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (noneValue) tryIter() (valueIterator, error) {
+	return valueIterator{iterState: &emptyValueIteratorState{}}, nil
+}
+func (v invalidValue) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v u128Value) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v i128Value) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v stringValue) tryIter() (valueIterator, error) {
+	return valueIterator{iterState: &charsValueIteratorState{s: v.s}, len: uint(utf8.RuneCountInString(v.s))}, nil
+}
+func (v bytesValue) tryIter() (valueIterator, error) {
+	return valueIterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+}
+func (v seqValue) tryIter() (valueIterator, error) {
+	return valueIterator{iterState: &seqValueIteratorState{items: v.items}, len: uint(len(v.items))}, nil
+}
+func (v mapValue) tryIter() (valueIterator, error) { panic("not implemented yet") }
+func (v dynamicValue) tryIter() (valueIterator, error) {
+	panic("not implemented yet")
+}
+
 func unsupportedConversion(kind valueType, target string) error {
 	return &Error{
 		typ: InvalidOperation,
@@ -418,3 +539,88 @@ func unsupportedConversion(kind valueType, target string) error {
 func valueMapWithCapacity(capacity uint) map[string]value {
 	return make(map[string]value, untrustedSizeHint(capacity))
 }
+
+type valueIterator struct {
+	iterState valueIteratorState
+	len       uint
+}
+
+func (i *valueIterator) next() option[value] {
+	optVal := i.iterState.advanceState()
+	if optVal.valid {
+		i.len--
+	}
+	return optVal
+}
+
+type valueIteratorState interface {
+	advanceState() option[value]
+}
+
+type emptyValueIteratorState struct{}
+type charsValueIteratorState struct {
+	offset uint
+	s      string
+}
+type seqValueIteratorState struct {
+	idx   uint
+	items []value
+}
+type stringsValueIteratorState struct {
+	idx   uint
+	items []string
+}
+type dynSeqValueIteratorState struct {
+	idx uint
+	// obj Object
+}
+type mapValueIteratorState struct {
+	idx uint
+	// TODO: implement ordered map
+}
+
+func (s *emptyValueIteratorState) advanceState() option[value] { return option[value]{} }
+func (s *charsValueIteratorState) advanceState() option[value] {
+	if s.offset < uint(len(s.s)) {
+		r, size := utf8.DecodeRuneInString(s.s[s.offset:])
+		s.offset += uint(size)
+		return option[value]{valid: true, data: stringValue{s: string(r)}}
+	}
+	return option[value]{}
+}
+func (s *seqValueIteratorState) advanceState() option[value] {
+	if s.idx < uint(len(s.items)) {
+		item := s.items[s.idx]
+		s.idx++
+		return option[value]{valid: true, data: item.clone()}
+	}
+	return option[value]{}
+}
+func (s *stringsValueIteratorState) advanceState() option[value] {
+	if s.idx < uint(len(s.items)) {
+		item := s.items[s.idx]
+		s.idx++
+		return option[value]{valid: true, data: stringValue{s: item}}
+	}
+	return option[value]{}
+}
+func (s *dynSeqValueIteratorState) advanceState() option[value] { panic("not implemented") }
+func (s *mapValueIteratorState) advanceState() option[value]    { panic("not implemented") }
+
+var _ = valueIteratorState((*emptyValueIteratorState)(nil))
+var _ = valueIteratorState((*charsValueIteratorState)(nil))
+var _ = valueIteratorState((*seqValueIteratorState)(nil))
+var _ = valueIteratorState((*stringsValueIteratorState)(nil))
+var _ = valueIteratorState((*dynSeqValueIteratorState)(nil))
+var _ = valueIteratorState((*mapValueIteratorState)(nil))
+
+type valueIteratorStateType int
+
+const (
+	valueIteratorStateTypeEmpty valueIteratorStateType = iota + 1
+	valueIteratorStateTypeChars
+	valueIteratorStateTypeSeq
+	valueIteratorStateTypeStrings
+	valueIteratorStateTypeDynSeq
+	valueIteratorStateTypeMap
+)

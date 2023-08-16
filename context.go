@@ -1,5 +1,11 @@
 package mjingo
 
+// The maximum recursion in the VM.  Normally each stack frame
+// adds one to this counter (eg: every time a frame is added).
+// However in some situations more depth is pushed if the cost
+// of the stack frame is higher.
+const contextStackMaxRecursion = 500
+
 type context struct {
 	stack           []frame
 	outerStackDepth uint
@@ -8,20 +14,23 @@ type context struct {
 type loopState struct {
 	withLoopVar       bool
 	recurseJumpTarget option[uint]
-
 	// if we're popping the frame, do we want to jump somewhere?  The
 	// first item is the target jump instruction, the second argument
 	// tells us if we need to end capturing.
 	currentRecursionJump option[recursionJump]
-	iterator             any
+	iterator             valueIterator
 	object               loop
 }
 
 type loop struct {
-	len   uint
-	idx   uint // atomic.Uint64
-	depth uint
+	len              uint
+	idx              uint // atomic.Uint64
+	depth            uint
+	valueTriple      optValueTriple
+	lastChangedValue option[[]value]
 }
+
+type optValueTriple [3]option[value]
 
 type recursionJump struct {
 	target     uint
@@ -33,6 +42,11 @@ type frame struct {
 	ctx         value
 	currentLoop option[loopState]
 
+	// normally a frame does not carry a closure, but it can when a macro is
+	// declared.  Once that happens, all writes to the frames locals are also
+	// duplicated into the closure.  Macros declared on that level, then share
+	// the closure object to enclose the parent values.  This emulates the
+	// behavior of closures in Jinja2.
 	closure any
 }
 
@@ -40,6 +54,12 @@ func newContext(f frame) *context {
 	stack := make([]frame, 0, 12)
 	stack = append(stack, f)
 	return &context{stack: stack, outerStackDepth: 0}
+}
+
+func (c *context) store(key string, val value) {
+	top := &c.stack[len(c.stack)-1]
+	// TODO: implement for top.closure
+	top.locals[key] = val
 }
 
 func (c *context) load(env *Environment, key string) option[value] {
@@ -68,11 +88,51 @@ func (c *context) load(env *Environment, key string) option[value] {
 	panic("not implemented")
 }
 
+func (c *context) pushFrame(f frame) error {
+	if err := c.checkDepth(); err != nil {
+		return err
+	}
+	c.stack = append(c.stack, f)
+	return nil
+}
+
+func (c *context) popFrame() frame {
+	f := c.stack[len(c.stack)-1]
+	c.stack = c.stack[:len(c.stack)-1]
+	return f
+}
+
+// Returns the current innermost loop.
+func (c *context) currentLoop() option[*loopState] {
+	for i := len(c.stack) - 1; i >= 0; i-- {
+		frame := &c.stack[i]
+		if frame.currentLoop.valid {
+			return option[*loopState]{valid: true, data: &frame.currentLoop.data}
+		}
+	}
+	return option[*loopState]{}
+}
+
+func (c *context) depth() uint {
+	return c.outerStackDepth + uint(len(c.stack))
+}
+
+func (c *context) checkDepth() error {
+	if c.depth() > contextStackMaxRecursion {
+		return newError(InvalidOperation, "recursion limit exceeded")
+	}
+	return nil
+}
+
 func newFrame(ctx value) *frame {
 	return &frame{
 		locals: make(map[string]value),
 		ctx:    ctx,
 	}
+}
+
+func newFrameDefault() *frame {
+	return newFrame(valueUndefined)
 }
 
 type vmStack struct {

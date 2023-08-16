@@ -13,6 +13,10 @@ type Error struct {
 	span   option[span]
 }
 
+func newError(typ ErrorType, detail string) *Error {
+	return &Error{typ: typ, detail: option[string]{valid: true, data: detail}}
+}
+
 type ErrorType int
 
 const (
