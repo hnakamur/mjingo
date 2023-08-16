@@ -174,6 +174,11 @@ func TestEnvironment(t *testing.T) {
 			}},
 			want: "John Paul ",
 		},
+		{
+			source:  `{% raw %}Hello {{ name }}{% endraw %}`,
+			context: valueNone,
+			want:    "Hello {{ name }}",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()
