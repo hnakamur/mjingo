@@ -179,6 +179,11 @@ func TestEnvironment(t *testing.T) {
 			context: valueNone,
 			want:    "Hello {{ name }}",
 		},
+		{
+			source:  `{% with foo = 42 %}{{ foo }}{% endwith %}`,
+			context: valueNone,
+			want:    "42",
+		},
 	}
 	for i, tc := range testCases {
 		env := NewEnvironment()

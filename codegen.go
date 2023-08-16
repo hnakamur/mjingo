@@ -62,6 +62,16 @@ func (g *codeGenerator) compileStmt(stmt statement) {
 		g.compileForLoop(st)
 	case ifCondStmt:
 		g.compileIfStmt(st)
+	case withBlockStmt:
+		g.setLineFromSpan(st.span)
+		for _, assign := range st.assignments {
+			g.compileExpr(assign.rhs)
+			g.compileAssignment(assign.lhs)
+		}
+		for _, node := range st.body {
+			g.compileStmt(node)
+		}
+		g.add(popFrameInstruction{})
 	}
 }
 

@@ -614,6 +614,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "with":
+		st, err := p.parseWithBlock()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	default:
 		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
 	}
@@ -795,6 +802,55 @@ func (p *parser) parseIfCond() (ifCondStmt, error) {
 	}
 
 	return ifCondStmt{expr: exp, trueBody: trueBody, falseBody: falseBody}, nil
+}
+
+func (p *parser) parseWithBlock() (withBlockStmt, error) {
+	var assignments []assignment
+
+	for {
+		if matched, err := p.matchesToken(isTokenOfType[blockEndToken]); err != nil {
+			return withBlockStmt{}, err
+		} else if matched {
+			break
+		}
+		var target expression
+		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+			return withBlockStmt{}, err
+		} else if matched {
+			target, err = p.parseAssignment()
+			if err != nil {
+				return withBlockStmt{}, err
+			}
+			if _, _, err := p.expectToken(isTokenOfType[parenCloseToken], "`)`"); err != nil {
+				return withBlockStmt{}, err
+			}
+		} else {
+			target, err = p.parseAssignName()
+			if err != nil {
+				return withBlockStmt{}, err
+			}
+		}
+		if _, _, err := p.expectToken(isTokenOfType[assignToken], "assignment operator"); err != nil {
+			return withBlockStmt{}, err
+		}
+		if exp, err := p.parseExpr(); err != nil {
+			return withBlockStmt{}, err
+		} else {
+			assignments = append(assignments, assignment{lhs: target, rhs: exp})
+		}
+	}
+
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return withBlockStmt{}, err
+	}
+	body, err := p.subparse(isIdentTokenWithName("endwith"))
+	if err != nil {
+		return withBlockStmt{}, err
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return withBlockStmt{}, err
+	}
+	return withBlockStmt{assignments: assignments, body: body}, nil
 }
 
 func (p *parser) parse() (statement, error) {
