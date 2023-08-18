@@ -229,8 +229,8 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		for _, arg := range exp.args {
 			g.compileExpr(arg)
 		}
-		localId := getLocalId(g.testLocalIds, exp.name)
-		g.add(performTestInstruction{name: exp.name, argCount: uint(len(exp.args)), localId: localId})
+		localID := getLocalId(g.testLocalIds, exp.name)
+		g.add(performTestInstruction{name: exp.name, argCount: uint(len(exp.args)) + 1, localID: localID})
 		g.popSpan()
 	case getAttrExpr:
 		g.pushSpan(exp.span)

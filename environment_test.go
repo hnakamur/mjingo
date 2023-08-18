@@ -63,7 +63,7 @@ func TestEnvironment(t *testing.T) {
 			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
 				key: keyRefFromString("user"),
 				val: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
-					key: keyRefFromString("name"),
+					key: keyRefFromValue(valueFromString("name")),
 					val: valueFromString("John"),
 				}})),
 			}})),

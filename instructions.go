@@ -72,7 +72,7 @@ type applyFilterInstruction struct {
 type performTestInstruction struct {
 	name     string
 	argCount uint
-	localId  localId
+	localID  localId
 }
 type emitInstruction struct{}
 type pushLoopInstruction struct{ flags uint8 }

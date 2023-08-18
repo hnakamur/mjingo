@@ -23,7 +23,7 @@ func NewEnvironment() *Environment {
 	return &Environment{
 		syntaxConfig:      DefaultSyntaxConfig,
 		templates:         make(map[string]*Template),
-		tests:             make(map[string]TestFunc),
+		tests:             getDefaultBuiltinTests(),
 		globals:           make(map[string]value),
 		defaultAutoEscape: defaultAutoEscapeCallback,
 	}

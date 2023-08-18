@@ -166,6 +166,9 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack
 			} else {
 				stack.push(v)
 			}
+		case notInstruction:
+			a = stack.pop()
+			stack.push(valueFromBool(!a.isTrue()))
 		case stringConcatInstruction:
 			b = stack.pop()
 			a = stack.pop()
@@ -222,7 +225,7 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack
 		case performTestInstruction:
 			f := func() option[TestFunc] { return state.env.getTest(inst.name) }
 			var tf TestFunc
-			if optVal := getOrLookupLocal(loadedTests[:], inst.localId, f); optVal.valid {
+			if optVal := getOrLookupLocal(loadedTests[:], inst.localID, f); optVal.valid {
 				tf = optVal.data
 			} else {
 				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.name))

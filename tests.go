@@ -2,6 +2,17 @@ package mjingo
 
 type TestFunc = func(*virtualMachineState, []value) (bool, error)
 
+func testFuncFromPredicate(f func(val value) bool) func(*virtualMachineState, []value) (bool, error) {
+	return func(state *virtualMachineState, values []value) (bool, error) {
+		// tpl, err := tuple1FromValues[value, argType[value]](state, values)
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return false, err
+		}
+		return f(tpl.a), nil
+	}
+}
+
 type TestPerformFunc[A any] func(args A) testResult
 
 type unit struct{}
@@ -43,27 +54,70 @@ type argType[O any] interface {
 	isTrailing() bool
 }
 
-func fromStateAndValue[O any](state *virtualMachineState, val option[value]) (argConvertResult[O], error) {
-	var zero argConvertResult[O]
+var _ = (argType[value])(valueArgType{})
+
+type valueArgType struct{}
+
+func (valueArgType) fromValue(val option[value]) (value, error) {
+	if val.valid {
+		return val.data, nil
+	}
+	return nil, &Error{typ: MissingArgument}
+}
+
+func (valueArgType) fromStateAndValue(state *virtualMachineState, val option[value]) (argConvertResult[value], error) {
+	return fromStateAndValue(state, val)
+}
+
+func (valueArgType) fromStateAndValues(state *virtualMachineState, values []value, offset uint) (argConvertResult[value], error) {
+	return fromStateAndValues(state, values, offset)
+}
+
+func (valueArgType) isTrailing() bool { return false }
+
+func fromStateAndValue(state *virtualMachineState, val option[value]) (argConvertResult[value], error) {
+	var zero argConvertResult[value]
 	if optionMapOr(val, false, isUndefined) && state != nil && state.undefinedBehavior() == UndefinedBehaviorStrict {
 		return zero, &Error{typ: UndefinedError}
 	}
-	var o argType[O]
+	var o valueArgType
 	out, err := o.fromValue(val)
 	if err != nil {
 		return zero, err
 	}
-	return argConvertResult[O]{output: out, consumed: 1}, nil
+	return argConvertResult[value]{output: out, consumed: 1}, nil
 }
 
-func fromStateAndValues[O any](state *virtualMachineState, values []value, offset uint) (argConvertResult[O], error) {
-	var o argType[O]
+func fromStateAndValues(state *virtualMachineState, values []value, offset uint) (argConvertResult[value], error) {
+	var o valueArgType
 	val := option[value]{}
 	if offset < uint(len(values)) {
 		val = option[value]{valid: true, data: values[offset]}
 	}
 	return o.fromStateAndValue(state, val)
 }
+
+// func fromStateAndValue[O any](state *virtualMachineState, val option[value]) (argConvertResult[O], error) {
+// 	var zero argConvertResult[O]
+// 	if optionMapOr(val, false, isUndefined) && state != nil && state.undefinedBehavior() == UndefinedBehaviorStrict {
+// 		return zero, &Error{typ: UndefinedError}
+// 	}
+// 	var o argType[O]
+// 	out, err := o.fromValue(val)
+// 	if err != nil {
+// 		return zero, err
+// 	}
+// 	return argConvertResult[O]{output: out, consumed: 1}, nil
+// }
+
+// func fromStateAndValues[O any](state *virtualMachineState, values []value, offset uint) (argConvertResult[O], error) {
+// 	var o argType[O]
+// 	val := option[value]{}
+// 	if offset < uint(len(values)) {
+// 		val = option[value]{valid: true, data: values[offset]}
+// 	}
+// 	return o.fromStateAndValue(state, val)
+// }
 
 func unitFromValues(_ *virtualMachineState, values []value) (unit, error) {
 	if len(values) == 0 {
@@ -72,10 +126,10 @@ func unitFromValues(_ *virtualMachineState, values []value) (unit, error) {
 	return unit{}, &Error{typ: TooManyArguments}
 }
 
-func tuple1FromValues[AO any, A argType[AO]](state *virtualMachineState, values []value) (tuple1[AO], error) {
-	var zero tuple1[AO]
-	var ao AO
-	var at argType[AO]
+func tuple1FromValues(state *virtualMachineState, values []value) (tuple1[value], error) {
+	var zero tuple1[value]
+	var ao value
+	var at valueArgType
 	idx := uint(0)
 	restFirst := at.isTrailing() && len(values) != 0
 	if restFirst {
@@ -97,8 +151,36 @@ func tuple1FromValues[AO any, A argType[AO]](state *virtualMachineState, values 
 	if idx < uint(len(values)) {
 		return zero, &Error{typ: TooManyArguments}
 	}
-	return tuple1[AO]{a: ao}, nil
+	return tuple1[value]{a: ao}, nil
 }
+
+// func tuple1FromValues[AO any, A argType[AO]](state *virtualMachineState, values []value) (tuple1[AO], error) {
+// 	var zero tuple1[AO]
+// 	var ao AO
+// 	var at argType[AO]
+// 	idx := uint(0)
+// 	restFirst := at.isTrailing() && len(values) != 0
+// 	if restFirst {
+// 		avo, err := at.fromStateAndValues(state, values, uint(len(values)-1))
+// 		if err != nil {
+// 			return zero, err
+// 		}
+// 		ao = avo.output
+// 		values = values[:len(values)-int(avo.consumed)]
+// 	}
+// 	if !restFirst {
+// 		avo, err := at.fromStateAndValues(state, values, idx)
+// 		if err != nil {
+// 			return zero, err
+// 		}
+// 		ao = avo.output
+// 		idx += avo.consumed
+// 	}
+// 	if idx < uint(len(values)) {
+// 		return zero, &Error{typ: TooManyArguments}
+// 	}
+// 	return tuple1[AO]{a: ao}, nil
+// }
 
 func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *virtualMachineState, values []value) (tuple2[AO, BO], error) {
 	var zero tuple2[AO, BO]
@@ -356,4 +438,8 @@ func arg5TestToPerform[A any, B any, C any, D any, E any](f func(A, B, C, D, E) 
 
 func isUndefined(val value) bool {
 	return val.isUndefined()
+}
+
+func isDefined(val value) bool {
+	return !val.isUndefined()
 }
