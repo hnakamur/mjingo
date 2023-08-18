@@ -16,7 +16,7 @@ func TestBasicIdentifiers(t *testing.T) {
 					t.Errorf("token StrData  mismatch, got=%q, want=%q, input=%q", got, want, s)
 				}
 			} else {
-				t.Errorf("token type mismatch, got=%v, want=%v, input=%q", tk.typ(), tokenTypeIdent, s)
+				t.Errorf("token type mismatch, got=%T, want=%v, input=%q", tk, tokenTypeIdent, s)
 			}
 		}
 

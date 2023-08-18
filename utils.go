@@ -223,6 +223,13 @@ type option[T any] struct {
 	valid bool
 }
 
+func optionMapOr[T any, E any](opt option[T], defaultVal E, f func(T) E) E {
+	if opt.valid {
+		return f(opt.data)
+	}
+	return defaultVal
+}
+
 type stack[T any] struct {
 	elems []T
 }

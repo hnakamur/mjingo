@@ -454,14 +454,12 @@ func (m mapExpr) asConst() option[value] {
 		}
 	}
 
-	rv := make(map[string]value, len(m.keys))
+	rv := newValueIndexMapWithCapacity(uint(len(m.keys)))
 	for i, key := range m.keys {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
-			// implmentation here is different from minijinja
-			if keyStr := key.(constExpr).value.asStr(); keyStr.valid {
-				rv[keyStr.data] = val.(constExpr).value
-			}
+			keyRf := keyRefFromValue(key.(constExpr).value)
+			rv.Store(keyRf, val.(constExpr).value)
 		}
 	}
 	return option[value]{valid: true, data: mapValue{m: rv}}

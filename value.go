@@ -159,13 +159,22 @@ type stringValue struct {
 type bytesValue struct{ b []byte }
 type seqValue struct{ items []value }
 type mapValue struct {
-	// TODO: use an ordered map
-	// TODO: use keyRef as key
-	m map[string]value
+	m      *valueIndexMap
+	mapTyp mapType
 }
 type dynamicValue struct {
 	// TODO: implement
 }
+
+// / The type of map
+type mapType uint
+
+const (
+	// A regular map
+	mapTypeNormal mapType = iota + 1
+	// A map representing keyword arguments
+	mapTypeKwargs
+)
 
 type stringType uint
 
@@ -231,13 +240,15 @@ func (v mapValue) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	first := true
-	for key, val := range v.m {
+	l := v.m.Len()
+	for i := uint(0); i < l; i++ {
+		key, val, _ := v.m.GetEntryAt(i)
 		if first {
 			first = false
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(key)
+		b.WriteString(key.asStr().data)
 		b.WriteString(": ")
 		b.WriteString(val.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
@@ -318,7 +329,7 @@ func (v i128Value) isTrue() bool    { panic("not implemented") }
 func (v stringValue) isTrue() bool  { return len(v.str) != 0 }
 func (v bytesValue) isTrue() bool   { return len(v.b) != 0 }
 func (v seqValue) isTrue() bool     { return len(v.items) != 0 }
-func (v mapValue) isTrue() bool     { return len(v.m) != 0 }
+func (v mapValue) isTrue() bool     { return v.m.Len() != 0 }
 func (v dynamicValue) isTrue() bool { panic("not implemented for valueTypeDynamic") }
 
 func (undefinedValue) getAttrFast(key string) option[value] { return option[value]{} }
@@ -334,7 +345,7 @@ func (stringValue) getAttrFast(key string) option[value]    { return option[valu
 func (bytesValue) getAttrFast(key string) option[value]     { return option[value]{} }
 func (seqValue) getAttrFast(key string) option[value]       { return option[value]{} }
 func (v mapValue) getAttrFast(key string) option[value] {
-	if val, ok := v.m[key]; ok {
+	if val, ok := v.m.Load(keyRefFromString(key)); ok {
 		return option[value]{valid: true, data: val}
 	}
 	return option[value]{}
@@ -376,15 +387,10 @@ func (v seqValue) getItemOpt(key value) option[value] {
 	return option[value]{}
 }
 func (v mapValue) getItemOpt(key value) option[value] {
-	keyRf := valueKeyRef{val: key}
-	// implementation here is different from minijinja.
-	if keyData := keyRf.asStr(); keyData.valid {
-		if v, ok := v.m[keyData.data]; ok {
-			return option[value]{valid: true, data: v}
-		}
-		return option[value]{}
+	if v, ok := v.m.Load(keyRefFromValue(key)); ok {
+		return option[value]{valid: true, data: v}
 	}
-	panic(fmt.Sprintf("value.getItemOpt does not support non string key: %+v", key))
+	return option[value]{}
 }
 func (dynamicValue) getItemOpt(key value) option[value] {
 	panic("not implemented yet")
@@ -497,12 +503,8 @@ func (v seqValue) clone() value {
 	return seqValue{items: items}
 }
 func (v mapValue) clone() value {
-	m := make(map[string]value, len(v.m))
-	for key, val := range v.m {
-		// Is shallow copy OK?
-		m[key] = val
-	}
-	return mapValue{m: m}
+	m := v.m.Clone()
+	return mapValue{m: m, mapTyp: v.mapTyp}
 }
 func (dynamicValue) clone() value {
 	panic("not implemented yet")
@@ -557,10 +559,6 @@ func unsupportedConversion(kind valueType, target string) error {
 			data:  fmt.Sprintf("cannot convert %s to %s", kind, target),
 		},
 	}
-}
-
-func valueMapWithCapacity(capacity uint) map[string]value {
-	return make(map[string]value, untrustedSizeHint(capacity))
 }
 
 type valueIterator struct {

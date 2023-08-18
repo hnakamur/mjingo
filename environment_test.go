@@ -12,9 +12,9 @@ func TestEnvironment(t *testing.T) {
 	}{
 		{
 			source: "Hello {{ name }}",
-			context: mapValue{m: map[string]value{
-				"name": stringValue{str: "World"},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("name"), val: valueFromString("World"),
+			}})),
 			want: "Hello World",
 		},
 		{
@@ -49,20 +49,24 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ user.name }}`,
-			context: mapValue{m: map[string]value{
-				"user": mapValue{m: map[string]value{
-					"name": stringValue{str: "John"},
-				}},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("user"),
+				val: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+					key: keyRefFromString("name"),
+					val: valueFromString("John"),
+				}})),
+			}})),
 			want: "Hello John",
 		},
 		{
 			source: `Hello {{ user["name"] }}`,
-			context: mapValue{m: map[string]value{
-				"user": mapValue{m: map[string]value{
-					"name": stringValue{str: "John"},
-				}},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("user"),
+				val: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+					key: keyRefFromString("name"),
+					val: valueFromString("John"),
+				}})),
+			}})),
 			want: "Hello John",
 		},
 		{
@@ -77,9 +81,9 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ ["John", name][1] }}`,
-			context: mapValue{m: map[string]value{
-				"name": stringValue{str: "Paul"},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("name"), val: valueFromString("Paul"),
+			}})),
 			want: "Hello Paul",
 		},
 		{
@@ -89,9 +93,9 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `Hello {{ {"name": name}["name"] }}`,
-			context: mapValue{m: map[string]value{
-				"name": stringValue{str: "Paul"},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("name"), val: valueFromString("Paul"),
+			}})),
 			want: "Hello Paul",
 		},
 		{
@@ -126,9 +130,9 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `{{ "Hello " ~ name ~ "!" }}`,
-			context: mapValue{m: map[string]value{
-				"name": stringValue{str: "John"},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("name"), val: valueFromString("John"),
+			}})),
 			want: "Hello John!",
 		},
 		{
@@ -138,40 +142,40 @@ func TestEnvironment(t *testing.T) {
 		},
 		{
 			source: `{% if down %}I'm down{% endif %}`,
-			context: mapValue{m: map[string]value{
-				"down": boolValue{b: true},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("down"), val: valueFromBool(true),
+			}})),
 			want: "I'm down",
 		},
 		{
 			source: `{% if down %}I'm down{% else %}I'm up{% endif %}`,
-			context: mapValue{m: map[string]value{
-				"down": boolValue{b: false},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("down"), val: valueFromBool(false),
+			}})),
 			want: "I'm up",
 		},
 		{
 			source: `{{ "I'm down" if down }}`,
-			context: mapValue{m: map[string]value{
-				"down": boolValue{b: true},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("down"), val: valueFromBool(true),
+			}})),
 			want: "I'm down",
 		},
 		{
 			source: `{{ "I'm down" if down else "I'm up" }}`,
-			context: mapValue{m: map[string]value{
-				"down": boolValue{b: false},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("down"), val: valueFromBool(false),
+			}})),
 			want: "I'm up",
 		},
 		{
 			source: `{% for name in names %}{{ name }} {% endfor %}`,
-			context: mapValue{m: map[string]value{
-				"names": seqValue{items: []value{
-					stringValue{str: "John"},
-					stringValue{str: "Paul"},
-				}},
-			}},
+			context: valueFromValueIndexMap(valueIndexMapFromKeyRefValues([]keyRefValue{{
+				key: keyRefFromString("names"), val: valueFromValueSlice([]value{
+					valueFromString("John"),
+					valueFromString("Paul"),
+				}),
+			}})),
 			want: "John Paul ",
 		},
 		{

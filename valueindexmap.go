@@ -6,6 +6,19 @@ type valueIndexMap struct {
 	values  []value
 }
 
+type keyRefValue struct {
+	key keyRef
+	val value
+}
+
+func valueIndexMapFromKeyRefValues(keyVals []keyRefValue) *valueIndexMap {
+	m := newValueIndexMapWithCapacity(uint(len(keyVals)))
+	for _, keyVal := range keyVals {
+		m.Store(keyVal.key, keyVal.val)
+	}
+	return m
+}
+
 func newValueIndexMap() *valueIndexMap {
 	return &valueIndexMap{
 		indexes: make(map[keyRef]uint),
@@ -70,4 +83,14 @@ func (m *valueIndexMap) GetEntryAt(idx uint) (key keyRef, val value, ok bool) {
 		val = m.values[idx]
 	}
 	return
+}
+
+func (m *valueIndexMap) Clone() *valueIndexMap {
+	l := m.Len()
+	rv := newValueIndexMapWithCapacity(l)
+	for i := uint(0); i < l; i++ {
+		key, val, _ := m.GetEntryAt(i)
+		rv.Store(key, val)
+	}
+	return rv
 }

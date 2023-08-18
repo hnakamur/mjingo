@@ -114,13 +114,13 @@ func (m *virtualMachine) evalImpl(state *virtualMachineState, out *Output, stack
 		case loadConstInstruction:
 			stack.push(inst.val)
 		case buildMapInstruction:
-			m := valueMapWithCapacity(inst.pairCount)
+			m := newValueIndexMapWithCapacity(inst.pairCount)
 			for i := uint(0); i < inst.pairCount; i++ {
 				val := stack.pop()
 				key := stack.pop()
-				m[key.asStr().data] = val
+				m.Store(keyRefFromValue(key), val)
 			}
-			stack.push(mapValue{m: m})
+			stack.push(valueFromValueIndexMap(m))
 		case buildListInstruction:
 			v := make([]value, 0, untrustedSizeHint(inst.count))
 			for i := uint(0); i < inst.count; i++ {

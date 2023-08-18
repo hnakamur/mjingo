@@ -6,6 +6,14 @@ type keyRef interface {
 	asI64() option[int64]
 }
 
+func keyRefFromValue(val value) valueKeyRef {
+	return valueKeyRef{val: val}
+}
+
+func keyRefFromString(val string) strKeyRef {
+	return strKeyRef{str: val}
+}
+
 type valueKeyRef struct{ val value }
 type strKeyRef struct{ str string }
 
