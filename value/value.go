@@ -15,9 +15,10 @@ type Value interface {
 	String() string
 
 	typ() valueType
-	kind() valueKind
+	Kind() ValueKind
 	IsUndefined() bool
 	IsNone() bool
+	IsSafe() bool
 	IsTrue() bool
 	GetAttrFast(key string) option.Option[Value]
 	GetItemOpt(key Value) option.Option[Value]
@@ -48,25 +49,25 @@ const (
 	valueTypeDynamic
 )
 
-type valueKind int
+type ValueKind int
 
 const (
 	// The value is undefined
-	valueKindUndefined valueKind = iota + 1
+	ValueKindUndefined ValueKind = iota + 1
 	// The value is the none singleton ([`()`])
-	valueKindNone
+	ValueKindNone
 	// The value is a [`bool`]
-	valueKindBool
+	ValueKindBool
 	// The value is a number of a supported type.
-	valueKindNumber
+	ValueKindNumber
 	// The value is a string.
-	valueKindString
+	ValueKindString
 	// The value is a byte array.
-	valueKindBytes
+	ValueKindBytes
 	// The value is an array of other values.
-	valueKindSeq
+	ValueKindSeq
 	// The value is a key/value mapping.
-	valueKindMap
+	ValueKindMap
 )
 
 var Undefined = undefinedValue{}
@@ -107,23 +108,23 @@ func (t valueType) String() string {
 	}
 }
 
-func (k valueKind) String() string {
+func (k ValueKind) String() string {
 	switch k {
-	case valueKindUndefined:
+	case ValueKindUndefined:
 		return "undefined"
-	case valueKindBool:
+	case ValueKindBool:
 		return "bool"
-	case valueKindNumber:
+	case ValueKindNumber:
 		return "number"
-	case valueKindNone:
+	case ValueKindNone:
 		return "none"
-	case valueKindString:
+	case ValueKindString:
 		return "string"
-	case valueKindBytes:
+	case ValueKindBytes:
 		return "bytes"
-	case valueKindSeq:
+	case ValueKindSeq:
 		return "seq"
-	case valueKindMap:
+	case ValueKindMap:
 		return "map"
 	default:
 		panic(fmt.Sprintf("invalid valueKind: %d", k))
@@ -262,20 +263,20 @@ func (SeqValue) typ() valueType       { return valueTypeSeq }
 func (mapValue) typ() valueType       { return valueTypeMap }
 func (dynamicValue) typ() valueType   { return valueTypeDynamic }
 
-func (undefinedValue) kind() valueKind { return valueKindUndefined }
-func (BoolValue) kind() valueKind      { return valueKindBool }
-func (u64Value) kind() valueKind       { return valueKindNumber }
-func (i64Value) kind() valueKind       { return valueKindNumber }
-func (f64Value) kind() valueKind       { return valueKindNumber }
-func (noneValue) kind() valueKind      { return valueKindNone }
-func (InvalidValue) kind() valueKind   { return valueKindMap } // XXX: invalid values report themselves as maps which is a lie
-func (u128Value) kind() valueKind      { return valueKindNumber }
-func (i128Value) kind() valueKind      { return valueKindNumber }
-func (stringValue) kind() valueKind    { return valueKindString }
-func (bytesValue) kind() valueKind     { return valueKindBytes }
-func (SeqValue) kind() valueKind       { return valueKindSeq }
-func (mapValue) kind() valueKind       { return valueKindMap }
-func (dynamicValue) kind() valueKind   { panic("not implemented for valueTypeDynamic") }
+func (undefinedValue) Kind() ValueKind { return ValueKindUndefined }
+func (BoolValue) Kind() ValueKind      { return ValueKindBool }
+func (u64Value) Kind() ValueKind       { return ValueKindNumber }
+func (i64Value) Kind() ValueKind       { return ValueKindNumber }
+func (f64Value) Kind() ValueKind       { return ValueKindNumber }
+func (noneValue) Kind() ValueKind      { return ValueKindNone }
+func (InvalidValue) Kind() ValueKind   { return ValueKindMap } // XXX: invalid values report themselves as maps which is a lie
+func (u128Value) Kind() ValueKind      { return ValueKindNumber }
+func (i128Value) Kind() ValueKind      { return ValueKindNumber }
+func (stringValue) Kind() ValueKind    { return ValueKindString }
+func (bytesValue) Kind() ValueKind     { return ValueKindBytes }
+func (SeqValue) Kind() ValueKind       { return ValueKindSeq }
+func (mapValue) Kind() ValueKind       { return ValueKindMap }
+func (dynamicValue) Kind() ValueKind   { panic("not implemented for valueTypeDynamic") }
 
 func (undefinedValue) IsUndefined() bool { return true }
 func (BoolValue) IsUndefined() bool      { return false }
@@ -306,6 +307,21 @@ func (bytesValue) IsNone() bool     { return false }
 func (SeqValue) IsNone() bool       { return false }
 func (mapValue) IsNone() bool       { return false }
 func (dynamicValue) IsNone() bool   { return false }
+
+func (undefinedValue) IsSafe() bool { return false }
+func (BoolValue) IsSafe() bool      { return false }
+func (u64Value) IsSafe() bool       { return false }
+func (i64Value) IsSafe() bool       { return false }
+func (f64Value) IsSafe() bool       { return false }
+func (noneValue) IsSafe() bool      { return false }
+func (InvalidValue) IsSafe() bool   { return false }
+func (u128Value) IsSafe() bool      { return false }
+func (i128Value) IsSafe() bool      { return false }
+func (v stringValue) IsSafe() bool  { return v.strTyp == stringTypeSafe }
+func (bytesValue) IsSafe() bool     { return false }
+func (SeqValue) IsSafe() bool       { return false }
+func (mapValue) IsSafe() bool       { return false }
+func (dynamicValue) IsSafe() bool   { return false }
 
 func (undefinedValue) IsTrue() bool { return false }
 func (v BoolValue) IsTrue() bool    { return v.B }
@@ -505,34 +521,34 @@ func (undefinedValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v BoolValue) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v u64Value) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v i64Value) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v f64Value) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (noneValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v InvalidValue) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v u128Value) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v i128Value) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v stringValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &charsValueIteratorState{s: v.str}, len: uint(utf8.RuneCountInString(v.str))}, nil
 }
 func (v bytesValue) TryIter() (Iterator, error) {
-	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return Iterator{}, internal.NewError(internal.InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
 }
 func (v SeqValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &seqValueIteratorState{items: v.items}, len: uint(len(v.items))}, nil

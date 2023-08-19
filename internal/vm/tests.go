@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"strings"
+
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/compiler"
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -9,7 +11,7 @@ import (
 
 type TestFunc = func(*State, []value.Value) (bool, error)
 
-func testFuncFromPredicate(f func(val value.Value) bool) func(*State, []value.Value) (bool, error) {
+func testFuncFromPredicateWithValueArg(f func(val value.Value) bool) func(*State, []value.Value) (bool, error) {
 	return func(state *State, values []value.Value) (bool, error) {
 		// tpl, err := tuple1FromValues[valu.Value, argType[valu.Value]](state, values)
 		tpl, err := tuple1FromValues(state, values)
@@ -17,6 +19,24 @@ func testFuncFromPredicate(f func(val value.Value) bool) func(*State, []value.Va
 			return false, err
 		}
 		return f(tpl.a), nil
+	}
+}
+
+func testFuncFromPredicateWithStringStringArgs(f func(a, b string) bool) func(*State, []value.Value) (bool, error) {
+	return func(state *State, values []value.Value) (bool, error) {
+		tpl, err := tuple2FromValues(state, values)
+		if err != nil {
+			return false, err
+		}
+		a, err := value.StringFromValue(option.Some(tpl.a))
+		if err != nil {
+			return false, err
+		}
+		b, err := value.StringFromValue(option.Some(tpl.b))
+		if err != nil {
+			return false, err
+		}
+		return f(a, b), nil
 	}
 }
 
@@ -80,6 +100,27 @@ func (valueArgType) fromStateAndValues(state *State, values []value.Value, offse
 }
 
 func (valueArgType) isTrailing() bool { return false }
+
+// var _ = (argType[string])(stringArgType{})
+
+// type stringArgType struct{}
+
+// func (stringArgType) fromValue(val option.Option[value.Value]) (string, error) {
+// 	if option.IsSome(val) {
+// 		return option.Unwrap(val).String(), nil
+// 	}
+// 	return "", internal.NewError(internal.MissingArgument, "")
+// }
+
+// func (stringArgType) fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[string], error) {
+// 	return fromStateAndValue(state, val)
+// }
+
+// func (stringArgType) fromStateAndValues(state *State, values []value.Value, offset uint) (argConvertResult[string], error) {
+// 	return fromStateAndValues(state, values, offset)
+// }
+
+// func (stringArgType) isTrailing() bool { return false }
 
 func fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[value.Value], error) {
 	var zero argConvertResult[value.Value]
@@ -160,6 +201,42 @@ func tuple1FromValues(state *State, values []value.Value) (tuple1[value.Value], 
 	return tuple1[value.Value]{a: ao}, nil
 }
 
+func tuple2FromValues(state *State, values []value.Value) (tuple2[value.Value, value.Value], error) {
+	var zero tuple2[value.Value, value.Value]
+	var ao value.Value
+	var bo value.Value
+	var at valueArgType
+	var bt valueArgType
+	idx := uint(0)
+	restFirst := bt.isTrailing() && len(values) != 0
+	if restFirst {
+		bvo, err := bt.fromStateAndValues(state, values, uint(len(values)-1))
+		if err != nil {
+			return zero, err
+		}
+		bo = bvo.output
+		values = values[:len(values)-int(bvo.consumed)]
+	}
+	avo, err := at.fromStateAndValues(state, values, idx)
+	if err != nil {
+		return zero, err
+	}
+	ao = avo.output
+	idx += avo.consumed
+	if !restFirst {
+		bvo, err := bt.fromStateAndValues(state, values, idx)
+		if err != nil {
+			return zero, err
+		}
+		bo = bvo.output
+		idx += bvo.consumed
+	}
+	if idx < uint(len(values)) {
+		return zero, internal.NewError(internal.TooManyArguments, "")
+	}
+	return tuple2[value.Value, value.Value]{a: ao, b: bo}, nil
+}
+
 // func tuple1FromValues[AO any, A argType[AO]](state *State, values []valu.Value) (tuple1[AO], error) {
 // 	var zero tuple1[AO]
 // 	var ao AO
@@ -188,41 +265,41 @@ func tuple1FromValues(state *State, values []value.Value) (tuple1[value.Value], 
 // 	return tuple1[AO]{a: ao}, nil
 // }
 
-func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State, values []value.Value) (tuple2[AO, BO], error) {
-	var zero tuple2[AO, BO]
-	var ao AO
-	var bo BO
-	var at argType[AO]
-	var bt argType[BO]
-	idx := uint(0)
-	restFirst := bt.isTrailing() && len(values) != 0
-	if restFirst {
-		bvo, err := bt.fromStateAndValues(state, values, uint(len(values)-1))
-		if err != nil {
-			return zero, err
-		}
-		bo = bvo.output
-		values = values[:len(values)-int(bvo.consumed)]
-	}
-	avo, err := at.fromStateAndValues(state, values, idx)
-	if err != nil {
-		return zero, err
-	}
-	ao = avo.output
-	idx += avo.consumed
-	if !restFirst {
-		bvo, err := bt.fromStateAndValues(state, values, idx)
-		if err != nil {
-			return zero, err
-		}
-		bo = bvo.output
-		idx += bvo.consumed
-	}
-	if idx < uint(len(values)) {
-		return zero, internal.NewError(internal.TooManyArguments, "")
-	}
-	return tuple2[AO, BO]{a: ao, b: bo}, nil
-}
+// func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State, values []value.Value) (tuple2[AO, BO], error) {
+// 	var zero tuple2[AO, BO]
+// 	var ao AO
+// 	var bo BO
+// 	var at argType[AO]
+// 	var bt argType[BO]
+// 	idx := uint(0)
+// 	restFirst := bt.isTrailing() && len(values) != 0
+// 	if restFirst {
+// 		bvo, err := bt.fromStateAndValues(state, values, uint(len(values)-1))
+// 		if err != nil {
+// 			return zero, err
+// 		}
+// 		bo = bvo.output
+// 		values = values[:len(values)-int(bvo.consumed)]
+// 	}
+// 	avo, err := at.fromStateAndValues(state, values, idx)
+// 	if err != nil {
+// 		return zero, err
+// 	}
+// 	ao = avo.output
+// 	idx += avo.consumed
+// 	if !restFirst {
+// 		bvo, err := bt.fromStateAndValues(state, values, idx)
+// 		if err != nil {
+// 			return zero, err
+// 		}
+// 		bo = bvo.output
+// 		idx += bvo.consumed
+// 	}
+// 	if idx < uint(len(values)) {
+// 		return zero, internal.NewError(internal.TooManyArguments, "")
+// 	}
+// 	return tuple2[AO, BO]{a: ao, b: bo}, nil
+// }
 
 func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C argType[CO]](state *State, values []value.Value) (tuple3[AO, BO, CO], error) {
 	var zero tuple3[AO, BO, CO]
@@ -453,3 +530,73 @@ func isDefined(val value.Value) bool {
 func isNone(val value.Value) bool {
 	return val.IsNone()
 }
+
+func isSafe(val value.Value) bool {
+	return val.IsSafe()
+}
+
+// Checks if a value is odd.
+//
+// ```jinja
+// {{ 41 is odd }} -> true
+// ```
+func isOdd(val value.Value) bool {
+	x, err := val.TryToI64()
+	if err != nil {
+		return false
+	}
+	return x%2 != 0
+}
+
+// Checks if a value is even.
+//
+// ```jinja
+// {{ 42 is even }} -> true
+// ```
+func isEven(val value.Value) bool {
+	x, err := val.TryToI64()
+	if err != nil {
+		return false
+	}
+	return x%2 == 0
+}
+
+// Checks if this value is a number.
+//
+// ```jinja
+// {{ 42 is number }} -> true
+// {{ "42" is number }} -> false
+// ```
+func isNumber(val value.Value) bool { return val.Kind() == value.ValueKindNumber }
+
+// Checks if this value is a string.
+//
+// ```jinja
+// {{ "42" is string }} -> true
+// {{ 42 is string }} -> false
+// ```
+func isString(val value.Value) bool { return val.Kind() == value.ValueKindString }
+
+// Checks if this value is a sequence
+//
+// ```jinja
+// {{ [1, 2, 3] is sequence }} -> true
+// {{ 42 is sequence }} -> false
+// ```
+func isSequence(val value.Value) bool { return val.Kind() == value.ValueKindSeq }
+
+// Checks if this value is a mapping
+//
+// ```jinja
+// {{ {"foo": "bar"} is mapping }} -> true
+// {{ [1, 2, 3] is mapping }} -> false
+// ```
+func isMapping(val value.Value) bool { return val.Kind() == value.ValueKindMap }
+
+// Checks if the value is starting with a string.
+//
+// ```jinja
+// {{ "foobar" is startingwith("foo") }} -> true
+// {{ "foobar" is startingwith("bar") }} -> false
+// ```
+func isStartingWith(v, other string) bool { return strings.HasPrefix(v, other) }

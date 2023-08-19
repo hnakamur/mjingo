@@ -1,5 +1,10 @@
 package value
 
+import (
+	"github.com/hnakamur/mjingo/internal"
+	"github.com/hnakamur/mjingo/internal/datast/option"
+)
+
 // type argsFromValuesFn[T any] func(state *virtualMachineState, args []value) (T, error)
 
 type Unit struct{}
@@ -43,6 +48,24 @@ func FromSlice(values []Value) Value {
 
 func FromIndexMap(m *IndexMap) Value {
 	return mapValue{m: m, mapTyp: mapTypeNormal}
+}
+
+func StringFromValue(value option.Option[Value]) (string, error) {
+	if option.IsSome(value) {
+		optStr := option.Unwrap(value).AsStr()
+		if option.IsSome(optStr) {
+			return option.Unwrap(optStr), nil
+		}
+		return "", internal.NewError(internal.InvalidOperation, "value is not a string")
+	}
+	return "", internal.NewError(internal.MissingArgument, "")
+}
+
+func StringTryFromValue(value Value) (string, error) {
+	if v, ok := value.(stringValue); ok {
+		return v.str, nil
+	}
+	return "", internal.NewError(internal.InvalidOperation, "value is not a string")
 }
 
 type rest[T any] struct {

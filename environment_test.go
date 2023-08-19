@@ -301,6 +301,46 @@ func TestEnvironment(t *testing.T) {
 				}})),
 				want: "I'm none",
 			},
+			{
+				name:   "isSafeTrue",
+				source: `{% if v is safe %}I'm safe{% else %}I'm not safe{% endif %}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("v"), Value: value.FromSafeString("s"),
+				}})),
+				want: "I'm safe",
+			},
+			{
+				name:   "isSafeFalse",
+				source: `{% if v is safe %}I'm safe{% else %}I'm not safe{% endif %}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("v"), Value: value.FromString("s"),
+				}})),
+				want: "I'm not safe",
+			},
+			{
+				name:   "isEscaped",
+				source: `{% if v is escaped %}I'm safe{% else %}I'm not safe{% endif %}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("v"), Value: value.FromSafeString("s"),
+				}})),
+				want: "I'm safe",
+			},
+			{name: "isOddTrue", source: `{{ 41 is odd }}`, context: value.None, want: "true"},
+			{name: "isOddValueFalse", source: `{{ 42 is odd }}`, context: value.None, want: "false"},
+			{name: "isOddTypeFalse", source: `{{ "s" is odd }}`, context: value.None, want: "false"},
+			{name: "isEvenTrue", source: `{{ 41 is even }}`, context: value.None, want: "false"},
+			{name: "isEvenValueFalse", source: `{{ 42 is even }}`, context: value.None, want: "true"},
+			{name: "isEvenTypeFalse", source: `{{ "s" is even }}`, context: value.None, want: "false"},
+			{name: "isNumberTrue", source: `{{ 42 is number }}`, context: value.None, want: "true"},
+			{name: "isNumberFalse", source: `{{ "42" is number }}`, context: value.None, want: "false"},
+			{name: "isStringTrue", source: `{{ "42" is string }}`, context: value.None, want: "true"},
+			{name: "isStringFalse", source: `{{ 42 is string }}`, context: value.None, want: "false"},
+			{name: "isSequenceTrue", source: `{{ [1, 2, 3] is sequence }}`, context: value.None, want: "true"},
+			{name: "isSequenceFalse", source: `{{ 42 is sequence }}`, context: value.None, want: "false"},
+			{name: "isMappingTrue", source: `{{ {"foo": "bar"} is mapping }}`, context: value.None, want: "true"},
+			{name: "isMappingFalse", source: `{{ [1, 2, 3] is mapping }}`, context: value.None, want: "false"},
+			{name: "isStartingWithTrue", source: `{{ "foobar" is startingwith("foo") }}`, context: value.None, want: "true"},
+			{name: "isStartingWithFalse", source: `{{ "foobar" is startingwith("bar") }}`, context: value.None, want: "false"},
 		})
 	})
 }

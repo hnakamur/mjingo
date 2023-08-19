@@ -106,7 +106,7 @@ func Slice(val, start, stop, step Value) (Value, error) {
 }
 
 func Neg(val Value) (Value, error) {
-	if val.kind() != valueKindNumber {
+	if val.Kind() != ValueKindNumber {
 		return nil, internal.NewError(internal.InvalidOperation, "")
 	}
 	if v, ok := val.(f64Value); ok {
