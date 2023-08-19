@@ -1,8 +1,6 @@
 // Package indexmap defines various functions useful for indexmap.
 package indexmap
 
-import "github.com/hnakamur/mjingo/internal/datast/slicex"
-
 // IndexMap represents a map which preserves the insertion order of keys.
 type IndexMap[K comparable, V any] struct {
 	indexes map[K]uint
@@ -57,8 +55,12 @@ func Delete[K comparable, V any](m *IndexMap[K, V], key K) (v V, ok bool) {
 	if ok {
 		v = m.values[i]
 		delete(m.indexes, key)
-		slicex.Delete(&m.keys, i, i+1)
-		slicex.Delete(&m.values, i, i+1)
+
+		clear(m.keys[i : i+1])
+		m.keys = append(m.keys[:i], m.keys[i+1:]...)
+
+		clear(m.values[i : i+1])
+		m.values = append(m.values[:i], m.values[i+1:]...)
 	}
 	return
 }
