@@ -13,7 +13,7 @@ type Template struct {
 	initialAutoEscape compiler.AutoEscape
 }
 
-func (t *Template) render(context any) (string, error) {
+func (t *Template) Render(context any) (string, error) {
 	var b strings.Builder
 	root := context.(value.Value)
 	out := newOutput(&b)

@@ -1,4 +1,4 @@
-package vm
+package mjingo
 
 import (
 	"testing"
@@ -263,7 +263,7 @@ func TestEnvironment(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := tpl.render(tc.context)
+			got, err := tpl.Render(tc.context)
 			if err != nil {
 				t.Fatal(err)
 			}
