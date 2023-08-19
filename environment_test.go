@@ -341,6 +341,8 @@ func TestEnvironment(t *testing.T) {
 			{name: "isMappingFalse", source: `{{ [1, 2, 3] is mapping }}`, context: value.None, want: "false"},
 			{name: "isStartingWithTrue", source: `{{ "foobar" is startingwith("foo") }}`, context: value.None, want: "true"},
 			{name: "isStartingWithFalse", source: `{{ "foobar" is startingwith("bar") }}`, context: value.None, want: "false"},
+			{name: "isEndingWithTrue", source: `{{ "foobar" is endingwith("bar") }}`, context: value.None, want: "true"},
+			{name: "isEndingWithFalse", source: `{{ "foobar" is endingwith("foo") }}`, context: value.None, want: "false"},
 		})
 	})
 }

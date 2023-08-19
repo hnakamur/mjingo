@@ -15,6 +15,7 @@ func getDefaultBuiltinTests() map[string]TestFunc {
 	rv["sequence"] = testFuncFromPredicateWithValueArg(isSequence)
 	rv["mapping"] = testFuncFromPredicateWithValueArg(isMapping)
 	rv["startingwith"] = testFuncFromPredicateWithStringStringArgs(isStartingWith)
+	rv["endingwith"] = testFuncFromPredicateWithStringStringArgs(isEndingWith)
 
 	return rv
 }

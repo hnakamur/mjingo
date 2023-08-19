@@ -600,3 +600,11 @@ func isMapping(val value.Value) bool { return val.Kind() == value.ValueKindMap }
 // {{ "foobar" is startingwith("bar") }} -> false
 // ```
 func isStartingWith(v, other string) bool { return strings.HasPrefix(v, other) }
+
+// Checks if the value is ending with a string.
+//
+// ```jinja
+// {{ "foobar" is endingwith("bar") }} -> true
+// {{ "foobar" is endingwith("foo") }} -> false
+// ```
+func isEndingWith(v, other string) bool { return strings.HasSuffix(v, other) }
