@@ -11,6 +11,8 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["title"] = filterFuncFromFilterWithStrArgStrRet(title)
 	rv["capitalize"] = filterFuncFromFilterWithStrArgStrRet(capitalize)
 	rv["replace"] = filterFuncFromFilterWithStateStrStrStrArgStrRet(replace)
+	rv["length"] = filterFuncFromFilterWithValArgUintErrRet(length)
+	rv["count"] = filterFuncFromFilterWithValArgUintErrRet(length)
 
 	return rv
 }

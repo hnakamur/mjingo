@@ -300,6 +300,8 @@ func TestEnvironment(t *testing.T) {
 			{name: "title", source: `{{ "hello world"|title }}`, context: value.None, want: "HELLO WORLD"},
 			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: value.None, want: "Hello world"},
 			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: value.None, want: "Goodbye World"},
+			{name: "count", source: `{{ ["foo", "bar"]|length }}`, context: value.None, want: "2"},
+			{name: "count", source: `{{ "あいう"|length }}`, context: value.None, want: "3"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

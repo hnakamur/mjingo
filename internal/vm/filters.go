@@ -1,8 +1,10 @@
 package vm
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/compiler"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 	"github.com/hnakamur/mjingo/value"
@@ -70,6 +72,20 @@ func filterFuncFromFilterWithStateStrStrStrArgStrRet(f func(state *State, v1, v2
 	}
 }
 
+func filterFuncFromFilterWithValArgUintErrRet(f func(val value.Value) (uint, error)) func(*State, []value.Value) (value.Value, error) {
+	return func(state *State, values []value.Value) (value.Value, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		l, err := f(tpl.a)
+		if err != nil {
+			return nil, err
+		}
+		return value.FromI64(int64(l)), nil
+	}
+}
+
 func safe(v string) value.Value {
 	return value.FromSafeString(v)
 }
@@ -131,4 +147,12 @@ func capitalize(s string) string {
 func replace(_ *State, v, from, to string) string {
 	r := strings.NewReplacer(from, to)
 	return r.Replace(v)
+}
+
+func length(val value.Value) (uint, error) {
+	if optLen := val.Len(); option.IsSome(optLen) {
+		return option.Unwrap(optLen), nil
+	}
+	return 0, internal.NewError(internal.InvalidOperation,
+		fmt.Sprintf("cannot calculate length of value of type %s", val.Kind()))
 }

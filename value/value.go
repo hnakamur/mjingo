@@ -28,6 +28,7 @@ type Value interface {
 	AsSeq() option.Option[SeqObject]
 	Clone() Value
 	TryIter() (Iterator, error)
+	Len() option.Option[uint]
 }
 
 type valueType int
@@ -654,4 +655,23 @@ const (
 
 func (v *SeqValue) Append(val Value) {
 	v.items = append(v.items, val)
+}
+
+func (undefinedValue) Len() option.Option[uint] { return option.None[uint]() }
+func (BoolValue) Len() option.Option[uint]      { return option.None[uint]() }
+func (u64Value) Len() option.Option[uint]       { return option.None[uint]() }
+func (i64Value) Len() option.Option[uint]       { return option.None[uint]() }
+func (f64Value) Len() option.Option[uint]       { return option.None[uint]() }
+func (noneValue) Len() option.Option[uint]      { return option.None[uint]() }
+func (InvalidValue) Len() option.Option[uint]   { return option.None[uint]() }
+func (u128Value) Len() option.Option[uint]      { return option.None[uint]() }
+func (i128Value) Len() option.Option[uint]      { return option.None[uint]() }
+func (v stringValue) Len() option.Option[uint] {
+	return option.Some(uint(utf8.RuneCountInString(v.str)))
+}
+func (bytesValue) Len() option.Option[uint] { return option.None[uint]() }
+func (v SeqValue) Len() option.Option[uint] { return option.Some(uint(len(v.items))) }
+func (v mapValue) Len() option.Option[uint] { return option.Some(v.m.Len()) }
+func (dynamicValue) Len() option.Option[uint] {
+	panic("not implemented yet")
 }
