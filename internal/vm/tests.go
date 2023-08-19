@@ -449,3 +449,7 @@ func isUndefined(val value.Value) bool {
 func isDefined(val value.Value) bool {
 	return !val.IsUndefined()
 }
+
+func isNone(val value.Value) bool {
+	return val.IsNone()
+}
