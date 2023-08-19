@@ -121,13 +121,13 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 		case compiler.LoadConstInstruction:
 			stacks.Push(stack, inst.Val)
 		case compiler.BuildMapInstruction:
-			m := value.NewValueIndexMapWithCapacity(inst.PairCount)
+			m := value.NewIndexMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stacks.Pop(stack)
 				key := stacks.Pop(stack)
-				m.Store(value.KeyRefFromValue(key), val)
+				value.IndexMapSet(m, value.KeyRefFromValue(key), val)
 			}
-			stacks.Push(stack, value.FromValueIndexMap(m))
+			stacks.Push(stack, value.FromIndexMap(m))
 		case compiler.BuildListInstruction:
 			v := make([]value.Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {

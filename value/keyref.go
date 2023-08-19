@@ -8,24 +8,24 @@ type KeyRef interface {
 	AasI64() option.Option[int64]
 }
 
-func KeyRefFromValue(val Value) ValueKeyRef {
-	return ValueKeyRef{val: val}
+func KeyRefFromValue(val Value) KeyRef {
+	return valueKeyRef{val: val}
 }
 
-func KeyRefFromString(val string) StrKeyRef {
+func KeyRefFromString(val string) KeyRef {
 	return StrKeyRef{str: val}
 }
 
-type ValueKeyRef struct{ val Value }
+type valueKeyRef struct{ val Value }
 type StrKeyRef struct{ str string }
 
-func (ValueKeyRef) typ() keyRefType { return keyRefTypeValue }
+func (valueKeyRef) typ() keyRefType { return keyRefTypeValue }
 func (StrKeyRef) typ() keyRefType   { return keyRefTypeStr }
 
-func (k ValueKeyRef) AsStr() option.Option[string] { return k.val.AsStr() }
+func (k valueKeyRef) AsStr() option.Option[string] { return k.val.AsStr() }
 func (k StrKeyRef) AsStr() option.Option[string]   { return option.Some(k.str) }
 
-func (k ValueKeyRef) AasI64() option.Option[int64] {
+func (k valueKeyRef) AasI64() option.Option[int64] {
 	if i, err := k.val.TryToI64(); err != nil {
 		return option.None[int64]()
 	} else {

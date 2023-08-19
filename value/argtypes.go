@@ -41,7 +41,7 @@ func FromSlice(values []Value) Value {
 	return SeqValue{items: values}
 }
 
-func FromValueIndexMap(m *valueIndexMap) Value {
+func FromIndexMap(m *IndexMap) Value {
 	return mapValue{m: m, mapTyp: mapTypeNormal}
 }
 
@@ -50,6 +50,6 @@ type rest[T any] struct {
 }
 
 type kwargs struct {
-	values valueIndexMap
+	values IndexMap
 	used   map[string]struct{}
 }

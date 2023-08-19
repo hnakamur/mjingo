@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/hnakamur/mjingo/internal"
+	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -153,7 +154,7 @@ type stringValue struct {
 type bytesValue struct{ b []byte }
 type SeqValue struct{ items []Value }
 type mapValue struct {
-	m      *valueIndexMap
+	m      *IndexMap
 	mapTyp mapType
 }
 type dynamicValue struct {
@@ -234,17 +235,17 @@ func (v mapValue) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	first := true
-	l := v.m.Len()
+	l := indexmap.Len(v.m)
 	for i := uint(0); i < l; i++ {
-		key, val, _ := v.m.GetEntryAt(i)
+		e, _ := indexmap.EntryAt(v.m, i)
 		if first {
 			first = false
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(option.Unwrap(key.AsStr()))
+		b.WriteString(option.Unwrap(e.Key.AsStr()))
 		b.WriteString(": ")
-		b.WriteString(val.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("}")
 	return b.String()
@@ -323,7 +324,7 @@ func (v i128Value) IsTrue() bool    { panic("not implemented") }
 func (v stringValue) IsTrue() bool  { return len(v.str) != 0 }
 func (v bytesValue) IsTrue() bool   { return len(v.b) != 0 }
 func (v SeqValue) IsTrue() bool     { return len(v.items) != 0 }
-func (v mapValue) IsTrue() bool     { return v.m.Len() != 0 }
+func (v mapValue) IsTrue() bool     { return indexmap.Len(v.m) != 0 }
 func (v dynamicValue) IsTrue() bool { panic("not implemented for valueTypeDynamic") }
 
 func (undefinedValue) GetAttrFast(_ string) option.Option[Value] { return option.None[Value]() }
@@ -339,7 +340,7 @@ func (stringValue) GetAttrFast(_ string) option.Option[Value]    { return option
 func (bytesValue) GetAttrFast(_ string) option.Option[Value]     { return option.None[Value]() }
 func (SeqValue) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
 func (v mapValue) GetAttrFast(key string) option.Option[Value] {
-	if val, ok := v.m.Load(KeyRefFromString(key)); ok {
+	if val, ok := indexmap.Get[KeyRef, Value](v.m, KeyRefFromString(key)); ok {
 		return option.Some(val)
 	}
 	return option.None[Value]()
@@ -360,7 +361,7 @@ func (i128Value) GetItemOpt(_ Value) option.Option[Value]      { return option.N
 func (stringValue) GetItemOpt(_ Value) option.Option[Value]    { return option.None[Value]() }
 func (bytesValue) GetItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
 func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
-	keyRf := ValueKeyRef{val: key}
+	keyRf := valueKeyRef{val: key}
 	if optIdx := keyRf.AasI64(); option.IsSome(optIdx) {
 		idx := option.Unwrap(optIdx)
 		if idx < math.MinInt || math.MaxInt < idx {
@@ -382,7 +383,7 @@ func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
 	return option.None[Value]()
 }
 func (v mapValue) GetItemOpt(key Value) option.Option[Value] {
-	if v, ok := v.m.Load(KeyRefFromValue(key)); ok {
+	if v, ok := indexmap.Get[KeyRef, Value](v.m, KeyRefFromValue(key)); ok {
 		return option.Some(v)
 	}
 	return option.None[Value]()
@@ -498,7 +499,7 @@ func (v SeqValue) Clone() Value {
 	return SeqValue{items: items}
 }
 func (v mapValue) Clone() Value {
-	m := v.m.Clone()
+	m := indexmap.Clone(v.m)
 	return mapValue{m: m, mapTyp: v.mapTyp}
 }
 func (dynamicValue) Clone() Value {

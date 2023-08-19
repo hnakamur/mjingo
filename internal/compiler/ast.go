@@ -460,13 +460,13 @@ func (m mapExpr) asConst() option.Option[value.Value] {
 		}
 	}
 
-	rv := value.NewValueIndexMapWithCapacity(uint(len(m.keys)))
+	rv := value.NewIndexMapWithCapacity(uint(len(m.keys)))
 	for i, key := range m.keys {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
 			keyRf := value.KeyRefFromValue(key.(constExpr).value)
-			rv.Store(keyRf, val.(constExpr).value)
+			value.IndexMapSet(rv, keyRf, val.(constExpr).value)
 		}
 	}
-	return option.Some(value.FromValueIndexMap(rv))
+	return option.Some(value.FromIndexMap(rv))
 }
