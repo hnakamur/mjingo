@@ -31,12 +31,13 @@ func (m *virtualMachine) eval(instructions compiler.Instructions, root value.Val
 }
 
 func (m *virtualMachine) evalState(state *State, out *Output) (option.Option[value.Value], error) {
-	return m.evalImpl(state, out, newVMStack(), 0)
+	var stack []value.Value
+	return m.evalImpl(state, out, &stack, 0)
 }
 
 // type autoEscapeStack = stack[autoEscape]
 
-func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc uint) (option.Option[value.Value], error) {
+func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Value, pc uint) (option.Option[value.Value], error) {
 	initialAutoEscape := state.autoEscape
 	undefinedBehavior := state.undefinedBehavior()
 	autoEscapeStack := []compiler.AutoEscape{}
@@ -54,12 +55,12 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 				return option.None[value.Value](), err
 			}
 		case compiler.EmitInstruction:
-			v := stack.pop()
+			v := stacks.Pop(stack)
 			if err := m.env.format(v, state, out); err != nil {
 				return option.None[value.Value](), err
 			}
 		case compiler.StoreLocalInstruction:
-			state.ctx.store(inst.Name, stack.pop())
+			state.ctx.store(inst.Name, stacks.Pop(stack))
 		case compiler.LookupInstruction:
 			var v value.Value
 			if val := state.lookup(inst.Name); option.IsSome(val) {
@@ -67,9 +68,9 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 			} else {
 				v = value.Undefined
 			}
-			stack.push(v)
+			stacks.Push(stack, v)
 		case compiler.GetAttrInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			// This is a common enough operation that it's interesting to consider a fast
 			// path here.  This is slightly faster than the regular attr lookup because we
 			// do not need to pass down the error object for the more common success case.
@@ -79,113 +80,113 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 				if v, err := assertValid(option.Unwrap(v), pc, state); err != nil {
 					return option.None[value.Value](), err
 				} else {
-					stack.push(v)
+					stacks.Push(stack, v)
 				}
 			} else {
 				if v, err := undefinedBehavior.HandleUndefined(a.IsUndefined()); err != nil {
 					return option.None[value.Value](), processErr(err, pc, state)
 				} else {
-					stack.push(v)
+					stacks.Push(stack, v)
 				}
 			}
 		case compiler.GetItemInstruction:
-			a = stack.pop()
-			b = stack.pop()
+			a = stacks.Pop(stack)
+			b = stacks.Pop(stack)
 			if v := b.GetItemOpt(a); option.IsSome(v) {
 				if v, err := assertValid(option.Unwrap(v), pc, state); err != nil {
 					return option.None[value.Value](), err
 				} else {
-					stack.push(v)
+					stacks.Push(stack, v)
 				}
 			} else {
 				if v, err := undefinedBehavior.HandleUndefined(b.IsUndefined()); err != nil {
 					return option.None[value.Value](), processErr(err, pc, state)
 				} else {
-					stack.push(v)
+					stacks.Push(stack, v)
 				}
 			}
 		case compiler.SliceInstruction:
-			step := stack.pop()
-			stop := stack.pop()
-			b = stack.pop()
-			a = stack.pop()
+			step := stacks.Pop(stack)
+			stop := stacks.Pop(stack)
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
 			if a.IsUndefined() && undefinedBehavior == compiler.UndefinedBehaviorStrict {
 				return option.None[value.Value](), processErr(internal.NewError(internal.UndefinedError, ""), pc, state)
 			}
 			if s, err := value.Slice(a, b, stop, step); err != nil {
 				return option.None[value.Value](), processErr(err, pc, state)
 			} else {
-				stack.push(s)
+				stacks.Push(stack, s)
 			}
 		case compiler.LoadConstInstruction:
-			stack.push(inst.Val)
+			stacks.Push(stack, inst.Val)
 		case compiler.BuildMapInstruction:
 			m := value.NewValueIndexMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
-				val := stack.pop()
-				key := stack.pop()
+				val := stacks.Pop(stack)
+				key := stacks.Pop(stack)
 				m.Store(value.KeyRefFromValue(key), val)
 			}
-			stack.push(value.FromValueIndexMap(m))
+			stacks.Push(stack, value.FromValueIndexMap(m))
 		case compiler.BuildListInstruction:
 			v := make([]value.Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
-				v = append(v, stack.pop())
+				v = append(v, stacks.Pop(stack))
 			}
 			slices.Reverse(v)
-			stack.push(value.FromSlice(v))
+			stacks.Push(stack, value.FromSlice(v))
 		case compiler.UnpackListInstruction:
-			if err := m.unpackList(&stack, inst.Count); err != nil {
+			if err := m.unpackList(stack, inst.Count); err != nil {
 				return option.None[value.Value](), err
 			}
 		case compiler.ListAppendInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			// this intentionally only works with actual sequences
-			if v, ok := stack.pop().(value.SeqValue); ok {
+			if v, ok := stacks.Pop(stack).(value.SeqValue); ok {
 				v.Append(a)
-				stack.push(v)
+				stacks.Push[[]value.Value, value.Value](stack, v)
 			} else {
 				err := internal.NewError(internal.InvalidOperation, "cannot append to non-list")
 				return option.None[value.Value](), processErr(err, pc, state)
 			}
 		case compiler.AddInstruction:
-			b = stack.pop()
-			a = stack.pop()
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
 			if v, err := value.Add(a, b); err != nil {
 				return option.None[value.Value](), err
 			} else {
-				stack.push(v)
+				stacks.Push(stack, v)
 			}
 		case compiler.SubInstruction:
-			b = stack.pop()
-			a = stack.pop()
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
 			if v, err := value.Sub(a, b); err != nil {
 				return option.None[value.Value](), err
 			} else {
-				stack.push(v)
+				stacks.Push(stack, v)
 			}
 		case compiler.PowInstruction:
-			b = stack.pop()
-			a = stack.pop()
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
 			if v, err := value.Pow(a, b); err != nil {
 				return option.None[value.Value](), err
 			} else {
-				stack.push(v)
+				stacks.Push(stack, v)
 			}
 		case compiler.NotInstruction:
-			a = stack.pop()
-			stack.push(value.FromBool(!a.IsTrue()))
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(!a.IsTrue()))
 		case compiler.StringConcatInstruction:
-			b = stack.pop()
-			a = stack.pop()
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
 			v := value.StringConcat(a, b)
-			stack.push(v)
+			stacks.Push(stack, v)
 		case compiler.NegInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			if v, err := value.Neg(a); err != nil {
 				return option.None[value.Value](), err
 			} else {
-				stack.push(v)
+				stacks.Push(stack, v)
 			}
 		case compiler.PopFrameInstruction:
 			if optLoopCtx := state.ctx.popFrame().currentLoop; option.IsSome(optLoopCtx) {
@@ -196,7 +197,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 					pc = recurJump.target
 					if recurJump.endCapture {
 						// TODO: implement
-						// stack.push()
+						// stacks.Push(stack, )
 					}
 					continue
 				}
@@ -205,13 +206,13 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 			pc = inst.JumpTarget
 			continue
 		case compiler.JumpIfFalseInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			if !a.IsTrue() {
 				pc = inst.JumpTarget
 				continue
 			}
 		case compiler.PushAutoEscapeInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			stacks.Push(&autoEscapeStack, state.autoEscape)
 			if escape, err := m.deriveAutoEscape(a, initialAutoEscape); err != nil {
 				return option.None[value.Value](), processErr(err, pc, state)
@@ -219,7 +220,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 				state.autoEscape = escape
 			}
 		case compiler.PopAutoEscapeInstruction:
-			if autoEscape, ok := stacks.Pop(&autoEscapeStack); ok {
+			if autoEscape, ok := stacks.TryPop(&autoEscapeStack); ok {
 				state.autoEscape = autoEscape
 			} else {
 				panic("unreachable")
@@ -227,7 +228,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 		case compiler.BeginCaptureInstruction:
 			out.beginCapture(inst.Mode)
 		case compiler.EndCaptureInstruction:
-			stack.push(out.endCapture(state.autoEscape))
+			stacks.Push(stack, out.endCapture(state.autoEscape))
 		case compiler.PerformTestInstruction:
 			f := func() option.Option[TestFunc] { return state.env.getTest(inst.Name) }
 			var tf TestFunc
@@ -237,23 +238,23 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 				err := internal.NewError(internal.UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[value.Value](), processErr(err, pc, state)
 			}
-			args := stack.sliceTop(inst.ArgCount)
+			args := stacks.SliceTop(*stack, inst.ArgCount)
 			if rv, err := tf(state, args); err != nil {
 				return option.None[value.Value](), processErr(err, pc, state)
 			} else {
-				stack.dropTop(inst.ArgCount)
-				stack.push(value.FromBool(rv))
+				stacks.DropTop(stack, inst.ArgCount)
+				stacks.Push(stack, value.FromBool(rv))
 			}
 		case compiler.DupTopInstruction:
-			if val := stack.peek(); val == nil {
-				panic("stack must not be empty")
+			if val, ok := stacks.Peek(*stack); ok {
+				stacks.Push(stack, val.Clone())
 			} else {
-				stack.push((*val).Clone())
+				panic("stack must not be empty")
 			}
 		case compiler.DiscardTopInstruction:
-			stack.pop()
+			stacks.Pop(stack)
 		case compiler.PushLoopInstruction:
-			a = stack.pop()
+			a = stacks.Pop(stack)
 			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
 				return option.None[value.Value](), processErr(err, pc, state)
 			}
@@ -278,7 +279,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 				if v, err := assertValid(item, pc, state); err != nil {
 					return option.None[value.Value](), err
 				} else {
-					stack.push(v)
+					stacks.Push(stack, v)
 				}
 			} else {
 				pc = inst.JumpTarget
@@ -290,7 +291,10 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack vmStack, pc u
 		}
 		pc++
 	}
-	return stack.tryPop(), nil
+	if v, ok := stacks.TryPop(stack); ok {
+		return option.Some(v), nil
+	}
+	return option.None[value.Value](), nil
 }
 
 func untrustedSizeHint(val uint) uint {
@@ -353,8 +357,8 @@ func (m *virtualMachine) pushLoop(state *State, iterable value.Value,
 	return state.ctx.pushFrame(*f)
 }
 
-func (m *virtualMachine) unpackList(stack *vmStack, count uint) error {
-	top := stack.pop()
+func (m *virtualMachine) unpackList(stack *[]value.Value, count uint) error {
+	top := stacks.Pop(stack)
 	var seq value.SeqObject
 	if optSeq := top.AsSeq(); option.IsSome(optSeq) {
 		seq = option.Unwrap(optSeq)
@@ -367,12 +371,12 @@ func (m *virtualMachine) unpackList(stack *vmStack, count uint) error {
 	}
 	for i := uint(0); i < count; i++ {
 		item := option.Unwrap(seq.GetItem(i))
-		stack.push(item)
+		stacks.Push(stack, item)
 	}
 	return nil
 }
 
-func getOrLookupLocal[T any](vec []option.Option[T], localId uint8, f func() option.Option[T]) option.Option[T] {
+func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() option.Option[T]) option.Option[T] {
 	tryGetItem := func(vec []option.Option[T], localId uint8) option.Option[T] {
 		if localId < uint8(len(vec)) {
 			return vec[localId]
@@ -380,16 +384,16 @@ func getOrLookupLocal[T any](vec []option.Option[T], localId uint8, f func() opt
 		return option.None[T]()
 	}
 
-	if localId == ^(uint8)(0) {
+	if localID == ^(uint8)(0) {
 		return f()
-	} else if optVal := tryGetItem(vec, localId); option.IsSome(optVal) {
+	} else if optVal := tryGetItem(vec, localID); option.IsSome(optVal) {
 		return optVal
 	} else {
 		optVal := f()
 		if option.IsNone(optVal) {
 			return option.None[T]()
 		}
-		vec[localId] = optVal
+		vec[localID] = optVal
 		return optVal
 	}
 }
@@ -418,41 +422,4 @@ func processErr(err error, pc uint, st *State) error {
 		}
 	}
 	return er
-}
-
-type vmStack struct {
-	values []value.Value
-}
-
-func newVMStack() vmStack {
-	return vmStack{values: make([]value.Value, 0, 16)}
-}
-
-func (s *vmStack) push(arg value.Value) {
-	s.values = append(s.values, arg)
-}
-
-func (s *vmStack) pop() value.Value {
-	v := s.values[len(s.values)-1]
-	s.values = s.values[:len(s.values)-1]
-	return v
-}
-
-func (s *vmStack) sliceTop(n uint) []value.Value {
-	return s.values[uint(len(s.values))-n:]
-}
-
-func (s *vmStack) dropTop(n uint) {
-	s.values = s.values[:uint(len(s.values))-n]
-}
-
-func (s *vmStack) tryPop() option.Option[value.Value] {
-	if len(s.values) == 0 {
-		return option.None[value.Value]()
-	}
-	return option.Some(s.pop())
-}
-
-func (s *vmStack) peek() *value.Value {
-	return &s.values[len(s.values)-1]
 }

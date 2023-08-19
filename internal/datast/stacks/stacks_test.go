@@ -27,7 +27,7 @@ func TestStacks(t *testing.T) {
 		t.Errorf("ok mismatch, got=%v, want=%v", got, want)
 	}
 
-	v, ok = stacks.Pop(&stk)
+	v, ok = stacks.TryPop(&stk)
 	if got, want := len(stk), 0; got != want {
 		t.Errorf("slice length mismatch, got=%d, want=%d", got, want)
 	}
