@@ -1,4 +1,4 @@
-package valu
+package value
 
 import (
 	"math"

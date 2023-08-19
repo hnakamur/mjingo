@@ -3,7 +3,7 @@ package vm
 import (
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 // The maximum recursion in the VM.  Normally each stack frame
@@ -24,7 +24,7 @@ type loopState struct {
 	// first item is the target jump instruction, the second argument
 	// tells us if we need to end capturing.
 	currentRecursionJump option.Option[recursionJump]
-	iterator             valu.Iterator
+	iterator             value.Iterator
 	object               loop
 }
 
@@ -33,10 +33,10 @@ type loop struct {
 	idx              uint // atomic.Uint64
 	depth            uint
 	valueTriple      optValueTriple
-	lastChangedValue option.Option[[]valu.Value]
+	lastChangedValue option.Option[[]value.Value]
 }
 
-type optValueTriple [3]option.Option[valu.Value]
+type optValueTriple [3]option.Option[value.Value]
 
 type recursionJump struct {
 	target     uint
@@ -45,7 +45,7 @@ type recursionJump struct {
 
 type frame struct {
 	locals      locals
-	ctx         valu.Value
+	ctx         value.Value
 	currentLoop option.Option[loopState]
 
 	// normally a frame does not carry a closure, but it can when a macro is
@@ -62,13 +62,13 @@ func newContext(f frame) *context {
 	return &context{stack: stack, outerStackDepth: 0}
 }
 
-func (c *context) store(key string, val valu.Value) {
+func (c *context) store(key string, val value.Value) {
 	top := &c.stack[len(c.stack)-1]
 	// TODO: implement for top.closure
 	top.locals[key] = val
 }
 
-func (c *context) load(env *Environment, key string) option.Option[valu.Value] {
+func (c *context) load(env *Environment, key string) option.Option[value.Value] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
 		frame := c.stack[i]
 
@@ -130,13 +130,13 @@ func (c *context) checkDepth() error {
 	return nil
 }
 
-func newFrame(ctx valu.Value) *frame {
+func newFrame(ctx value.Value) *frame {
 	return &frame{
-		locals: make(map[string]valu.Value),
+		locals: make(map[string]value.Value),
 		ctx:    ctx,
 	}
 }
 
 func newFrameDefault() *frame {
-	return newFrame(valu.Undefined)
+	return newFrame(value.Undefined)
 }

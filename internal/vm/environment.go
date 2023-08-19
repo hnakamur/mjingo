@@ -8,14 +8,14 @@ import (
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/compiler"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type Environment struct {
 	syntaxConfig      compiler.SyntaxConfig
 	templates         map[string]*Template
 	tests             map[string]TestFunc
-	globals           map[string]valu.Value
+	globals           map[string]value.Value
 	defaultAutoEscape autoEscapeCallBack
 	undefinedBehavior compiler.UndefinedBehavior
 }
@@ -29,7 +29,7 @@ func NewEnvironment() *Environment {
 		syntaxConfig:      compiler.DefaultSyntaxConfig,
 		templates:         make(map[string]*Template),
 		tests:             getDefaultBuiltinTests(),
-		globals:           make(map[string]valu.Value),
+		globals:           make(map[string]value.Value),
 		defaultAutoEscape: defaultAutoEscapeCallback,
 	}
 }
@@ -55,7 +55,7 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
-func (e *Environment) format(v valu.Value, state *State, out io.Writer) error {
+func (e *Environment) format(v value.Value, state *State, out io.Writer) error {
 	if v.IsUndefined() && e.undefinedBehavior == compiler.UndefinedBehaviorStrict {
 		return internal.NewError(internal.UndefinedError, "")
 	}
@@ -66,12 +66,12 @@ func (e *Environment) format(v valu.Value, state *State, out io.Writer) error {
 	return nil
 }
 
-func (e *Environment) getGlobal(name string) option.Option[valu.Value] {
+func (e *Environment) getGlobal(name string) option.Option[value.Value] {
 	val := e.globals[name]
 	if val != nil {
 		return option.Some(val.Clone())
 	}
-	return option.None[valu.Value]()
+	return option.None[value.Value]()
 }
 
 func (e *Environment) initialAutoEscape(name string) compiler.AutoEscape {

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/compiler"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type Output struct {
@@ -52,19 +52,19 @@ func (o *Output) beginCapture(mode compiler.CaptureMode) {
 }
 
 // Ends capturing and returns the captured string as value.
-func (o *Output) endCapture(escape compiler.AutoEscape) valu.Value {
+func (o *Output) endCapture(escape compiler.AutoEscape) value.Value {
 	if len(o.captureStack) == 0 {
-		return valu.Undefined
+		return value.Undefined
 	}
 	w := o.captureStack[len(o.captureStack)-1]
 	o.captureStack = o.captureStack[:len(o.captureStack)-1]
 	if builder, ok := w.(*strings.Builder); ok {
 		str := builder.String()
 		if _, ok := escape.(compiler.AutoEscapeNone); !ok {
-			return valu.FromSafeString(str)
+			return value.FromSafeString(str)
 		} else {
-			return valu.FromString(str)
+			return value.FromString(str)
 		}
 	}
-	return valu.Undefined
+	return value.Undefined
 }

@@ -1,4 +1,4 @@
-package valu
+package value
 
 import "github.com/hnakamur/mjingo/internal/datast/option"
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type CaptureMode uint8
@@ -56,7 +56,7 @@ type LookupInstruction struct{ Name string }
 type GetAttrInstruction struct{ Name string }
 type GetItemInstruction struct{}
 type SliceInstruction struct{}
-type LoadConstInstruction struct{ Val valu.Value }
+type LoadConstInstruction struct{ Val value.Value }
 type BuildMapInstruction struct{ PairCount uint }
 type BuildKwargsInstruction struct{ PairCount uint }
 type BuildListInstruction struct{ Count uint }

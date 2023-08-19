@@ -7,7 +7,7 @@ import (
 
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type tokenStream struct {
@@ -320,20 +320,20 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	case identToken:
 		switch tkn.ident {
 		case "true", "True":
-			return makeConst(valu.FromBool(true), *spn), nil
+			return makeConst(value.FromBool(true), *spn), nil
 		case "false", "False":
-			return makeConst(valu.FromBool(false), *spn), nil
+			return makeConst(value.FromBool(false), *spn), nil
 		case "none", "None":
-			return makeConst(valu.None, *spn), nil
+			return makeConst(value.None, *spn), nil
 		default:
 			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
 	case stringToken:
-		return makeConst(valu.FromString(tkn.s), *spn), nil
+		return makeConst(value.FromString(tkn.s), *spn), nil
 	case intToken:
-		return makeConst(valu.FromI64(tkn.n), *spn), nil
+		return makeConst(value.FromI64(tkn.n), *spn), nil
 	case floatToken:
-		return makeConst(valu.FromF64(tkn.f), *spn), nil
+		return makeConst(value.FromF64(tkn.f), *spn), nil
 	case parenOpenToken:
 		return p.parseTupleOrExpression(*spn)
 	case bracketOpenToken:
@@ -627,7 +627,7 @@ func unexpectedEOF(expected string) error {
 	return unexpected("end of input", expected)
 }
 
-func makeConst(v valu.Value, spn internal.Span) expression {
+func makeConst(v value.Value, spn internal.Span) expression {
 	return constExpr{value: v, span: spn}
 }
 

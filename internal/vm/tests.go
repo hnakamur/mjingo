@@ -4,13 +4,13 @@ import (
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/compiler"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
-type TestFunc = func(*State, []valu.Value) (bool, error)
+type TestFunc = func(*State, []value.Value) (bool, error)
 
-func testFuncFromPredicate(f func(val valu.Value) bool) func(*State, []valu.Value) (bool, error) {
-	return func(state *State, values []valu.Value) (bool, error) {
+func testFuncFromPredicate(f func(val value.Value) bool) func(*State, []value.Value) (bool, error) {
+	return func(state *State, values []value.Value) (bool, error) {
 		// tpl, err := tuple1FromValues[valu.Value, argType[valu.Value]](state, values)
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
@@ -54,35 +54,35 @@ type argConvertResult[O any] struct {
 }
 
 type argType[O any] interface {
-	fromValue(val option.Option[valu.Value]) (O, error)
-	fromStateAndValue(state *State, val option.Option[valu.Value]) (argConvertResult[O], error)
-	fromStateAndValues(state *State, values []valu.Value, offset uint) (argConvertResult[O], error)
+	fromValue(val option.Option[value.Value]) (O, error)
+	fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[O], error)
+	fromStateAndValues(state *State, values []value.Value, offset uint) (argConvertResult[O], error)
 	isTrailing() bool
 }
 
-var _ = (argType[valu.Value])(valueArgType{})
+var _ = (argType[value.Value])(valueArgType{})
 
 type valueArgType struct{}
 
-func (valueArgType) fromValue(val option.Option[valu.Value]) (valu.Value, error) {
+func (valueArgType) fromValue(val option.Option[value.Value]) (value.Value, error) {
 	if option.IsSome(val) {
 		return option.Unwrap(val), nil
 	}
 	return nil, internal.NewError(internal.MissingArgument, "")
 }
 
-func (valueArgType) fromStateAndValue(state *State, val option.Option[valu.Value]) (argConvertResult[valu.Value], error) {
+func (valueArgType) fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[value.Value], error) {
 	return fromStateAndValue(state, val)
 }
 
-func (valueArgType) fromStateAndValues(state *State, values []valu.Value, offset uint) (argConvertResult[valu.Value], error) {
+func (valueArgType) fromStateAndValues(state *State, values []value.Value, offset uint) (argConvertResult[value.Value], error) {
 	return fromStateAndValues(state, values, offset)
 }
 
 func (valueArgType) isTrailing() bool { return false }
 
-func fromStateAndValue(state *State, val option.Option[valu.Value]) (argConvertResult[valu.Value], error) {
-	var zero argConvertResult[valu.Value]
+func fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[value.Value], error) {
+	var zero argConvertResult[value.Value]
 	if option.MapOr(val, false, isUndefined) && state != nil && state.undefinedBehavior() == compiler.UndefinedBehaviorStrict {
 		return zero, internal.NewError(internal.UndefinedError, "")
 	}
@@ -91,12 +91,12 @@ func fromStateAndValue(state *State, val option.Option[valu.Value]) (argConvertR
 	if err != nil {
 		return zero, err
 	}
-	return argConvertResult[valu.Value]{output: out, consumed: 1}, nil
+	return argConvertResult[value.Value]{output: out, consumed: 1}, nil
 }
 
-func fromStateAndValues(state *State, values []valu.Value, offset uint) (argConvertResult[valu.Value], error) {
+func fromStateAndValues(state *State, values []value.Value, offset uint) (argConvertResult[value.Value], error) {
 	var o valueArgType
-	val := option.Option[valu.Value]{}
+	val := option.Option[value.Value]{}
 	if offset < uint(len(values)) {
 		val = option.Some(values[offset])
 	}
@@ -125,16 +125,16 @@ func fromStateAndValues(state *State, values []valu.Value, offset uint) (argConv
 // 	return o.fromStateAndValue(state, val)
 // }
 
-func unitFromValues(_ *State, values []valu.Value) (valu.Unit, error) {
+func unitFromValues(_ *State, values []value.Value) (value.Unit, error) {
 	if len(values) == 0 {
-		return valu.Unit{}, nil
+		return value.Unit{}, nil
 	}
-	return valu.Unit{}, internal.NewError(internal.TooManyArguments, "")
+	return value.Unit{}, internal.NewError(internal.TooManyArguments, "")
 }
 
-func tuple1FromValues(state *State, values []valu.Value) (tuple1[valu.Value], error) {
-	var zero tuple1[valu.Value]
-	var ao valu.Value
+func tuple1FromValues(state *State, values []value.Value) (tuple1[value.Value], error) {
+	var zero tuple1[value.Value]
+	var ao value.Value
 	var at valueArgType
 	idx := uint(0)
 	restFirst := at.isTrailing() && len(values) != 0
@@ -157,7 +157,7 @@ func tuple1FromValues(state *State, values []valu.Value) (tuple1[valu.Value], er
 	if idx < uint(len(values)) {
 		return zero, internal.NewError(internal.TooManyArguments, "")
 	}
-	return tuple1[valu.Value]{a: ao}, nil
+	return tuple1[value.Value]{a: ao}, nil
 }
 
 // func tuple1FromValues[AO any, A argType[AO]](state *State, values []valu.Value) (tuple1[AO], error) {
@@ -188,7 +188,7 @@ func tuple1FromValues(state *State, values []valu.Value) (tuple1[valu.Value], er
 // 	return tuple1[AO]{a: ao}, nil
 // }
 
-func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State, values []valu.Value) (tuple2[AO, BO], error) {
+func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State, values []value.Value) (tuple2[AO, BO], error) {
 	var zero tuple2[AO, BO]
 	var ao AO
 	var bo BO
@@ -224,7 +224,7 @@ func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State
 	return tuple2[AO, BO]{a: ao, b: bo}, nil
 }
 
-func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C argType[CO]](state *State, values []valu.Value) (tuple3[AO, BO, CO], error) {
+func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C argType[CO]](state *State, values []value.Value) (tuple3[AO, BO, CO], error) {
 	var zero tuple3[AO, BO, CO]
 	var ao AO
 	var bo BO
@@ -268,7 +268,7 @@ func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C ar
 	return tuple3[AO, BO, CO]{a: ao, b: bo, c: co}, nil
 }
 
-func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[BO], C argType[CO], D argType[DO]](state *State, values []valu.Value) (tuple4[AO, BO, CO, DO], error) {
+func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[BO], C argType[CO], D argType[DO]](state *State, values []value.Value) (tuple4[AO, BO, CO, DO], error) {
 	var zero tuple4[AO, BO, CO, DO]
 	var ao AO
 	var bo BO
@@ -322,7 +322,7 @@ func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[B
 
 func tuple5FromValues[AO any, BO any, CO any, DO any, EO any,
 	A argType[AO], B argType[BO], C argType[CO], D argType[DO],
-	E argType[EO]](state *State, values []valu.Value) (tuple5[AO, BO, CO, DO, EO], error) {
+	E argType[EO]](state *State, values []value.Value) (tuple5[AO, BO, CO, DO, EO], error) {
 	var zero tuple5[AO, BO, CO, DO, EO]
 	var ao AO
 	var bo BO
@@ -406,8 +406,8 @@ func (r boolTestResult) intoResult() (bool, error) {
 	return r.ret, nil
 }
 
-func arg0TestToPerform(f func() testResult) TestPerformFunc[valu.Unit] {
-	return func(_ valu.Unit) testResult {
+func arg0TestToPerform(f func() testResult) TestPerformFunc[value.Unit] {
+	return func(_ value.Unit) testResult {
 		return f()
 	}
 }
@@ -442,10 +442,10 @@ func arg5TestToPerform[A any, B any, C any, D any, E any](f func(A, B, C, D, E) 
 	}
 }
 
-func isUndefined(val valu.Value) bool {
+func isUndefined(val value.Value) bool {
 	return val.IsUndefined()
 }
 
-func isDefined(val valu.Value) bool {
+func isDefined(val value.Value) bool {
 	return !val.IsUndefined()
 }

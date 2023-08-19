@@ -1,4 +1,4 @@
-package valu
+package value
 
 // type argsFromValuesFn[T any] func(state *virtualMachineState, args []value) (T, error)
 

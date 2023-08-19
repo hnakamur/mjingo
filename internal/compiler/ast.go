@@ -3,7 +3,7 @@ package compiler
 import (
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type statement interface {
@@ -234,7 +234,7 @@ type varExpr struct {
 }
 
 type constExpr struct {
-	value valu.Value
+	value value.Value
 	span  internal.Span
 }
 
@@ -432,41 +432,41 @@ const (
 	binOpTypeIn
 )
 
-func (l listExpr) asConst() option.Option[valu.Value] {
+func (l listExpr) asConst() option.Option[value.Value] {
 	for _, item := range l.items {
 		if _, ok := item.(constExpr); !ok {
-			return option.None[valu.Value]()
+			return option.None[value.Value]()
 		}
 	}
 
-	seq := make([]valu.Value, 0, len(l.items))
+	seq := make([]value.Value, 0, len(l.items))
 	for _, item := range l.items {
 		if item, ok := item.(constExpr); ok {
 			seq = append(seq, item.value)
 		}
 	}
-	return option.Some(valu.FromSlice(seq))
+	return option.Some(value.FromSlice(seq))
 }
 
-func (m mapExpr) asConst() option.Option[valu.Value] {
+func (m mapExpr) asConst() option.Option[value.Value] {
 	for _, key := range m.keys {
 		if _, ok := key.(constExpr); !ok {
-			return option.None[valu.Value]()
+			return option.None[value.Value]()
 		}
 	}
 	for _, val := range m.values {
 		if _, ok := val.(constExpr); !ok {
-			return option.None[valu.Value]()
+			return option.None[value.Value]()
 		}
 	}
 
-	rv := valu.NewValueIndexMapWithCapacity(uint(len(m.keys)))
+	rv := value.NewValueIndexMapWithCapacity(uint(len(m.keys)))
 	for i, key := range m.keys {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
-			keyRf := valu.KeyRefFromValue(key.(constExpr).value)
+			keyRf := value.KeyRefFromValue(key.(constExpr).value)
 			rv.Store(keyRf, val.(constExpr).value)
 		}
 	}
-	return option.Some(valu.FromValueIndexMap(rv))
+	return option.Some(value.FromValueIndexMap(rv))
 }

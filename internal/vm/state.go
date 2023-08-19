@@ -3,7 +3,7 @@ package vm
 import (
 	"github.com/hnakamur/mjingo/internal/compiler"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type State struct {
@@ -15,7 +15,7 @@ type State struct {
 	blocks       map[string]blockStack
 }
 
-type locals = map[string]valu.Value
+type locals = map[string]value.Value
 
 type blockStack struct {
 	instrs []compiler.Instructions
@@ -26,7 +26,7 @@ func (s *State) undefinedBehavior() compiler.UndefinedBehavior {
 	return s.env.undefinedBehavior
 }
 
-func (s *State) lookup(name string) option.Option[valu.Value] {
+func (s *State) lookup(name string) option.Option[value.Value] {
 	return s.ctx.load(s.env, name)
 }
 

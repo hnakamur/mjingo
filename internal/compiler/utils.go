@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/hnakamur/mjingo/internal"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 // Controls the autoescaping behavior.
@@ -67,10 +67,10 @@ const (
 	UndefinedBehaviorDefault = UndefinedBehaviorLenient
 )
 
-func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (valu.Value, error) {
+func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (value.Value, error) {
 	switch {
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
-		return valu.Undefined, nil
+		return value.Undefined, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
 		return nil, internal.NewError(internal.UndefinedError, "")
 	default:
@@ -83,19 +83,19 @@ func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (valu.Value,
 // If the valu.Value is undefined, then iteration fails if the behavior is set to strict,
 // otherwise it succeeds with an empty iteration.  This is also internally used in the
 // engine to convert values to lists.
-func (b UndefinedBehavior) TryIter(val valu.Value) (valu.Iterator, error) {
+func (b UndefinedBehavior) TryIter(val value.Value) (value.Iterator, error) {
 	if err := b.assertIterable(val); err != nil {
-		return valu.Iterator{}, err
+		return value.Iterator{}, err
 	}
 	iter, err := val.TryIter()
 	if err != nil {
-		return valu.Iterator{}, err
+		return value.Iterator{}, err
 	}
 	return iter, nil
 }
 
 // Are we strict on iteration?
-func (b UndefinedBehavior) assertIterable(val valu.Value) error {
+func (b UndefinedBehavior) assertIterable(val value.Value) error {
 	if b == UndefinedBehaviorStrict && val.IsUndefined() {
 		return internal.NewError(internal.UndefinedError, "")
 	}

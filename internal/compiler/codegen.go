@@ -5,7 +5,7 @@ import (
 
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type codeGenerator struct {
@@ -190,17 +190,17 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		if option.IsSome(exp.start) {
 			g.compileExpr(option.Unwrap(exp.start))
 		} else {
-			g.add(LoadConstInstruction{Val: valu.FromI64(int64(0))})
+			g.add(LoadConstInstruction{Val: value.FromI64(int64(0))})
 		}
 		if option.IsSome(exp.stop) {
 			g.compileExpr(option.Unwrap(exp.stop))
 		} else {
-			g.add(LoadConstInstruction{Val: valu.None})
+			g.add(LoadConstInstruction{Val: value.None})
 		}
 		if option.IsSome(exp.step) {
 			g.compileExpr(option.Unwrap(exp.step))
 		} else {
-			g.add(LoadConstInstruction{Val: valu.FromI64(int64(1))})
+			g.add(LoadConstInstruction{Val: value.FromI64(int64(1))})
 		}
 		g.add(SliceInstruction{})
 		g.popSpan()
@@ -224,7 +224,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		if option.IsSome(exp.falseExpr) {
 			g.compileExpr(option.Unwrap(exp.falseExpr))
 		} else {
-			g.add(LoadConstInstruction{Val: valu.Undefined})
+			g.add(LoadConstInstruction{Val: value.Undefined})
 		}
 		g.endIf()
 	case testExpr:

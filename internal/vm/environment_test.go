@@ -3,7 +3,7 @@ package vm
 import (
 	"testing"
 
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 func TestEnvironment(t *testing.T) {
@@ -16,55 +16,55 @@ func TestEnvironment(t *testing.T) {
 		{
 			name:   "var",
 			source: "Hello {{ name }}",
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("name"), Val: valu.FromString("World"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("name"), Val: value.FromString("World"),
 			}})),
 			want: "Hello World",
 		},
 		{
 			name:    "stringExpr",
 			source:  `Hello {{ "world" }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello world",
 		},
 		{
 			name:    "i64Expr",
 			source:  `Hello {{ 3 }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello 3",
 		},
 		{
 			name:    "f64Expr",
 			source:  `Hello {{ 3.14 }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello 3.14",
 		},
 		{
 			name:    "boolExprTrue",
 			source:  `Hello {{ true }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello true",
 		},
 		{
 			name:    "boolExprFalse",
 			source:  `Hello {{ False }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello false",
 		},
 		{
 			name:    "noneExpr",
 			source:  `Hello {{ none }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello none",
 		},
 		{
 			name:   "getFastAttr",
 			source: `Hello {{ user.name }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("user"),
-				Val: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-					Key: valu.KeyRefFromString("name"),
-					Val: valu.FromString("John"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("user"),
+				Val: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+					Key: value.KeyRefFromString("name"),
+					Val: value.FromString("John"),
 				}})),
 			}})),
 			want: "Hello John",
@@ -72,11 +72,11 @@ func TestEnvironment(t *testing.T) {
 		{
 			name:   "getItemOpt",
 			source: `Hello {{ user["name"] }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("user"),
-				Val: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-					Key: valu.KeyRefFromValue(valu.FromString("name")),
-					Val: valu.FromString("John"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("user"),
+				Val: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+					Key: value.KeyRefFromValue(value.FromString("name")),
+					Val: value.FromString("John"),
 				}})),
 			}})),
 			want: "Hello John",
@@ -84,126 +84,126 @@ func TestEnvironment(t *testing.T) {
 		{
 			name:    "sliceString",
 			source:  `Hello {{ "Johnson"[:4] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello John",
 		},
 		{
 			name:    "sliceSeq",
 			source:  `Hello {{ ["John", "Paul"][1] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Paul",
 		},
 		{
 			name:   "sliceVarElem",
 			source: `Hello {{ ["John", name][1] }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("name"), Val: valu.FromString("Paul"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("name"), Val: value.FromString("Paul"),
 			}})),
 			want: "Hello Paul",
 		},
 		{
 			name:    "mapGetItem",
 			source:  `Hello {{ {"name": "John"}["name"] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello John",
 		},
 		{
 			name:   "mapVarValue",
 			source: `Hello {{ {"name": name}["name"] }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("name"), Val: valu.FromString("Paul"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("name"), Val: value.FromString("Paul"),
 			}})),
 			want: "Hello Paul",
 		},
 		{
 			name:    "sliceSeqNegativeIndex",
 			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][-1] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Ringo",
 		},
 		{
 			name:    "addExprString",
 			source:  `Hello {{ {"name": "John"}["nam" + "e"] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello John",
 		},
 		{
 			name:    "addExprInt",
 			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1 + 2] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Ringo",
 		},
 		{
 			name:    "addExprFloat",
 			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1.0 + 2.0] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Ringo",
 		},
 		{
 			name:    "subExprInt",
 			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3 - 2] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Paul",
 		},
 		{
 			name:    "subExprFloat",
 			source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3.0 - 2.0] }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello Paul",
 		},
 		{
 			name:   "stringConcat",
 			source: `{{ "Hello " ~ name ~ "!" }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("name"), Val: valu.FromString("John"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("name"), Val: value.FromString("John"),
 			}})),
 			want: "Hello John!",
 		},
 		{
 			name:    "pow",
 			source:  `{{ 2 ** 3 }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "8",
 		},
 		{
 			name:   "ifStmtNoElse",
 			source: `{% if down %}I'm down{% endif %}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("down"), Val: valu.FromBool(true),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("down"), Val: value.FromBool(true),
 			}})),
 			want: "I'm down",
 		},
 		{
 			name:   "ifStmtWithElse",
 			source: `{% if down %}I'm down{% else %}I'm up{% endif %}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("down"), Val: valu.FromBool(false),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("down"), Val: value.FromBool(false),
 			}})),
 			want: "I'm up",
 		},
 		{
 			name:   "ifExprNoElse",
 			source: `{{ "I'm down" if down }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("down"), Val: valu.FromBool(true),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("down"), Val: value.FromBool(true),
 			}})),
 			want: "I'm down",
 		},
 		{
 			name:   "ifExprWithElse",
 			source: `{{ "I'm down" if down else "I'm up" }}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("down"), Val: valu.FromBool(false),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("down"), Val: value.FromBool(false),
 			}})),
 			want: "I'm up",
 		},
 		{
 			name:   "forStmtNoElse",
 			source: `{% for name in names %}{{ name }} {% endfor %}`,
-			context: valu.FromValueIndexMap(valu.IndexMapFromKeyRefValues([]valu.KeyRefAndValue{{
-				Key: valu.KeyRefFromString("names"), Val: valu.FromSlice([]valu.Value{
-					valu.FromString("John"),
-					valu.FromString("Paul"),
+			context: value.FromValueIndexMap(value.IndexMapFromKeyRefValues([]value.KeyRefAndValue{{
+				Key: value.KeyRefFromString("names"), Val: value.FromSlice([]value.Value{
+					value.FromString("John"),
+					value.FromString("Paul"),
 				}),
 			}})),
 			want: "John Paul ",
@@ -211,19 +211,19 @@ func TestEnvironment(t *testing.T) {
 		{
 			name:    "rawStmt",
 			source:  `{% raw %}Hello {{ name }}{% endraw %}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello {{ name }}",
 		},
 		{
 			name:    "withStmt",
 			source:  `{% with foo = 42 %}{{ foo }}{% endwith %}`,
-			context: valu.None,
+			context: value.None,
 			want:    "42",
 		},
 		{
 			name:    "setStmt",
 			source:  `{% set name = "John" %}Hello {{ name }}`,
-			context: valu.None,
+			context: value.None,
 			want:    "Hello John",
 		},
 		{
@@ -235,7 +235,7 @@ func TestEnvironment(t *testing.T) {
 				"<ul>\n" +
 				"{{ navigation }}\n" +
 				"</ul>\n",
-			context: valu.None,
+			context: value.None,
 			want: "\n" +
 				"<ul>\n" +
 				"\n" +
@@ -247,7 +247,7 @@ func TestEnvironment(t *testing.T) {
 		{
 			name:    "testIsNotDefined",
 			source:  `{% if seq is not defined %}I'm fallback{% endif %}`,
-			context: valu.None,
+			context: value.None,
 			want:    "I'm fallback",
 		},
 	}

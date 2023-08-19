@@ -1,4 +1,4 @@
-package valu
+package value
 
 type valueIndexMap struct {
 	indexes map[KeyRef]uint

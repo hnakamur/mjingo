@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/compiler"
-	"github.com/hnakamur/mjingo/valu"
+	"github.com/hnakamur/mjingo/value"
 )
 
 type Template struct {
@@ -15,7 +15,7 @@ type Template struct {
 
 func (t *Template) render(context any) (string, error) {
 	var b strings.Builder
-	root := context.(valu.Value)
+	root := context.(value.Value)
 	out := newOutput(&b)
 	if err := t._eval(root, out); err != nil {
 		return "", err
@@ -23,7 +23,7 @@ func (t *Template) render(context any) (string, error) {
 	return b.String(), nil
 }
 
-func (t *Template) _eval(root valu.Value, out *Output) error {
+func (t *Template) _eval(root value.Value, out *Output) error {
 	vm := newVirtualMachine(t.env)
 	if _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
 		out, t.initialAutoEscape); err != nil {
