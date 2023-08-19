@@ -125,7 +125,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stacks.Pop(stack)
 				key := stacks.Pop(stack)
-				value.IndexMapSet(m, value.KeyRefFromValue(key), val)
+				m.Set(value.KeyRefFromValue(key), val)
 			}
 			stacks.Push(stack, value.FromIndexMap(m))
 		case compiler.BuildListInstruction:

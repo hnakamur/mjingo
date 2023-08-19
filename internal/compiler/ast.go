@@ -465,7 +465,7 @@ func (m mapExpr) asConst() option.Option[value.Value] {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
 			keyRf := value.KeyRefFromValue(key.(constExpr).value)
-			value.IndexMapSet(rv, keyRf, val.(constExpr).value)
+			rv.Set(keyRf, val.(constExpr).value)
 		}
 	}
 	return option.Some(value.FromIndexMap(rv))

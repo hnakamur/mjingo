@@ -8,7 +8,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/hnakamur/mjingo/internal"
-	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -231,9 +230,9 @@ func (v mapValue) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	first := true
-	l := indexmap.Len(v.m)
+	l := v.m.Len()
 	for i := uint(0); i < l; i++ {
-		e, _ := indexmap.EntryAt(v.m, i)
+		e, _ := v.m.EntryAt(i)
 		if first {
 			first = false
 		} else {
@@ -320,7 +319,7 @@ func (v i128Value) IsTrue() bool    { panic("not implemented") }
 func (v stringValue) IsTrue() bool  { return len(v.str) != 0 }
 func (v bytesValue) IsTrue() bool   { return len(v.b) != 0 }
 func (v SeqValue) IsTrue() bool     { return len(v.items) != 0 }
-func (v mapValue) IsTrue() bool     { return indexmap.Len(v.m) != 0 }
+func (v mapValue) IsTrue() bool     { return v.m.Len() != 0 }
 func (v dynamicValue) IsTrue() bool { panic("not implemented for valueTypeDynamic") }
 
 func (undefinedValue) GetAttrFast(_ string) option.Option[Value] { return option.None[Value]() }
@@ -336,7 +335,7 @@ func (stringValue) GetAttrFast(_ string) option.Option[Value]    { return option
 func (bytesValue) GetAttrFast(_ string) option.Option[Value]     { return option.None[Value]() }
 func (SeqValue) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
 func (v mapValue) GetAttrFast(key string) option.Option[Value] {
-	if val, ok := indexmap.Get[KeyRef, Value](v.m, KeyRefFromString(key)); ok {
+	if val, ok := v.m.Get(KeyRefFromString(key)); ok {
 		return option.Some(val)
 	}
 	return option.None[Value]()
@@ -379,7 +378,7 @@ func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
 	return option.None[Value]()
 }
 func (v mapValue) GetItemOpt(key Value) option.Option[Value] {
-	if v, ok := indexmap.Get[KeyRef, Value](v.m, KeyRefFromValue(key)); ok {
+	if v, ok := v.m.Get(KeyRefFromValue(key)); ok {
 		return option.Some(v)
 	}
 	return option.None[Value]()
@@ -495,7 +494,7 @@ func (v SeqValue) Clone() Value {
 	return SeqValue{items: items}
 }
 func (v mapValue) Clone() Value {
-	m := indexmap.Clone(v.m)
+	m := v.m.Clone()
 	return mapValue{m: m, mapTyp: v.mapTyp}
 }
 func (dynamicValue) Clone() Value {
