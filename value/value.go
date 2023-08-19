@@ -30,10 +30,6 @@ type Value interface {
 	TryIter() (Iterator, error)
 }
 
-func newValueFromString(s string) Value {
-	return stringValue{str: s, strTyp: stringTypeNormal}
-}
-
 type valueType int
 
 const (
