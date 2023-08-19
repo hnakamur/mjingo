@@ -14,17 +14,23 @@ import (
 // Controls the autoescaping behavior.
 type AutoEscape interface {
 	typ() AutoEscapeType
+	IsNone() bool
 }
 
 type AutoEscapeNone struct{}
 type AutoEscapeHTML struct{}
 type AutoEscapeJSON struct{}
-type AutoEscapeCustom struct{ custom string }
+type AutoEscapeCustom struct{ Name string }
 
 func (AutoEscapeNone) typ() AutoEscapeType   { return autoEscapeTypeNone }
 func (AutoEscapeHTML) typ() AutoEscapeType   { return autoEscapeTypeHTML }
 func (AutoEscapeJSON) typ() AutoEscapeType   { return autoEscapeTypeJSON }
 func (AutoEscapeCustom) typ() AutoEscapeType { return autoEscapeTypeCustom }
+
+func (AutoEscapeNone) IsNone() bool   { return true }
+func (AutoEscapeHTML) IsNone() bool   { return false }
+func (AutoEscapeJSON) IsNone() bool   { return false }
+func (AutoEscapeCustom) IsNone() bool { return false }
 
 var _ = (AutoEscape)(AutoEscapeNone{})
 var _ = (AutoEscape)(AutoEscapeHTML{})

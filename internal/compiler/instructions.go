@@ -80,9 +80,9 @@ type NotInstruction struct{}
 type StringConcatInstruction struct{}
 type InInstruction struct{}
 type ApplyFilterInstruction struct {
-	Str     string
-	Size    uint
-	LocalID LocalID
+	Name     string
+	ArgCount uint
+	LocalID  LocalID
 }
 type PerformTestInstruction struct {
 	Name     string

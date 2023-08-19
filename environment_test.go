@@ -18,7 +18,7 @@ func TestEnvironment(t *testing.T) {
 		for i, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				env := NewEnvironment()
-				const templateName = "test.j2"
+				const templateName = "test.html"
 				err := env.AddTemplate(templateName, tc.source)
 				if err != nil {
 					t.Fatal(err)
@@ -274,6 +274,26 @@ func TestEnvironment(t *testing.T) {
 					"<li><a href=\"/downloads\">Downloads</a>\n" +
 					"\n" +
 					"</ul>",
+			},
+		})
+	})
+	t.Run("filter", func(t *testing.T) {
+		runTests(t, []testCase{
+			{
+				name:   "escape",
+				source: `{{ v|escape }}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("v"), Value: value.FromString("<br/>"),
+				}})),
+				want: "&lt;br/&gt;",
+			},
+			{
+				name:   "safeEscape",
+				source: `{{ v|safe|e }}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("v"), Value: value.FromString("<br/>"),
+				}})),
+				want: "<br/>",
 			},
 		})
 	})

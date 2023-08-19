@@ -14,6 +14,7 @@ import (
 type Environment struct {
 	syntaxConfig      compiler.SyntaxConfig
 	templates         map[string]*Template
+	filters           map[string]FilterFunc
 	tests             map[string]TestFunc
 	globals           map[string]value.Value
 	defaultAutoEscape autoEscapeCallBack
@@ -28,6 +29,7 @@ func NewEnvironment() *Environment {
 	return &Environment{
 		syntaxConfig:      compiler.DefaultSyntaxConfig,
 		templates:         make(map[string]*Template),
+		filters:           getDefaultBuiltinFilters(),
 		tests:             getDefaultBuiltinTests(),
 		globals:           make(map[string]value.Value),
 		defaultAutoEscape: defaultAutoEscapeCallback,
@@ -76,6 +78,13 @@ func (e *Environment) getGlobal(name string) option.Option[value.Value] {
 
 func (e *Environment) initialAutoEscape(name string) compiler.AutoEscape {
 	return e.defaultAutoEscape(name)
+}
+
+func (e *Environment) getFilter(name string) option.Option[FilterFunc] {
+	if f, ok := e.filters[name]; ok {
+		return option.Some(f)
+	}
+	return option.None[FilterFunc]()
 }
 
 func (e *Environment) getTest(name string) option.Option[TestFunc] {

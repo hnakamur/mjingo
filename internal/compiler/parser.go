@@ -84,7 +84,30 @@ loop:
 		}
 		switch tkn := tkn.(type) {
 		case pipeToken:
-			panic("not implemented")
+			if _, _, err := p.stream.next(); err != nil {
+				return nil, err
+			}
+			var tkIdent token
+			var spn internal.Span
+			if tkIdent, spn, err = p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
+				return nil, err
+			}
+			name := tkIdent.(identToken).ident
+			var args []expression
+			if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
+				return nil, err
+			} else if matched {
+				args, err = p.parseArgs()
+				if err != nil {
+					return nil, err
+				}
+			}
+			expr = filterExpr{
+				name: name,
+				expr: option.Some(expr),
+				args: args,
+				span: p.stream.expandSpan(spn),
+			}
 		case identToken:
 			if tkn.ident == "is" {
 				if _, _, err := p.stream.next(); err != nil {

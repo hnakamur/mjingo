@@ -227,6 +227,17 @@ func (g *codeGenerator) compileExpr(exp expression) {
 			g.add(LoadConstInstruction{Val: value.Undefined})
 		}
 		g.endIf()
+	case filterExpr:
+		g.pushSpan(exp.span)
+		if option.IsSome(exp.expr) {
+			g.compileExpr(option.Unwrap(exp.expr))
+		}
+		for _, arg := range exp.args {
+			g.compileExpr(arg)
+		}
+		localID := getLocalID(g.testLocalIds, exp.name)
+		g.add(ApplyFilterInstruction{Name: exp.name, ArgCount: uint(len(exp.args)) + 1, LocalID: localID})
+		g.popSpan()
 	case testExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)

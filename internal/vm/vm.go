@@ -42,6 +42,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 	undefinedBehavior := state.undefinedBehavior()
 	autoEscapeStack := []compiler.AutoEscape{}
 	nextRecursionJump := option.None[recursionJump]()
+	loadedFilters := [compiler.MaxLocals]option.Option[FilterFunc]{}
 	loadedTests := [compiler.MaxLocals]option.Option[TestFunc]{}
 
 	for pc < uint(len(state.instructions.Instructions())) {
@@ -229,6 +230,22 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			out.beginCapture(inst.Mode)
 		case compiler.EndCaptureInstruction:
 			stacks.Push(stack, out.endCapture(state.autoEscape))
+		case compiler.ApplyFilterInstruction:
+			f := func() option.Option[FilterFunc] { return state.env.getFilter(inst.Name) }
+			var tf FilterFunc
+			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); option.IsSome(optVal) {
+				tf = option.Unwrap(optVal)
+			} else {
+				err := internal.NewError(internal.UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				return option.None[value.Value](), processErr(err, pc, state)
+			}
+			args := stacks.SliceTop(*stack, inst.ArgCount)
+			if rv, err := tf(state, args); err != nil {
+				return option.None[value.Value](), processErr(err, pc, state)
+			} else {
+				stacks.DropTop(stack, inst.ArgCount)
+				stacks.Push(stack, rv)
+			}
 		case compiler.PerformTestInstruction:
 			f := func() option.Option[TestFunc] { return state.env.getTest(inst.Name) }
 			var tf TestFunc

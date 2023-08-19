@@ -1,10 +1,13 @@
 package vm
 
 import (
+	"fmt"
+	"html"
 	"io"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/compiler"
+	"github.com/hnakamur/mjingo/internal/datast/option"
 	"github.com/hnakamur/mjingo/value"
 )
 
@@ -67,4 +70,40 @@ func (o *Output) endCapture(escape compiler.AutoEscape) value.Value {
 		}
 	}
 	return value.Undefined
+}
+
+func writeString(o *Output, s string) error {
+	_, err := io.WriteString(o, s)
+	return err
+}
+
+func writeWithHTMLEscaping(o *Output, val value.Value) error {
+	switch val.Kind() {
+	case value.ValueKindUndefined, value.ValueKindNone, value.ValueKindBool, value.ValueKindNumber:
+		return writeString(o, val.String())
+	default:
+		if optStr := val.AsStr(); option.IsSome(optStr) {
+			return writeString(o, html.EscapeString(option.Unwrap(optStr)))
+		}
+		return writeString(o, html.EscapeString(val.String()))
+	}
+}
+
+func writeEscaped(o *Output, autoEscape compiler.AutoEscape, val value.Value) error {
+	// common case of safe strings or strings without auto escaping
+	if val.IsSafe() || autoEscape.IsNone() {
+		return writeString(o, val.String())
+	}
+
+	switch esc := autoEscape.(type) {
+	case compiler.AutoEscapeNone:
+		return writeString(o, val.String())
+	case compiler.AutoEscapeHTML:
+		return writeWithHTMLEscaping(o, val)
+	case compiler.AutoEscapeJSON:
+		panic("not implemented")
+	case compiler.AutoEscapeCustom:
+		panic(fmt.Sprintf("not implemented for custom auto escape name=%s", esc.Name))
+	}
+	return nil
 }

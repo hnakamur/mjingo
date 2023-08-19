@@ -22,6 +22,10 @@ type blockStack struct {
 	depth  uint
 }
 
+func (s *State) name() string {
+	return s.instructions.Name()
+}
+
 func (s *State) undefinedBehavior() compiler.UndefinedBehavior {
 	return s.env.undefinedBehavior
 }
