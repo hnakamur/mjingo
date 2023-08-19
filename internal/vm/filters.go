@@ -10,7 +10,7 @@ import (
 
 type FilterFunc = func(*State, []value.Value) (value.Value, error)
 
-func filterFuncFromFilterWithStringArgValueRet(f func(val string) value.Value) func(*State, []value.Value) (value.Value, error) {
+func filterFuncFromFilterWithStrArgValRet(f func(val string) value.Value) func(*State, []value.Value) (value.Value, error) {
 	return func(state *State, values []value.Value) (value.Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
@@ -24,7 +24,7 @@ func filterFuncFromFilterWithStringArgValueRet(f func(val string) value.Value) f
 	}
 }
 
-func filterFuncFromWithStateValueArgValueErrRet(f func(*State, value.Value) (value.Value, error)) func(*State, []value.Value) (value.Value, error) {
+func filterFuncFromWithStateValArgValErrRet(f func(*State, value.Value) (value.Value, error)) func(*State, []value.Value) (value.Value, error) {
 	return func(state *State, values []value.Value) (value.Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
@@ -34,7 +34,7 @@ func filterFuncFromWithStateValueArgValueErrRet(f func(*State, value.Value) (val
 	}
 }
 
-func filterFuncFromFilterWithStringArgStringRet(f func(val string) string) func(*State, []value.Value) (value.Value, error) {
+func filterFuncFromFilterWithStrArgStrRet(f func(val string) string) func(*State, []value.Value) (value.Value, error) {
 	return func(state *State, values []value.Value) (value.Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
@@ -45,6 +45,28 @@ func filterFuncFromFilterWithStringArgStringRet(f func(val string) string) func(
 			return nil, err
 		}
 		return value.FromString(f(a)), nil
+	}
+}
+
+func filterFuncFromFilterWithStateStrStrStrArgStrRet(f func(state *State, v1, v2, v3 string) string) func(*State, []value.Value) (value.Value, error) {
+	return func(state *State, values []value.Value) (value.Value, error) {
+		tpl, err := tuple3FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		a, err := value.StringFromValue(option.Some(tpl.a))
+		if err != nil {
+			return nil, err
+		}
+		b, err := value.StringFromValue(option.Some(tpl.b))
+		if err != nil {
+			return nil, err
+		}
+		c, err := value.StringFromValue(option.Some(tpl.c))
+		if err != nil {
+			return nil, err
+		}
+		return value.FromString(f(state, a, b, c)), nil
 	}
 }
 
@@ -94,4 +116,19 @@ func capitalize(s string) string {
 		return ""
 	}
 	return strings.ToTitle(s[:1]) + strings.ToLower(s[1:])
+}
+
+// Does a string replace.
+//
+// It replaces all occurrences of the first parameter with the second.
+//
+// ```jinja
+// {{ "Hello World"|replace("Hello", "Goodbye") }}
+//
+//	-> Goodbye World
+//
+// ```
+func replace(_ *State, v, from, to string) string {
+	r := strings.NewReplacer(from, to)
+	return r.Replace(v)
 }

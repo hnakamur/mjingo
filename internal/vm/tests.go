@@ -101,27 +101,6 @@ func (valueArgType) fromStateAndValues(state *State, values []value.Value, offse
 
 func (valueArgType) isTrailing() bool { return false }
 
-// var _ = (argType[string])(stringArgType{})
-
-// type stringArgType struct{}
-
-// func (stringArgType) fromValue(val option.Option[value.Value]) (string, error) {
-// 	if option.IsSome(val) {
-// 		return option.Unwrap(val).String(), nil
-// 	}
-// 	return "", internal.NewError(internal.MissingArgument, "")
-// }
-
-// func (stringArgType) fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[string], error) {
-// 	return fromStateAndValue(state, val)
-// }
-
-// func (stringArgType) fromStateAndValues(state *State, values []value.Value, offset uint) (argConvertResult[string], error) {
-// 	return fromStateAndValues(state, values, offset)
-// }
-
-// func (stringArgType) isTrailing() bool { return false }
-
 func fromStateAndValue(state *State, val option.Option[value.Value]) (argConvertResult[value.Value], error) {
 	var zero argConvertResult[value.Value]
 	if option.MapOr(val, false, isUndefined) && state != nil && state.undefinedBehavior() == compiler.UndefinedBehaviorStrict {
@@ -143,28 +122,6 @@ func fromStateAndValues(state *State, values []value.Value, offset uint) (argCon
 	}
 	return o.fromStateAndValue(state, val)
 }
-
-// func fromStateAndValue[O any](state *State, val option.Option[valu.Value]) (argConvertResult[O], error) {
-// 	var zero argConvertResult[O]
-// 	if optionMapOr(val, false, isUndefined) && state != nil && state.undefinedBehavior() == UndefinedBehaviorStrict {
-// 		return zero, &Error{typ: UndefinedError}
-// 	}
-// 	var o argType[O]
-// 	out, err := o.fromValue(val)
-// 	if err != nil {
-// 		return zero, err
-// 	}
-// 	return argConvertResult[O]{output: out, consumed: 1}, nil
-// }
-
-// func fromStateAndValues[O any](state *State, values []valu.Value, offset uint) (argConvertResult[O], error) {
-// 	var o argType[O]
-// 	val := option.Option[valu.Value]{}
-// 	if offset < uint(len(values)) {
-// 		val = option.Option[valu.Value]{valid: true, data: values[offset]}
-// 	}
-// 	return o.fromStateAndValue(state, val)
-// }
 
 func unitFromValues(_ *State, values []value.Value) (value.Unit, error) {
 	if len(values) == 0 {
@@ -237,78 +194,14 @@ func tuple2FromValues(state *State, values []value.Value) (tuple2[value.Value, v
 	return tuple2[value.Value, value.Value]{a: ao, b: bo}, nil
 }
 
-// func tuple1FromValues[AO any, A argType[AO]](state *State, values []valu.Value) (tuple1[AO], error) {
-// 	var zero tuple1[AO]
-// 	var ao AO
-// 	var at argType[AO]
-// 	idx := uint(0)
-// 	restFirst := at.isTrailing() && len(values) != 0
-// 	if restFirst {
-// 		avo, err := at.fromStateAndValues(state, values, uint(len(values)-1))
-// 		if err != nil {
-// 			return zero, err
-// 		}
-// 		ao = avo.output
-// 		values = values[:len(values)-int(avo.consumed)]
-// 	}
-// 	if !restFirst {
-// 		avo, err := at.fromStateAndValues(state, values, idx)
-// 		if err != nil {
-// 			return zero, err
-// 		}
-// 		ao = avo.output
-// 		idx += avo.consumed
-// 	}
-// 	if idx < uint(len(values)) {
-// 		return zero, internal.NewError(internal.TooManyArguments, "")
-// 	}
-// 	return tuple1[AO]{a: ao}, nil
-// }
-
-// func tuple2FromValues[AO any, BO any, A argType[AO], B argType[BO]](state *State, values []value.Value) (tuple2[AO, BO], error) {
-// 	var zero tuple2[AO, BO]
-// 	var ao AO
-// 	var bo BO
-// 	var at argType[AO]
-// 	var bt argType[BO]
-// 	idx := uint(0)
-// 	restFirst := bt.isTrailing() && len(values) != 0
-// 	if restFirst {
-// 		bvo, err := bt.fromStateAndValues(state, values, uint(len(values)-1))
-// 		if err != nil {
-// 			return zero, err
-// 		}
-// 		bo = bvo.output
-// 		values = values[:len(values)-int(bvo.consumed)]
-// 	}
-// 	avo, err := at.fromStateAndValues(state, values, idx)
-// 	if err != nil {
-// 		return zero, err
-// 	}
-// 	ao = avo.output
-// 	idx += avo.consumed
-// 	if !restFirst {
-// 		bvo, err := bt.fromStateAndValues(state, values, idx)
-// 		if err != nil {
-// 			return zero, err
-// 		}
-// 		bo = bvo.output
-// 		idx += bvo.consumed
-// 	}
-// 	if idx < uint(len(values)) {
-// 		return zero, internal.NewError(internal.TooManyArguments, "")
-// 	}
-// 	return tuple2[AO, BO]{a: ao, b: bo}, nil
-// }
-
-func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C argType[CO]](state *State, values []value.Value) (tuple3[AO, BO, CO], error) {
-	var zero tuple3[AO, BO, CO]
-	var ao AO
-	var bo BO
-	var co CO
-	var at argType[AO]
-	var bt argType[BO]
-	var ct argType[CO]
+func tuple3FromValues(state *State, values []value.Value) (tuple3[value.Value, value.Value, value.Value], error) {
+	var zero tuple3[value.Value, value.Value, value.Value]
+	var ao value.Value
+	var bo value.Value
+	var co value.Value
+	var at valueArgType
+	var bt valueArgType
+	var ct valueArgType
 	idx := uint(0)
 	restFirst := bt.isTrailing() && len(values) != 0
 	if restFirst {
@@ -342,7 +235,7 @@ func tuple3FromValues[AO any, BO any, CO any, A argType[AO], B argType[BO], C ar
 	if idx < uint(len(values)) {
 		return zero, internal.NewError(internal.TooManyArguments, "")
 	}
-	return tuple3[AO, BO, CO]{a: ao, b: bo, c: co}, nil
+	return tuple3[value.Value, value.Value, value.Value]{a: ao, b: bo, c: co}, nil
 }
 
 func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[BO], C argType[CO], D argType[DO]](state *State, values []value.Value) (tuple4[AO, BO, CO, DO], error) {
