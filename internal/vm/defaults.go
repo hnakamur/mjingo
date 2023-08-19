@@ -2,9 +2,14 @@ package vm
 
 func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv := make(map[string]FilterFunc)
-	rv["safe"] = filterFuncFromFilterWithStringArg(safe)
-	rv["escape"] = filterFuncFromWithStateValueArgErr(escape)
-	rv["e"] = filterFuncFromWithStateValueArgErr(escape)
+	rv["safe"] = filterFuncFromFilterWithStringArgValueRet(safe)
+	rv["escape"] = filterFuncFromWithStateValueArgValueErrRet(escape)
+	rv["e"] = filterFuncFromWithStateValueArgValueErrRet(escape)
+
+	rv["lower"] = filterFuncFromFilterWithStringArgStringRet(lower)
+	rv["upper"] = filterFuncFromFilterWithStringArgStringRet(upper)
+	rv["title"] = filterFuncFromFilterWithStringArgStringRet(title)
+	rv["capitalize"] = filterFuncFromFilterWithStringArgStringRet(capitalize)
 
 	return rv
 }

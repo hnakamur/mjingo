@@ -295,6 +295,10 @@ func TestEnvironment(t *testing.T) {
 				}})),
 				want: "<br/>",
 			},
+			{name: "lower", source: `{{ "HELLO"|lower }}`, context: value.None, want: "hello"},
+			{name: "upper", source: `{{ "hello"|upper }}`, context: value.None, want: "HELLO"},
+			{name: "title", source: `{{ "hello world"|title }}`, context: value.None, want: "HELLO WORLD"},
+			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: value.None, want: "Hello world"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

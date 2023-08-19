@@ -10,7 +10,7 @@ import (
 
 type FilterFunc = func(*State, []value.Value) (value.Value, error)
 
-func filterFuncFromFilterWithStringArg(f func(val string) value.Value) func(*State, []value.Value) (value.Value, error) {
+func filterFuncFromFilterWithStringArgValueRet(f func(val string) value.Value) func(*State, []value.Value) (value.Value, error) {
 	return func(state *State, values []value.Value) (value.Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
@@ -24,13 +24,27 @@ func filterFuncFromFilterWithStringArg(f func(val string) value.Value) func(*Sta
 	}
 }
 
-func filterFuncFromWithStateValueArgErr(f func(*State, value.Value) (value.Value, error)) func(*State, []value.Value) (value.Value, error) {
+func filterFuncFromWithStateValueArgValueErrRet(f func(*State, value.Value) (value.Value, error)) func(*State, []value.Value) (value.Value, error) {
 	return func(state *State, values []value.Value) (value.Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
 		return f(state, tpl.a)
+	}
+}
+
+func filterFuncFromFilterWithStringArgStringRet(f func(val string) string) func(*State, []value.Value) (value.Value, error) {
+	return func(state *State, values []value.Value) (value.Value, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		a, err := value.StringFromValue(option.Some(tpl.a))
+		if err != nil {
+			return nil, err
+		}
+		return value.FromString(f(a)), nil
 	}
 }
 
@@ -61,4 +75,23 @@ func escape(state *State, v value.Value) (value.Value, error) {
 		return nil, err
 	}
 	return value.FromSafeString(b.String()), nil
+}
+
+func lower(s string) string {
+	return strings.ToLower(s)
+}
+
+func upper(s string) string {
+	return strings.ToUpper(s)
+}
+
+func title(s string) string {
+	return strings.ToTitle(s)
+}
+
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return strings.ToTitle(s[:1]) + strings.ToLower(s[1:])
 }
