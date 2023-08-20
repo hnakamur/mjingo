@@ -190,6 +190,9 @@ func TestEnvironment(t *testing.T) {
 			{name: "mul", source: `{{ 2 * 3 }}`, context: value.None, want: "6"},
 			{name: "div", source: `{{ 3 / 2 }}`, context: value.None, want: "1.5"},
 			{name: "intdiv", source: `{{ 3 // 2 }}`, context: value.None, want: "1"},
+			{name: "neg", source: `{{ -3 }}`, context: value.None, want: "-3"},
+			{name: "notTrue", source: `{{ not 0 }}`, context: value.None, want: "true"},
+			{name: "notFalse", source: `{{ not 1 }}`, context: value.None, want: "false"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {
