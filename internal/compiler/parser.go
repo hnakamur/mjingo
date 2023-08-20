@@ -433,7 +433,51 @@ func (p *parser) parseMapExpr(spn internal.Span) (expression, error) {
 func (p *parser) parseTupleOrExpression(spn internal.Span) (expression, error) {
 	// MiniJinja does not really have tuples, but it treats the tuple
 	// syntax the same as lists.
-	panic("not implemented")
+	if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+		return nil, err
+	} else if matched {
+		return listExpr{
+			items: []expression{},
+			span:  p.stream.expandSpan(spn),
+		}, nil
+	}
+	expr, err := p.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	if matched, err := p.matchesToken(isTokenOfType[commaToken]); err != nil {
+		return nil, err
+	} else if matched {
+		items := []expression{expr}
+		for {
+			if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+				return nil, err
+			} else if matched {
+				break
+			}
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				return nil, err
+			}
+			if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+				return nil, err
+			} else if matched {
+				break
+			}
+			expr, err := p.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, expr)
+		}
+		expr = listExpr{
+			items: items,
+			span:  p.stream.expandSpan(spn),
+		}
+
+	} else if _, _, err := p.expectToken(isTokenOfType[parenCloseToken], "`)`"); err != nil {
+		return nil, err
+	}
+	return expr, nil
 }
 
 func (p *parser) parseUnaryOnly() (expression, error) {

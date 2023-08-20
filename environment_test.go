@@ -202,6 +202,9 @@ func TestEnvironment(t *testing.T) {
 			{name: "inTrue", source: `{{ 1 in [1] }}`, context: value.None, want: "true"},
 			{name: "inFalse", source: `{{ 1 in [2] }}`, context: value.None, want: "false"},
 			{name: "inNot", source: `{{ 1 not in [2] }}`, context: value.None, want: "true"},
+			{name: "tuipleTreatedAsSeq0", source: `{{ () }}`, context: value.None, want: "[]"},
+			{name: "tuipleTreatedAsSeq1", source: `{{ (1,) }}`, context: value.None, want: "[1]"},
+			{name: "tuipleTreatedAsSeq2", source: `{{ (1, 2) }}`, context: value.None, want: "[1, 2]"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {
