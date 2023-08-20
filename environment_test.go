@@ -296,6 +296,12 @@ func TestEnvironment(t *testing.T) {
 				}})),
 				want: "&lt;foo&gt; <foo>",
 			},
+			{
+				name:    "filterStmt",
+				source:  `{% filter upper %}hello{% endfilter %} world`,
+				context: value.None,
+				want:    "HELLO world",
+			},
 		})
 	})
 	t.Run("filter", func(t *testing.T) {

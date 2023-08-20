@@ -103,6 +103,15 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 			g.CompileStmt(node)
 		}
 		g.add(PopAutoEscapeInstruction{})
+	case filterBlockStmt:
+		g.setLineFromSpan(st.span)
+		g.add(BeginCaptureInstruction{Mode: CaptureModeCapture})
+		for _, node := range st.body {
+			g.CompileStmt(node)
+		}
+		g.add(EndCaptureInstruction{})
+		g.compileExpr(st.filter)
+		g.add(EmitInstruction{})
 	default:
 		panic("not implemented")
 	}

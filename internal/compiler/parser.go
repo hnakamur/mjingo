@@ -892,6 +892,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "filter":
+		st, err := p.parseFilterBlock()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	default:
 		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
 	}
@@ -1224,37 +1231,60 @@ func (p *parser) parseFilterChain() (expression, error) {
 			break
 		}
 		if option.IsSome(filter) {
-			var name string
-			var spn internal.Span
-			if tkn, s, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
+			if _, _, err := p.expectToken(isTokenOfType[pipeToken], "`|`"); err != nil {
+				return nil, err
+			}
+		}
+		var name string
+		var spn internal.Span
+		if tkn, s, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
+			return nil, err
+		} else {
+			name = tkn.(identToken).ident
+			spn = s
+		}
+		args := []expression{}
+		if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
+			return nil, err
+		} else if matched {
+			if a, err := p.parseArgs(); err != nil {
 				return nil, err
 			} else {
-				name = tkn.(identToken).ident
-				spn = s
+				args = a
 			}
-			args := []expression{}
-			if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
-				return nil, err
-			} else if matched {
-				if a, err := p.parseArgs(); err != nil {
-					return nil, err
-				} else {
-					args = a
-				}
-			}
-			filter = option.Some[expression](filterExpr{
-				name: name,
-				expr: filter,
-				args: args,
-				span: p.stream.expandSpan(spn),
-			})
 		}
+		filter = option.Some[expression](filterExpr{
+			name: name,
+			expr: filter,
+			args: args,
+			span: p.stream.expandSpan(spn),
+		})
 	}
 	if option.IsSome(filter) {
 		return option.Unwrap(filter), nil
-	} else {
-		return nil, syntaxError("expected a filter")
 	}
+	return nil, syntaxError("expected a filter")
+}
+
+func (p *parser) parseFilterBlock() (filterBlockStmt, error) {
+	filter, err := p.parseFilterChain()
+	if err != nil {
+		return filterBlockStmt{}, err
+	}
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return filterBlockStmt{}, err
+	}
+	body, err := p.subparse(isIdentTokenWithName("endfilter"))
+	if err != nil {
+		return filterBlockStmt{}, err
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return filterBlockStmt{}, err
+	}
+	return filterBlockStmt{
+		filter: filter,
+		body:   body,
+	}, nil
 }
 
 func (p *parser) parse() (statement, error) {
