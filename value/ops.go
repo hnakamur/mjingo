@@ -186,6 +186,21 @@ func IntDiv(lhs, rhs Value) (Value, error) {
 	return nil, impossibleOp("//", lhs, rhs)
 }
 
+func Rem(lhs, rhs Value) (Value, error) {
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		if c.rhs == 0 {
+			return nil, failedOp("%", lhs, rhs)
+		}
+		// TODO: checked_rem_euclid
+		return i64Value{n: c.lhs % c.rhs}, nil
+	case f64CoerceResult:
+		// TODO: checked_rem_euclid
+		return f64Value{f: math.Remainder(c.lhs, c.rhs)}, nil
+	}
+	return nil, impossibleOp("%", lhs, rhs)
+}
+
 func Pow(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i64CoerceResult:
