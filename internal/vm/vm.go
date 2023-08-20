@@ -266,8 +266,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 					loopCtx.currentRecursionJump = option.None[recursionJump]()
 					pc = recurJump.target
 					if recurJump.endCapture {
-						// TODO: implement
-						// stacks.Push(stack, )
+						stacks.Push(stack, out.endCapture(state.autoEscape))
 					}
 					continue
 				}
