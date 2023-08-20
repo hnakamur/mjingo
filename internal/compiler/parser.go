@@ -220,6 +220,14 @@ func (p *parser) parseArgs() ([]expression, error) {
 			args = append(args, expr)
 		}
 	}
+
+	if len(kwargs) != 0 {
+		args = append(args, kwargsExpr{
+			pairs: kwargs,
+			span:  p.stream.expandSpan(option.Unwrap(firstSpan)),
+		})
+	}
+
 	return args, nil
 }
 
