@@ -790,6 +790,21 @@ func syntaxError(msg string) error {
 	return internal.NewError(internal.SyntaxError, msg)
 }
 
+func (p *parser) parseDo() (doStmt, error) {
+	expr, err := p.parseExpr()
+	if err != nil {
+		return doStmt{}, err
+	}
+	callExp, ok := expr.(callExpr)
+	if !ok {
+		return doStmt{}, syntaxError(fmt.Sprintf("expected call expression in call block, got %s", expr.typ().Description()))
+	}
+	return doStmt{call: call{
+		expr: callExp.expr,
+		args: callExp.args,
+	}}, nil
+}
+
 func (p *parser) subparse(endCheck func(token) bool) ([]statement, error) {
 	var rv []statement
 	for {
@@ -902,6 +917,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		return st, nil
 	case "filter":
 		st, err := p.parseFilterBlock()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	case "do":
+		st, err := p.parseDo()
 		if err != nil {
 			return nil, err
 		}

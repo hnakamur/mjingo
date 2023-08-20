@@ -117,7 +117,6 @@ type importName struct {
 type call struct {
 	expr expression
 	args []expression
-	span internal.Span
 }
 
 var _ = statement(templateStmt{})
@@ -398,6 +397,31 @@ func (k exprType) String() string {
 		return "map"
 	case exprTypeKwargs:
 		return "kwargs"
+	default:
+		panic("invalid exprType")
+	}
+}
+
+func (k exprType) Description() string {
+	switch k {
+	case exprTypeVar:
+		return "variable"
+	case exprTypeConst:
+		return "constant"
+	case exprTypeSlice, exprTypeUnaryOp, exprTypeBinOp, exprTypeIfExpr, exprTypeGetAttr, exprTypeGetItem:
+		return "expression"
+	case exprTypeTest:
+		return "test expression"
+	case exprTypeFilter:
+		return "filter expression"
+	case exprTypeCall:
+		return "call"
+	case exprTypeList:
+		return "list literal"
+	case exprTypeMap:
+		return "map literal"
+	case exprTypeKwargs:
+		return "keyword arguments"
 	default:
 		panic("invalid exprType")
 	}
