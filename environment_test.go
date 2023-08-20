@@ -208,35 +208,35 @@ func TestEnvironment(t *testing.T) {
 		runTests(t, []testCase{
 			{
 				name:   "ifStmtNoElse",
-				source: `{% if down %}I'm down{% endif %}`,
+				source: `{% if down %}I am down{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("down"), Value: value.FromBool(true),
 				}})),
-				want: "I'm down",
+				want: "I am down",
 			},
 			{
 				name:   "ifStmtWithElse",
-				source: `{% if down %}I'm down{% else %}I'm up{% endif %}`,
+				source: `{% if down %}I am down{% else %}I am up{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("down"), Value: value.FromBool(false),
 				}})),
-				want: "I'm up",
+				want: "I am up",
 			},
 			{
 				name:   "ifExprNoElse",
-				source: `{{ "I'm down" if down }}`,
+				source: `{{ "I am down" if down }}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("down"), Value: value.FromBool(true),
 				}})),
-				want: "I'm down",
+				want: "I am down",
 			},
 			{
 				name:   "ifExprWithElse",
-				source: `{{ "I'm down" if down else "I'm up" }}`,
+				source: `{{ "I am down" if down else "I am up" }}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("down"), Value: value.FromBool(false),
 				}})),
-				want: "I'm up",
+				want: "I am up",
 			},
 			{
 				name:   "forStmtNoElse",
@@ -285,6 +285,14 @@ func TestEnvironment(t *testing.T) {
 					"\n" +
 					"</ul>",
 			},
+			{
+				name:   "autoEscapeStmt",
+				source: `{% autoescape "html" %}{{ unsafe }}{% endautoescape %} {% autoescape "none" %}{{ unsafe }}{% endautoescape %}`,
+				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
+					Key: value.KeyRefFromString("unsafe"), Value: value.FromString("<foo>"),
+				}})),
+				want: "&lt;foo&gt; <foo>",
+			},
 		})
 	})
 	t.Run("filter", func(t *testing.T) {
@@ -318,49 +326,49 @@ func TestEnvironment(t *testing.T) {
 		runTests(t, []testCase{
 			{
 				name:   "isDefined",
-				source: `{% if v is defined %}I'm defined{% else %}I'm fallback{% endif %}`,
+				source: `{% if v is defined %}I am defined{% else %}I am fallback{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("v"), Value: value.None,
 				}})),
-				want: "I'm defined",
+				want: "I am defined",
 			},
 			{
 				name:    "isNotDefined",
-				source:  `{% if v is not defined %}I'm fallback{% endif %}`,
+				source:  `{% if v is not defined %}I am fallback{% endif %}`,
 				context: value.None,
-				want:    "I'm fallback",
+				want:    "I am fallback",
 			},
 			{
 				name:   "isNone",
-				source: `{% if v is none %}I'm none{% else %}I'm not none{% endif %}`,
+				source: `{% if v is none %}I am none{% else %}I am not none{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("v"), Value: value.None,
 				}})),
-				want: "I'm none",
+				want: "I am none",
 			},
 			{
 				name:   "isSafeTrue",
-				source: `{% if v is safe %}I'm safe{% else %}I'm not safe{% endif %}`,
+				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("v"), Value: value.FromSafeString("s"),
 				}})),
-				want: "I'm safe",
+				want: "I am safe",
 			},
 			{
 				name:   "isSafeFalse",
-				source: `{% if v is safe %}I'm safe{% else %}I'm not safe{% endif %}`,
+				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("v"), Value: value.FromString("s"),
 				}})),
-				want: "I'm not safe",
+				want: "I am not safe",
 			},
 			{
 				name:   "isEscaped",
-				source: `{% if v is escaped %}I'm safe{% else %}I'm not safe{% endif %}`,
+				source: `{% if v is escaped %}I am safe{% else %}I am not safe{% endif %}`,
 				context: value.FromIndexMap(value.NewIndexMapFromEntries([]value.IndexMapEntry{{
 					Key: value.KeyRefFromString("v"), Value: value.FromSafeString("s"),
 				}})),
-				want: "I'm safe",
+				want: "I am safe",
 			},
 			{name: "isOddTrue", source: `{{ 41 is odd }}`, context: value.None, want: "true"},
 			{name: "isOddValueFalse", source: `{{ 42 is odd }}`, context: value.None, want: "false"},

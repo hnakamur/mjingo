@@ -95,6 +95,16 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 			g.compileExpr(option.Unwrap(st.filter))
 		}
 		g.compileAssignment(st.target)
+	case autoEscapeStmt:
+		g.setLineFromSpan(st.span)
+		g.compileExpr(st.enabled)
+		g.add(PushAutoEscapeInstruction{})
+		for _, node := range st.body {
+			g.CompileStmt(node)
+		}
+		g.add(PopAutoEscapeInstruction{})
+	default:
+		panic("not implemented")
 	}
 }
 

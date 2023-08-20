@@ -841,6 +841,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		default:
 			panic("unreachable")
 		}
+	case "autoescape":
+		st, err := p.parseAutoEscape()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	default:
 		return nil, syntaxError(fmt.Sprintf("unknown statement %s", ident))
 	}
@@ -1140,6 +1147,27 @@ func (p *parser) parseSet() (setParseResult, error) {
 			expr:   expr,
 		}}, nil
 	}
+}
+
+func (p *parser) parseAutoEscape() (autoEscapeStmt, error) {
+	enabled, err := p.parseExpr()
+	if err != nil {
+		return autoEscapeStmt{}, err
+	}
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return autoEscapeStmt{}, err
+	}
+	body, err := p.subparse(isIdentTokenWithName("endautoescape"))
+	if err != nil {
+		return autoEscapeStmt{}, err
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return autoEscapeStmt{}, err
+	}
+	return autoEscapeStmt{
+		enabled: enabled,
+		body:    body,
+	}, nil
 }
 
 func (p *parser) parseFilterChain() (expression, error) {

@@ -2,7 +2,6 @@ package vm
 
 import (
 	"errors"
-	"io"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal"
@@ -17,11 +16,13 @@ type Environment struct {
 	filters           map[string]FilterFunc
 	tests             map[string]TestFunc
 	globals           map[string]value.Value
-	defaultAutoEscape autoEscapeCallBack
+	defaultAutoEscape autoEscapeFunc
 	undefinedBehavior compiler.UndefinedBehavior
+	formatter         formatterFunc
 }
 
-type autoEscapeCallBack func(name string) compiler.AutoEscape
+type autoEscapeFunc func(name string) compiler.AutoEscape
+type formatterFunc = func(*Output, *State, value.Value) error
 
 var ErrTemplateNotFound = errors.New("template not found")
 
@@ -33,6 +34,7 @@ func NewEnvironment() *Environment {
 		tests:             getDefaultBuiltinTests(),
 		globals:           make(map[string]value.Value),
 		defaultAutoEscape: defaultAutoEscapeCallback,
+		formatter:         escapeFormatter,
 	}
 }
 
@@ -57,15 +59,11 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
-func (e *Environment) format(v value.Value, state *State, out io.Writer) error {
+func (e *Environment) format(v value.Value, state *State, out *Output) error {
 	if v.IsUndefined() && e.undefinedBehavior == compiler.UndefinedBehaviorStrict {
 		return internal.NewError(internal.UndefinedError, "")
 	}
-	// TODO: use formatter
-	if _, err := io.WriteString(out, v.String()); err != nil {
-		return err
-	}
-	return nil
+	return e.formatter(out, state, v)
 }
 
 func (e *Environment) getGlobal(name string) option.Option[value.Value] {

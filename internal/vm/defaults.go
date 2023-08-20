@@ -1,5 +1,11 @@
 package vm
 
+import "github.com/hnakamur/mjingo/value"
+
+func escapeFormatter(out *Output, state *State, val value.Value) error {
+	return writeEscaped(out, state.autoEscape, val)
+}
+
 func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv := make(map[string]FilterFunc)
 	rv["safe"] = filterFuncFromFilterWithStrArgValRet(safe)
