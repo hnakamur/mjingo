@@ -3,6 +3,7 @@ package value
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -205,6 +206,43 @@ func Pow(lhs, rhs Value) (Value, error) {
 
 func StringConcat(left, right Value) Value {
 	return stringValue{str: fmt.Sprintf("%s%s", left, right)}
+}
+
+// / Implements a containment operation on values.
+func Contains(container Value, value Value) (Value, error) {
+	// Special case where if the container is undefined, it cannot hold
+	// values.  For strict containment checks the vm has a special case.
+	if container.IsUndefined() {
+		return FromBool(false), nil
+	}
+	var rv bool
+	if optContainerStr := container.AsStr(); option.IsSome(optContainerStr) {
+		containerStr := option.Unwrap(optContainerStr)
+		var valStr string
+		if optValStr := value.AsStr(); option.IsSome(optValStr) {
+			valStr = option.Unwrap(optValStr)
+		} else {
+			valStr = value.String()
+		}
+		rv = strings.Contains(containerStr, valStr)
+	} else if optSeq := container.AsSeq(); option.IsSome(optSeq) {
+		seq := option.Unwrap(optSeq)
+		n := seq.ItemCount()
+		for i := uint(0); i < n; i++ {
+			elem := option.Unwrap(seq.GetItem(i))
+			if elem == value {
+				rv = true
+				break
+			}
+		}
+	} else if mapVal, ok := container.(mapValue); ok {
+		_, ok := mapVal.m.Get(KeyRefFromValue(value.Clone()))
+		rv = ok
+	} else {
+		return nil, internal.NewError(internal.InvalidOperation,
+			"cannot perform a containment check on this value")
+	}
+	return FromBool(rv), nil
 }
 
 type coerceResult interface {

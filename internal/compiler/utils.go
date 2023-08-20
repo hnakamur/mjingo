@@ -90,7 +90,7 @@ func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (value.Value
 // otherwise it succeeds with an empty iteration.  This is also internally used in the
 // engine to convert values to lists.
 func (b UndefinedBehavior) TryIter(val value.Value) (value.Iterator, error) {
-	if err := b.assertIterable(val); err != nil {
+	if err := b.AssertIterable(val); err != nil {
 		return value.Iterator{}, err
 	}
 	iter, err := val.TryIter()
@@ -101,7 +101,7 @@ func (b UndefinedBehavior) TryIter(val value.Value) (value.Iterator, error) {
 }
 
 // Are we strict on iteration?
-func (b UndefinedBehavior) assertIterable(val value.Value) error {
+func (b UndefinedBehavior) AssertIterable(val value.Value) error {
 	if b == UndefinedBehaviorStrict && val.IsUndefined() {
 		return internal.NewError(internal.UndefinedError, "")
 	}

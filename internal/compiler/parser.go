@@ -508,7 +508,87 @@ func (p *parser) parseMath1() (expression, error) {
 }
 
 func (p *parser) parseCompare() (expression, error) {
-	return p.parseMath1()
+	spn := p.stream.lastSpan
+	exp, err := p.parseMath1()
+	if err != nil {
+		return nil, err
+	}
+loop:
+	for {
+		negated := false
+		tkn, _, err := p.stream.current()
+		if err != nil {
+			return nil, err
+		}
+		if tkn == nil {
+			break
+		}
+		var op binOpType
+		switch tk := tkn.(type) {
+		case eqToken:
+			op = binOpTypeEq
+		case neToken:
+			op = binOpTypeNe
+		case ltToken:
+			op = binOpTypeLt
+		case lteToken:
+			op = binOpTypeLte
+		case gtToken:
+			op = binOpTypeGt
+		case gteToken:
+			op = binOpTypeGte
+		case identToken:
+			switch tk.ident {
+			case "in":
+				op = binOpTypeIn
+			case "not":
+				tkn2, _, err := p.stream.next()
+				if err != nil {
+					return nil, err
+				}
+				if tkn2 == nil {
+					break loop
+				}
+				if _, _, err := p.expectToken(isIdentTokenWithName("in"), "in"); err != nil {
+					return nil, err
+				}
+				negated = true
+				op = binOpTypeIn
+			default:
+				break loop
+			}
+		default:
+			break loop
+		}
+		if !negated {
+			tkn2, _, err := p.stream.next()
+			if err != nil {
+				return nil, err
+			}
+			if tkn2 == nil {
+				break loop
+			}
+		}
+		right, err := p.parseMath1()
+		if err != nil {
+			return nil, err
+		}
+		exp = binOpExpr{
+			op:    op,
+			left:  exp,
+			right: right,
+			span:  p.stream.expandSpan(spn),
+		}
+		if negated {
+			exp = unaryOpExpr{
+				op:   unaryOpTypeNot,
+				expr: exp,
+				span: p.stream.expandSpan(spn),
+			}
+		}
+		spn = p.stream.lastSpan
+	}
+	return exp, nil
 }
 
 func (p *parser) parseNot() (expression, error) {

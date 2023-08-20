@@ -104,3 +104,8 @@ func Clone[K comparable, V any](m *Map[K, V]) *Map[K, V] {
 	}
 	return rv
 }
+
+// Keys returns keys in preserved order.
+func Keys[K comparable, V any](m *Map[K, V]) []K {
+	return m.keys
+}

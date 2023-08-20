@@ -190,6 +190,30 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			} else {
 				stacks.Push(stack, v)
 			}
+		case compiler.EqInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(value.Equal(a, b)))
+		case compiler.NeInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(!value.Equal(a, b)))
+		case compiler.GtInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(value.Cmp(a, b) > 0))
+		case compiler.GteInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(value.Cmp(a, b) >= 0))
+		case compiler.LtInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(value.Cmp(a, b) < 0))
+		case compiler.LteInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			stacks.Push(stack, value.FromBool(value.Cmp(a, b) <= 0))
 		case compiler.PowInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
@@ -202,10 +226,23 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			a = stacks.Pop(stack)
 			stacks.Push(stack, value.FromBool(!a.IsTrue()))
 		case compiler.StringConcatInstruction:
-			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			v := value.StringConcat(a, b)
+			b = stacks.Pop(stack)
+			v := value.StringConcat(b, a)
 			stacks.Push(stack, v)
+		case compiler.InInstruction:
+			a = stacks.Pop(stack)
+			b = stacks.Pop(stack)
+			// the in-operator can fail if the value is undefined and
+			// we are in strict mode.
+			if err := state.undefinedBehavior().AssertIterable(a); err != nil {
+				return option.None[value.Value](), err
+			}
+			rv, err := value.Contains(a, b)
+			if err != nil {
+				return option.None[value.Value](), err
+			}
+			stacks.Push(stack, rv)
 		case compiler.NegInstruction:
 			a = stacks.Pop(stack)
 			if v, err := value.Neg(a); err != nil {

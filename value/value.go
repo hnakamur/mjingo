@@ -1,6 +1,8 @@
 package value
 
 import (
+	"bytes"
+	"cmp"
 	"fmt"
 	"math"
 	"strconv"
@@ -554,7 +556,9 @@ func (v bytesValue) TryIter() (Iterator, error) {
 func (v SeqValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &seqValueIteratorState{items: v.items}, len: uint(len(v.items))}, nil
 }
-func (v mapValue) TryIter() (Iterator, error) { panic("not implemented yet") }
+func (v mapValue) TryIter() (Iterator, error) {
+	return Iterator{iterState: &mapValueIteratorState{keys: v.m.keys()}, len: uint(len(v.m.keys()))}, nil
+}
 func (v dynamicValue) TryIter() (Iterator, error) {
 	panic("not implemented yet")
 }
@@ -581,6 +585,44 @@ func (i *Iterator) Len() uint {
 	return i.len
 }
 
+// All returns if every element of the iterator matches a predicate.
+// An empty iterator returns true.
+func (i *Iterator) All(f func(Value) bool) bool {
+	for {
+		optVal := i.Next()
+		if option.IsNone(optVal) {
+			break
+		}
+		if !f(option.Unwrap(optVal)) {
+			return false
+		}
+	}
+	return true
+}
+
+func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
+	for {
+		optA := i.Next()
+		optB := other.Next()
+		if option.IsNone(optA) {
+			if option.IsSome(optB) {
+				return -1
+			}
+			break
+		}
+		if option.IsNone(optB) {
+			if option.IsSome(optA) {
+				return 1
+			}
+			break
+		}
+		if c := f(option.Unwrap(optA), option.Unwrap(optB)); c != 0 {
+			return c
+		}
+	}
+	return 0
+}
+
 type valueIteratorState interface {
 	advanceState() option.Option[Value]
 }
@@ -603,8 +645,8 @@ type dynSeqValueIteratorState struct {
 	// obj Object
 }
 type mapValueIteratorState struct {
-	idx uint
-	// TODO: implement ordered map
+	idx  uint
+	keys []KeyRef
 }
 
 func (s *emptyValueIteratorState) advanceState() option.Option[Value] { return option.None[Value]() }
@@ -633,7 +675,14 @@ func (s *stringsValueIteratorState) advanceState() option.Option[Value] {
 	return option.None[Value]()
 }
 func (s *dynSeqValueIteratorState) advanceState() option.Option[Value] { panic("not implemented") }
-func (s *mapValueIteratorState) advanceState() option.Option[Value]    { panic("not implemented") }
+func (s *mapValueIteratorState) advanceState() option.Option[Value] {
+	if s.idx < uint(len(s.keys)) {
+		key := s.keys[s.idx]
+		s.idx++
+		return option.Some(key.AsValue())
+	}
+	return option.None[Value]()
+}
 
 var _ = valueIteratorState((*emptyValueIteratorState)(nil))
 var _ = valueIteratorState((*charsValueIteratorState)(nil))
@@ -674,4 +723,137 @@ func (v SeqValue) Len() option.Option[uint] { return option.Some(uint(len(v.item
 func (v mapValue) Len() option.Option[uint] { return option.Some(v.m.Len()) }
 func (dynamicValue) Len() option.Option[uint] {
 	panic("not implemented yet")
+}
+
+func Equal(v Value, other Value) bool {
+	switch {
+	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
+		return true
+	case v.Kind() == ValueKindUndefined && other.Kind() == ValueKindUndefined:
+		return true
+	case v.Kind() == ValueKindString && other.Kind() == ValueKindString:
+		a := v.(stringValue).str
+		b := other.(stringValue).str
+		return a == b
+	case v.Kind() == ValueKindBytes && other.Kind() == ValueKindBytes:
+		a := v.(bytesValue).b
+		b := other.(bytesValue).b
+		return bytes.Equal(a, b)
+	default:
+		switch c := coerce(v, other).(type) {
+		case f64CoerceResult:
+			return c.lhs == c.rhs
+		case i64CoerceResult:
+			return c.lhs == c.rhs
+		case strCoerceResult:
+			return c.lhs == c.rhs
+		default:
+			if optA, optB := v.AsSeq(), other.AsSeq(); option.IsSome(optA) && option.IsSome(optB) {
+				iterA, err := v.TryIter()
+				if err != nil {
+					return false
+				}
+				iterB, err := v.TryIter()
+				if err != nil {
+					return false
+				}
+				return iterA.All(func(itemA Value) bool {
+					itemB := option.Unwrap(iterB.Next())
+					return Equal(itemA, itemB)
+				})
+			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
+				if v.Len() != other.Len() {
+					return false
+				}
+				iterA, err := v.TryIter()
+				if err != nil {
+					return false
+				}
+				return iterA.All(func(key Value) bool {
+					optValA := v.GetItemOpt(key)
+					optValB := other.GetItemOpt(key)
+					if option.IsSome(optValA) && option.IsSome(optValB) {
+						return Equal(option.Unwrap(optValA), option.Unwrap(optValB))
+					}
+					return false
+				})
+			}
+		}
+	}
+	return false
+}
+
+// Cmp returns
+// -1 if v is less than other,
+//
+//	0 if v equals other,
+//
+// +1 if v is greater than other.
+func Cmp(v Value, other Value) int {
+	var rv int
+outer:
+	switch {
+	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
+		rv = 0
+	case v.Kind() == ValueKindUndefined && other.Kind() == ValueKindUndefined:
+		rv = 0
+	case v.Kind() == ValueKindString && other.Kind() == ValueKindString:
+		a := v.(stringValue).str
+		b := other.(stringValue).str
+		rv = strings.Compare(a, b)
+	case v.Kind() == ValueKindBytes && other.Kind() == ValueKindBytes:
+		a := v.(bytesValue).b
+		b := other.(bytesValue).b
+		rv = bytes.Compare(a, b)
+	default:
+		switch c := coerce(v, other).(type) {
+		case f64CoerceResult:
+			return f64TotalCmp(c.lhs, c.rhs)
+		case i64CoerceResult:
+			return cmp.Compare(c.lhs, c.rhs)
+		case strCoerceResult:
+			rv = strings.Compare(c.lhs, c.rhs)
+		default:
+			if optA, optB := v.AsSeq(), other.AsSeq(); option.IsSome(optA) && option.IsSome(optB) {
+				iterA, err := v.TryIter()
+				if err != nil {
+					break outer
+				}
+				iterB, err := other.TryIter()
+				if err != nil {
+					break outer
+				}
+				return iterA.CompareBy(&iterB, Cmp)
+			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
+				iterA, err := v.TryIter()
+				if err != nil {
+					break outer
+				}
+				iterB, err := other.TryIter()
+				if err != nil {
+					break outer
+				}
+				return iterA.CompareBy(&iterB, func(keyA, keyB Value) int {
+					if rv := Cmp(keyA, keyB); rv != 0 {
+						return 0
+					}
+					optValA := v.GetItemOpt(keyA)
+					optValB := other.GetItemOpt(keyB)
+					return option.Compare(optValA, optValB, Cmp)
+				})
+			}
+		}
+	}
+	if rv != 0 {
+		return rv
+	}
+	return cmp.Compare(v.Kind(), other.Kind())
+}
+
+func f64TotalCmp(left, right float64) int {
+	leftInt := int64(math.Float64bits(left))
+	rightInt := int64(math.Float64bits(left))
+	leftInt ^= int64(uint64(leftInt>>63) >> 1)
+	rightInt ^= int64(uint64(rightInt>>63) >> 1)
+	return cmp.Compare(leftInt, rightInt)
 }

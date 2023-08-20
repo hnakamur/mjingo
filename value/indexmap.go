@@ -40,3 +40,7 @@ func (m *IndexMap) EntryAt(i uint) (IndexMapEntry, bool) {
 func (m *IndexMap) Clone() *IndexMap {
 	return (*IndexMap)(indexmap.Clone((*indexmap.Map[KeyRef, Value])(m)))
 }
+
+func (m *IndexMap) keys() []KeyRef {
+	return indexmap.Keys((*indexmap.Map[KeyRef, Value])(m))
+}

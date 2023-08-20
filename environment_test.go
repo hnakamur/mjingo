@@ -193,6 +193,14 @@ func TestEnvironment(t *testing.T) {
 			{name: "neg", source: `{{ -3 }}`, context: value.None, want: "-3"},
 			{name: "notTrue", source: `{{ not 0 }}`, context: value.None, want: "true"},
 			{name: "notFalse", source: `{{ not 1 }}`, context: value.None, want: "false"},
+			{name: "eq", source: `{{ 1 == 1 }}`, context: value.None, want: "true"},
+			{name: "lt", source: `{{ 1 < 2 }}`, context: value.None, want: "true"},
+			{name: "lte", source: `{{ 1 <= 1 }}`, context: value.None, want: "true"},
+			{name: "gt", source: `{{ 2 > 1 }}`, context: value.None, want: "true"},
+			{name: "gte", source: `{{ 1 >= 1 }}`, context: value.None, want: "true"},
+			{name: "inTrue", source: `{{ 1 in [1] }}`, context: value.None, want: "true"},
+			{name: "inFalse", source: `{{ 1 in [2] }}`, context: value.None, want: "false"},
+			{name: "inNot", source: `{{ 1 not in [2] }}`, context: value.None, want: "true"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {

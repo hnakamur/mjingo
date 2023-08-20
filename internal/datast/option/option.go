@@ -1,8 +1,8 @@
 package option
 
 type Option[T any] struct {
-	data  T
 	valid bool
+	data  T
 }
 
 func Some[T any](data T) Option[T] {
@@ -40,4 +40,17 @@ func AsPtr[T any](o *Option[T]) *T {
 		return &o.data
 	}
 	return nil
+}
+
+func Compare[T any](a, b Option[T], cmpData func(a, b T) int) int {
+	if a.valid == b.valid {
+		if a.valid {
+			return cmpData(a.data, b.data)
+		}
+	} else if a.valid {
+		return 1
+	} else if b.valid {
+		return -1
+	}
+	return 0
 }

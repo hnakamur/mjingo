@@ -6,6 +6,7 @@ type KeyRef interface {
 	typ() keyRefType
 	AsStr() option.Option[string]
 	AasI64() option.Option[int64]
+	AsValue() Value
 }
 
 func KeyRefFromValue(val Value) KeyRef {
@@ -33,6 +34,9 @@ func (k valueKeyRef) AasI64() option.Option[int64] {
 	}
 }
 func (k StrKeyRef) AasI64() option.Option[int64] { return option.None[int64]() }
+
+func (k valueKeyRef) AsValue() Value { return k.val.Clone() }
+func (k StrKeyRef) AsValue() Value   { return FromString(k.str) }
 
 type keyRefType uint
 
