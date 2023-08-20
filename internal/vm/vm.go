@@ -271,6 +271,38 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 					continue
 				}
 			}
+		case compiler.PushLoopInstruction:
+			a = stacks.Pop(stack)
+			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
+				return option.None[value.Value](), processErr(err, pc, state)
+			}
+		case compiler.IterateInstruction:
+			var l *loopState
+			if mayLoopState := state.ctx.currentLoop(); option.IsSome(mayLoopState) {
+				l = option.Unwrap(mayLoopState)
+			} else {
+				panic("no currentLoop")
+			}
+			l.object.idx++
+			next := option.None[value.Value]()
+			triple := &l.object.valueTriple
+			triple[0] = triple[1]
+			triple[1] = triple[2]
+			triple[2] = l.iterator.Next()
+			if option.IsSome(triple[1]) {
+				next = option.Some(option.Unwrap(triple[1]).Clone())
+			}
+			if option.IsSome(next) {
+				item := option.Unwrap(next)
+				if v, err := assertValid(item, pc, state); err != nil {
+					return option.None[value.Value](), err
+				} else {
+					stacks.Push(stack, v)
+				}
+			} else {
+				pc = inst.JumpTarget
+				continue
+			}
 		case compiler.JumpInstruction:
 			pc = inst.JumpTarget
 			continue
@@ -338,39 +370,6 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			}
 		case compiler.DiscardTopInstruction:
 			stacks.Pop(stack)
-		case compiler.PushLoopInstruction:
-			a = stacks.Pop(stack)
-			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
-				return option.None[value.Value](), processErr(err, pc, state)
-			}
-		case compiler.IterateInstruction:
-			var l *loopState
-			if mayLoopState := state.ctx.currentLoop(); option.IsSome(mayLoopState) {
-				l = option.Unwrap(mayLoopState)
-			} else {
-				panic("no currentLoop")
-			}
-			l.object.idx++
-			next := option.None[value.Value]()
-			triple := &l.object.valueTriple
-			triple[0] = triple[1]
-			triple[1] = triple[2]
-			triple[2] = l.iterator.Next()
-			if option.IsSome(triple[1]) {
-				next = option.Some(option.Unwrap(triple[1]).Clone())
-			}
-			if option.IsSome(next) {
-				item := option.Unwrap(next)
-				if v, err := assertValid(item, pc, state); err != nil {
-					return option.None[value.Value](), err
-				} else {
-					stacks.Push(stack, v)
-				}
-			} else {
-				pc = inst.JumpTarget
-				continue
-			}
-			//  Instruction::PushDidNotIterate
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", inst.Typ()))
 		}
