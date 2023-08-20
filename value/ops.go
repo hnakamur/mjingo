@@ -149,6 +149,42 @@ func Sub(lhs, rhs Value) (Value, error) {
 	return nil, impossibleOp("-", lhs, rhs)
 }
 
+func Mul(lhs, rhs Value) (Value, error) {
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		// TODO: checked_mul
+		return i64Value{n: c.lhs * c.rhs}, nil
+	case f64CoerceResult:
+		return f64Value{f: c.lhs * c.rhs}, nil
+	}
+	return nil, impossibleOp("*", lhs, rhs)
+}
+
+func Div(lhs, rhs Value) (Value, error) {
+	optA := lhs.AsF64()
+	optB := rhs.AsF64()
+	if option.IsSome(optA) && option.IsSome(optB) {
+		d := option.Unwrap(optA) / option.Unwrap(optB)
+		return FromF64(d), nil
+	}
+	return nil, impossibleOp("/", lhs, rhs)
+}
+
+func IntDiv(lhs, rhs Value) (Value, error) {
+	switch c := coerce(lhs, rhs).(type) {
+	case i64CoerceResult:
+		if c.rhs == 0 {
+			return nil, failedOp("//", lhs, rhs)
+		}
+		// TODO: div_euclid
+		return i64Value{n: c.lhs / c.rhs}, nil
+	case f64CoerceResult:
+		// TODO: div_euclid
+		return f64Value{f: math.Floor(c.lhs / c.rhs)}, nil
+	}
+	return nil, impossibleOp("//", lhs, rhs)
+}
+
 func Pow(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i64CoerceResult:

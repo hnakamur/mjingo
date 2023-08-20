@@ -186,12 +186,10 @@ func TestEnvironment(t *testing.T) {
 				}})),
 				want: "Hello John!",
 			},
-			{
-				name:    "pow",
-				source:  `{{ 2 ** 3 }}`,
-				context: value.None,
-				want:    "8",
-			},
+			{name: "pow", source: `{{ 2 ** 3 }}`, context: value.None, want: "8"},
+			{name: "mul", source: `{{ 2 * 3 }}`, context: value.None, want: "6"},
+			{name: "div", source: `{{ 3 / 2 }}`, context: value.None, want: "1.5"},
+			{name: "intdiv", source: `{{ 3 // 2 }}`, context: value.None, want: "1"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {

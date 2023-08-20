@@ -166,6 +166,30 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			} else {
 				stacks.Push(stack, v)
 			}
+		case compiler.MulInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			if v, err := value.Mul(a, b); err != nil {
+				return option.None[value.Value](), err
+			} else {
+				stacks.Push(stack, v)
+			}
+		case compiler.DivInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			if v, err := value.Div(a, b); err != nil {
+				return option.None[value.Value](), err
+			} else {
+				stacks.Push(stack, v)
+			}
+		case compiler.IntDivInstruction:
+			b = stacks.Pop(stack)
+			a = stacks.Pop(stack)
+			if v, err := value.IntDiv(a, b); err != nil {
+				return option.None[value.Value](), err
+			} else {
+				stacks.Push(stack, v)
+			}
 		case compiler.PowInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
