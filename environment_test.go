@@ -323,10 +323,10 @@ func TestEnvironment(t *testing.T) {
 					"  This is the dialog body.\n" +
 					"{% endcall %}",
 				context: internal.None,
-				want: "  <div class=\"dialog\">\n" +
+				want: "\n\n  <div class=\"dialog\">\n" +
 					"    <h3>Hello World</h3>\n" +
-					"    <div class=\"contents\">This is the dialog body.</div>\n" +
-					"  </div>",
+					"    <div class=\"contents\">\n  This is the dialog body.\n</div>\n" +
+					"  </div>\n",
 			},
 		})
 	})

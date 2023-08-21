@@ -1,6 +1,10 @@
 package internal
 
-import "github.com/hnakamur/mjingo/internal/datast/option"
+import (
+	"log"
+
+	"github.com/hnakamur/mjingo/internal/datast/option"
+)
 
 // The maximum recursion in the VM.  Normally each stack frame
 // adds one to this counter (eg: every time a frame is added).
@@ -59,8 +63,11 @@ func newContext(f frame) *context {
 }
 
 func (c *context) store(key string, val Value) {
+	log.Printf("context.store key=%s, val=%+v", key, val)
 	top := &c.stack[len(c.stack)-1]
-	// TODO: implement for top.closure
+	if option.IsSome(top.closure) {
+		option.AsPtr[Closure](&top.closure).store(key, val.Clone())
+	}
 	top.locals[key] = val
 }
 

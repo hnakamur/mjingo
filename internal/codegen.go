@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
@@ -214,6 +215,7 @@ func (g *codeGenerator) compileMacroExpression(macroDecl macroStmt) {
 	for _, node := range macroDecl.body {
 		g.CompileStmt(node)
 	}
+	g.add(ReturnInstruction{})
 	undeclared := findMacroClosure(macroDecl)
 	callerReference := undeclared.Contains("caller")
 	undeclared.Delete("caller")
@@ -235,17 +237,18 @@ func (g *codeGenerator) compileMacroExpression(macroDecl macroStmt) {
 	if callerReference {
 		flags |= macroCaller
 	}
+	log.Printf("codegen BuildMacro name=%s", macroDecl.name)
 	g.add(BuildMacroInstruction{Name: macroDecl.name, Offset: inst + 1, Flags: flags})
 	if g.instructions.instructions[inst].Typ() == instTypeJump {
 		g.instructions.instructions[inst] = JumpInstruction{JumpTarget: macroInst}
 	} else {
 		panic("unreachable")
 	}
-	g.add(ReturnInstruction{})
 }
 
 func (g *codeGenerator) compileMacro(macroDecl macroStmt) {
 	g.compileMacroExpression(macroDecl)
+	log.Printf("compileMacro add StoreLocal name=%s", macroDecl.name)
 	g.add(StoreLocalInstruction{Name: macroDecl.name})
 }
 
@@ -405,6 +408,7 @@ func (g *codeGenerator) compileCall(c call, spn Span, caller option.Option[macro
 	switch ct := c.identityCall().(type) {
 	case callTypeFunction:
 		argCount := g.compileCallArgs(c.args, caller)
+		log.Printf("add CallFunctionInstruction")
 		g.add(CallFunctionInstruction{Name: ct.name, ArgCount: argCount})
 	case callTypeBlock:
 		g.add(BeginCaptureInstruction{Mode: CaptureModeCapture})
@@ -446,6 +450,7 @@ func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macr
 			g.add(LoadConstInstruction{Val: ValueFromString("caller")})
 			g.compileMacroExpression(caller)
 			g.add(BuildKwargsInstruction{PairCount: uint(len(m.pairs)) + 1})
+			log.Printf("compileCallArgsWithCaller injected caller")
 			injectedCaller = true
 		} else {
 			g.compileExpr(arg)
@@ -458,6 +463,7 @@ func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macr
 		g.add(LoadConstInstruction{Val: ValueFromString("caller")})
 		g.compileMacroExpression(caller)
 		g.add(BuildKwargsInstruction{PairCount: 1})
+		log.Printf("compileCallArgsWithCaller !injectedCaller")
 		return uint(len(args)) + 1
 	}
 	return uint(len(args))

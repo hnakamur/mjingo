@@ -30,6 +30,7 @@ type Value interface {
 	Clone() Value
 	TryIter() (Iterator, error)
 	Len() option.Option[uint]
+	Call(state *State, args []Value) (Value, error)
 }
 
 type valueType int
@@ -248,7 +249,7 @@ func (v mapValue) String() string {
 	b.WriteString("}")
 	return b.String()
 }
-func (v dynamicValue) String() string { panic("not implemented yet") }
+func (v dynamicValue) String() string { return fmt.Sprintf("%s", v.dy) }
 
 func (undefinedValue) typ() valueType { return valueTypeUndefined }
 func (BoolValue) typ() valueType      { return valueTypeBool }
@@ -515,8 +516,9 @@ func (v mapValue) Clone() Value {
 	m := v.m.Clone()
 	return mapValue{m: m, mapTyp: v.mapTyp}
 }
-func (dynamicValue) Clone() Value {
-	panic("not implemented yet")
+func (v dynamicValue) Clone() Value {
+	// TODO: implement real clone
+	return v
 }
 
 func (undefinedValue) TryIter() (Iterator, error) {
@@ -855,4 +857,31 @@ func f64TotalCmp(left, right float64) int {
 	leftInt ^= int64(uint64(leftInt>>63) >> 1)
 	rightInt ^= int64(uint64(rightInt>>63) >> 1)
 	return cmp.Compare(leftInt, rightInt)
+}
+
+func (v undefinedValue) Call(state *State, args []Value) (Value, error) {
+	return notCallableValueType(v)
+}
+func (v BoolValue) Call(state *State, args []Value) (Value, error)    { return notCallableValueType(v) }
+func (v u64Value) Call(state *State, args []Value) (Value, error)     { return notCallableValueType(v) }
+func (v i64Value) Call(state *State, args []Value) (Value, error)     { return notCallableValueType(v) }
+func (v f64Value) Call(state *State, args []Value) (Value, error)     { return notCallableValueType(v) }
+func (v noneValue) Call(state *State, args []Value) (Value, error)    { return notCallableValueType(v) }
+func (v InvalidValue) Call(state *State, args []Value) (Value, error) { return notCallableValueType(v) }
+func (v u128Value) Call(state *State, args []Value) (Value, error)    { return notCallableValueType(v) }
+func (v i128Value) Call(state *State, args []Value) (Value, error)    { return notCallableValueType(v) }
+func (v stringValue) Call(state *State, args []Value) (Value, error)  { return notCallableValueType(v) }
+func (v bytesValue) Call(state *State, args []Value) (Value, error)   { return notCallableValueType(v) }
+func (v SeqValue) Call(state *State, args []Value) (Value, error)     { return notCallableValueType(v) }
+func (v mapValue) Call(state *State, args []Value) (Value, error)     { return notCallableValueType(v) }
+func (v dynamicValue) Call(state *State, args []Value) (Value, error) {
+	if c, ok := v.dy.(Caller); ok {
+		return c.Call(state, args)
+	}
+	return nil, NewError(InvalidOperation, "tried to call non callable object")
+}
+
+func notCallableValueType(v Value) (Value, error) {
+	return nil, NewError(InvalidOperation,
+		fmt.Sprintf("value of type %s is not callable", v.Kind()))
 }

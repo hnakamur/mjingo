@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"io"
+	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -73,7 +74,7 @@ loop:
 		var a, b Value
 
 		inst := state.instructions.Instructions()[pc]
-		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, instr.kind, instr)
+		log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
 		switch inst := inst.(type) {
 		case EmitRawInstruction:
 			if _, err := io.WriteString(out, inst.Val); err != nil {
@@ -153,6 +154,14 @@ loop:
 				m.Set(KeyRefFromValue(key), val)
 			}
 			stacks.Push(stack, ValueFromIndexMap(m))
+		case BuildKwargsInstruction:
+			m := NewIndexMapWithCapacity(inst.PairCount)
+			for i := uint(0); i < inst.PairCount; i++ {
+				val := stacks.Pop(stack)
+				key := stacks.Pop(stack)
+				m.Set(KeyRefFromValue(key), val)
+			}
+			stacks.Push[[]Value, Value](stack, mapValue{m: m, mapTyp: mapTypeKwargs})
 		case BuildListInstruction:
 			v := make([]Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
@@ -385,6 +394,35 @@ loop:
 			} else {
 				stacks.DropTop(stack, inst.ArgCount)
 				stacks.Push(stack, ValueFromBool(rv))
+			}
+		case CallFunctionInstruction:
+			if inst.Name == "super" {
+				if inst.ArgCount != 0 {
+					err := NewError(InvalidOperation, "super() takes no arguments")
+					return option.None[Value](), processErr(err, pc, state)
+				}
+				panic("not implemented")
+				// stacks.Push(stack)
+			} else if inst.Name == "loop" {
+				if inst.ArgCount != 1 {
+					err := NewError(InvalidOperation,
+						fmt.Sprintf("loop() takes one argument, got %d", inst.ArgCount))
+					return option.None[Value](), processErr(err, pc, state)
+				}
+				// leave the one argument on the stack for the recursion
+				panic("not implemented")
+			} else if optFunc := state.lookup(inst.Name); option.IsSome(optFunc) {
+				f := option.Unwrap(optFunc)
+				args := stacks.SliceTop(*stack, inst.ArgCount)
+				a, err := f.Call(state, args)
+				if err != nil {
+					return option.None[Value](), err
+				}
+				stacks.DropTop(stack, inst.ArgCount)
+				stacks.Push(stack, a)
+			} else {
+				err := NewError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
+				return option.None[Value](), processErr(err, pc, state)
 			}
 		case DupTopInstruction:
 			if val, ok := stacks.Peek(*stack); ok {
