@@ -163,7 +163,7 @@ loop:
 func (p *parser) parseArgs() ([]expression, error) {
 	args := []expression{}
 	firstSpan := option.None[internal.Span]()
-	kwargs := []kwarg{}
+	kwargs := []kwargExpr{}
 
 	if _, _, err := p.expectToken(isTokenOfType[parenOpenToken], "`(`"); err != nil {
 		return nil, err
@@ -206,14 +206,14 @@ func (p *parser) parseArgs() ([]expression, error) {
 			return nil, err
 		} else if option.IsSome(optVarExp) {
 			varExp := option.Unwrap(optVarExp)
-			if option.IsSome(firstSpan) {
+			if option.IsNone(firstSpan) {
 				firstSpan = option.Some(varExp.span)
 			}
 			arg, err := p.parseExprNoIf()
 			if err != nil {
 				return nil, err
 			}
-			kwargs = append(kwargs, kwarg{key: varExp.id, arg: arg})
+			kwargs = append(kwargs, kwargExpr{key: varExp.id, arg: arg})
 		} else if len(kwargs) != 0 {
 			return nil, syntaxError("non-keyword arg after keyword arg")
 		} else {
@@ -326,7 +326,17 @@ loop:
 			}
 
 		case parenOpenToken:
-			panic("not implemented")
+			args, err := p.parseArgs()
+			if err != nil {
+				return nil, err
+			}
+			exp = callExpr{
+				call: call{
+					expr: exp,
+					args: args,
+				},
+				span: p.stream.expandSpan(spn),
+			}
 		default:
 			break loop
 		}
@@ -790,6 +800,115 @@ func syntaxError(msg string) error {
 	return internal.NewError(internal.SyntaxError, msg)
 }
 
+func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]expression) error {
+	for {
+		if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+			return err
+		} else if matched {
+			break
+		}
+		if len(*args) != 0 {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				return err
+			}
+			if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
+				return err
+			} else if matched {
+				break
+			}
+		}
+		arg, err := p.parseAssignName()
+		if err != nil {
+			return err
+		}
+		*args = append(*args, arg)
+		if matched, err := p.skipToken(isTokenOfType[assignToken]); err != nil {
+			return err
+		} else if matched {
+			expr, err := p.parseExpr()
+			if err != nil {
+				return err
+			}
+			*defaults = append(*defaults, expr)
+		} else if len(*defaults) != 0 {
+			if _, _, err := p.expectToken(isTokenOfType[assignToken], "`=`"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (p *parser) parseMacroOrCallBlockBody(args, defaults []expression, name option.Option[string]) (macroStmt, error) {
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return macroStmt{}, err
+	}
+	oldInMacro := p.inMacro
+	p.inMacro = true
+	body, err := p.subparse(func(tkn token) bool {
+		tk, ok := tkn.(identToken)
+		return ok && (tk.ident == "endmacro" || tk.ident == "endcall") && option.IsSome(name)
+	})
+	if err != nil {
+		return macroStmt{}, err
+	}
+	p.inMacro = oldInMacro
+	if _, _, err := p.stream.next(); err != nil {
+		return macroStmt{}, err
+	}
+	return macroStmt{
+		name:     option.UnwrapOr(name, "caller"),
+		args:     args,
+		defaults: defaults,
+		body:     body,
+	}, nil
+}
+
+func (p *parser) parseMacro() (macroStmt, error) {
+	tkn, _, err := p.expectToken(isTokenOfType[identToken], "identifier")
+	if err != nil {
+		return macroStmt{}, err
+	}
+	name := tkn.(identToken).ident
+	if _, _, err := p.expectToken(isTokenOfType[parenOpenToken], "`(`"); err != nil {
+		return macroStmt{}, err
+	}
+	var args, defaults []expression
+	if err := p.parseMacroArgsAndDefaults(&args, &defaults); err != nil {
+		return macroStmt{}, err
+	}
+	return p.parseMacroOrCallBlockBody(args, defaults, option.Some(name))
+}
+
+func (p *parser) parseCallBlock() (callBlockStmt, error) {
+	spn := p.stream.lastSpan
+	var args, defaults []expression
+	if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+		return callBlockStmt{}, err
+	} else if matched {
+		if err := p.parseMacroArgsAndDefaults(&args, &defaults); err != nil {
+			return callBlockStmt{}, err
+		}
+	}
+	expr, err := p.parseExpr()
+	if err != nil {
+		return callBlockStmt{}, err
+	}
+	callExp, ok := expr.(callExpr)
+	if !ok {
+		return callBlockStmt{}, syntaxError(fmt.Sprintf("expected call expression in call block, got %s", expr.typ().Description()))
+	}
+	macroDecl, err := p.parseMacroOrCallBlockBody(args, defaults, option.None[string]())
+	if err != nil {
+		return callBlockStmt{}, err
+	}
+	macroDecl.span = p.stream.expandSpan(spn)
+	return callBlockStmt{
+		call:      callExp.call,
+		macroDecl: macroDecl,
+	}, nil
+}
+
 func (p *parser) parseDo() (doStmt, error) {
 	expr, err := p.parseExpr()
 	if err != nil {
@@ -799,10 +918,9 @@ func (p *parser) parseDo() (doStmt, error) {
 	if !ok {
 		return doStmt{}, syntaxError(fmt.Sprintf("expected call expression in call block, got %s", expr.typ().Description()))
 	}
-	return doStmt{call: call{
-		expr: callExp.expr,
-		args: callExp.args,
-	}}, nil
+	return doStmt{
+		call: callExp.call,
+	}, nil
 }
 
 func (p *parser) subparse(endCheck func(token) bool) ([]statement, error) {
@@ -917,6 +1035,20 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		return st, nil
 	case "filter":
 		st, err := p.parseFilterBlock()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	case "macro":
+		st, err := p.parseMacro()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	case "call":
+		st, err := p.parseCallBlock()
 		if err != nil {
 			return nil, err
 		}

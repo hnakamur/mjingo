@@ -1,8 +1,24 @@
 package value
 
-import "github.com/hnakamur/mjingo/internal/datast/option"
+import (
+	"github.com/hnakamur/mjingo/internal/datast/option"
+)
+
+type Object interface {
+	Kind() ObjectKind
+	// CallMethod(state *vm.State)
+}
+
+type ObjectKind uint
+
+const (
+	ObjectKindPlain ObjectKind = iota + 1
+	ObjectKindSeq
+	ObjectKindStruct
+)
 
 type SeqObject interface {
+	// Object
 	GetItem(idx uint) option.Option[Value]
 	ItemCount() uint
 }
@@ -15,6 +31,8 @@ type sliceSeqObject struct {
 	values []Value
 }
 
+func (s *sliceSeqObject) Kind() ObjectKind { return ObjectKindSeq }
+
 func (s *sliceSeqObject) GetItem(idx uint) option.Option[Value] {
 	if idx >= uint(len(s.values)) {
 		return option.None[Value]()
@@ -24,4 +42,10 @@ func (s *sliceSeqObject) GetItem(idx uint) option.Option[Value] {
 
 func (s *sliceSeqObject) ItemCount() uint {
 	return uint(len(s.values))
+}
+
+type StructObject interface {
+	GetField(name string) option.Option[Value]
+	StaticFields() option.Option[[]string]
+	Fields() []string
 }

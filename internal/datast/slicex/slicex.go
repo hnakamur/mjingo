@@ -13,3 +13,25 @@ func Delete[S ~[]E, E any](s *S, i, j int) {
 	clear((*s)[i:j])
 	*s = append((*s)[:i], (*s)[j:]...)
 }
+
+// All returns true if predicate returns true for all elements in the slice.
+// All returns true if the slice is empty.
+func All[S ~[]E, E any](s S, predicate func(e E) bool) bool {
+	for _, e := range s {
+		if !predicate(e) {
+			return false
+		}
+	}
+	return true
+}
+
+// Any returns true if predicate returns true for any element in the slice.
+// Any returns false if the slice is empty.
+func Any[S ~[]E, E any](s S, predicate func(e E) bool) bool {
+	for _, e := range s {
+		if predicate(e) {
+			return true
+		}
+	}
+	return false
+}

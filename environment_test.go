@@ -302,6 +302,24 @@ func TestEnvironment(t *testing.T) {
 				context: value.None,
 				want:    "HELLO world",
 			},
+			// {
+			// 	name: "doStmt",
+			// 	source: "{% macro dialog(title) %}\n" +
+			// 		"Dialog is {{ title }}\n" +
+			// 		"{% endmacro %}\n" +
+			// 		"{% do dialog(title=\"Hello World\") %}",
+			// 	context: value.None,
+			// 	want:    "",
+			// },
+			// {
+			// 	name: "callStmt",
+			// 	source: "{% macro dialog(title) %}\n" +
+			// 		"Dialog is {{ title }}\n" +
+			// 		"{% endmacro %}\n" +
+			// 		"{% do dialog(title=\"Hello World\") %}",
+			// 	context: value.None,
+			// 	want:    "Dialog is Hello World",
+			// },
 		})
 	})
 	t.Run("filter", func(t *testing.T) {

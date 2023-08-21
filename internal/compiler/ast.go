@@ -3,6 +3,7 @@ package compiler
 import (
 	"github.com/hnakamur/mjingo/internal"
 	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	"github.com/hnakamur/mjingo/value"
 )
 
@@ -292,8 +293,7 @@ type getItemExpr struct {
 }
 
 type callExpr struct {
-	expr expression
-	args []expression
+	call call
 	span internal.Span
 }
 
@@ -309,13 +309,30 @@ type mapExpr struct {
 }
 
 type kwargsExpr struct {
-	pairs []kwarg
+	pairs []kwargExpr
 	span  internal.Span
 }
 
-type kwarg struct {
+type kwargExpr struct {
 	key string
 	arg expression
+}
+
+func (e kwargsExpr) asConst() option.Option[value.Value] {
+	if !slicex.All(e.pairs, func(x kwargExpr) bool {
+		_, ok := x.arg.(constExpr)
+		return ok
+	}) {
+		return option.None[value.Value]()
+	}
+
+	rv := value.NewIndexMapWithCapacity(uint(len(e.pairs)))
+	for _, pair := range e.pairs {
+		if v, ok := pair.arg.(constExpr); ok {
+			rv.Set(value.KeyRefFromValue(value.FromString(pair.key)), v.value.Clone())
+		}
+	}
+	return option.Some(value.FromKwargs(value.Kwargs{Values: *rv}))
 }
 
 var _ = expression(varExpr{})
@@ -493,4 +510,51 @@ func (m mapExpr) asConst() option.Option[value.Value] {
 		}
 	}
 	return option.Some(value.FromIndexMap(rv))
+}
+
+type callType interface {
+	kind() callTypeKind
+}
+
+type callTypeFunction struct{ name string }
+type callTypeMethod struct {
+	expr expression
+	name string
+}
+type callTypeBlock struct{ name string }
+type callTypeObject struct{ expr expression }
+
+func (callTypeFunction) kind() callTypeKind { return callTypeKindFunction }
+func (callTypeMethod) kind() callTypeKind   { return callTypeKindMethod }
+func (callTypeBlock) kind() callTypeKind    { return callTypeKindBlock }
+func (callTypeObject) kind() callTypeKind   { return callTypeKindObject }
+
+var _ = (callType)(callTypeFunction{})
+var _ = (callType)(callTypeMethod{})
+var _ = (callType)(callTypeBlock{})
+var _ = (callType)(callTypeObject{})
+
+type callTypeKind uint
+
+const (
+	callTypeKindFunction callTypeKind = iota + 1
+	callTypeKindMethod
+	callTypeKindBlock
+	callTypeKindObject
+)
+
+func (c *call) identityCall() callType {
+	switch exp := c.expr.(type) {
+	case varExpr:
+		return callTypeFunction{name: exp.id}
+	case getAttrExpr:
+		if varExp, ok := exp.expr.(varExpr); ok {
+			if varExp.id == "self" {
+				return callTypeBlock{name: exp.name}
+			}
+		}
+		return callTypeMethod{expr: exp.expr, name: exp.name}
+	default:
+		return callTypeObject{expr: c.expr}
+	}
 }

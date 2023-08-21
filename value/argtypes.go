@@ -50,6 +50,10 @@ func FromIndexMap(m *IndexMap) Value {
 	return mapValue{m: m, mapTyp: mapTypeNormal}
 }
 
+func FromKwargs(a Kwargs) Value {
+	return mapValue{m: &a.Values, mapTyp: mapTypeKwargs}
+}
+
 func StringFromValue(value option.Option[Value]) (string, error) {
 	if option.IsSome(value) {
 		optStr := option.Unwrap(value).AsStr()
@@ -72,7 +76,7 @@ type rest[T any] struct {
 	args []T
 }
 
-type kwargs struct {
-	values IndexMap
-	used   map[string]struct{}
+type Kwargs struct {
+	Values IndexMap
+	Used   map[string]struct{}
 }

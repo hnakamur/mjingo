@@ -24,6 +24,9 @@ const (
 	LoopFlagRecursive = 2
 )
 
+// This macro uses the caller var.
+const macroCaller = 2
+
 // Go type to represent locals.
 type LocalID = uint8
 
@@ -104,12 +107,12 @@ type PopAutoEscapeInstruction struct{}
 type BeginCaptureInstruction struct{ Mode CaptureMode }
 type EndCaptureInstruction struct{}
 type CallFunctionInstruction struct {
-	Name string
-	Size uint
+	Name     string
+	ArgCount uint
 }
 type CallMethodInstruction struct {
-	Name string
-	Size uint
+	Name     string
+	ArgCount uint
 }
 type CallObjectInstruction struct{ ArgCount uint }
 type DupTopInstruction struct{}

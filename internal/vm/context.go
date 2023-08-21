@@ -53,7 +53,7 @@ type frame struct {
 	// duplicated into the closure.  Macros declared on that level, then share
 	// the closure object to enclose the parent values.  This emulates the
 	// behavior of closures in Jinja2.
-	closure any
+	closure option.Option[closure]
 }
 
 func newContext(f frame) *context {
@@ -66,6 +66,14 @@ func (c *context) store(key string, val value.Value) {
 	top := &c.stack[len(c.stack)-1]
 	// TODO: implement for top.closure
 	top.locals[key] = val
+}
+
+func (c *context) closure() closure {
+	top := &c.stack[len(c.stack)-1]
+	if option.IsNone(top.closure) {
+		top.closure = option.Some(newClosure())
+	}
+	return option.Unwrap(top.closure).clone()
 }
 
 func (c *context) load(env *Environment, key string) option.Option[value.Value] {
@@ -132,8 +140,10 @@ func (c *context) checkDepth() error {
 
 func newFrame(ctx value.Value) *frame {
 	return &frame{
-		locals: make(map[string]value.Value),
-		ctx:    ctx,
+		locals:      make(map[string]value.Value),
+		ctx:         ctx,
+		currentLoop: option.None[loopState](),
+		closure:     option.None[closure](),
 	}
 }
 

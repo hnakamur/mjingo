@@ -370,6 +370,8 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]value.Valu
 			}
 		case compiler.DiscardTopInstruction:
 			stacks.Pop(stack)
+		// case compiler.GetClosureInstruction:
+		// stacks.Push(stack, value.From(state.ctx.closure()))
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", inst.Typ()))
 		}

@@ -28,6 +28,13 @@ func IsNone[T any](o Option[T]) bool {
 	return !o.valid
 }
 
+func UnwrapOr[T any](o Option[T], defaultVal T) T {
+	if IsSome(o) {
+		return Unwrap(o)
+	}
+	return defaultVal
+}
+
 func MapOr[T any, E any](o Option[T], defaultVal E, f func(v T) E) E {
 	if IsSome(o) {
 		return f(Unwrap(o))

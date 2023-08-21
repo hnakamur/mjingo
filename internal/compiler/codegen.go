@@ -112,6 +112,12 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 		g.add(EndCaptureInstruction{})
 		g.compileExpr(st.filter)
 		g.add(EmitInstruction{})
+	case macroStmt:
+		g.compileMacro(st)
+	case callBlockStmt:
+		g.compileCallBlock(st)
+	case doStmt:
+		g.compileDo(st)
 	default:
 		panic("not implemented")
 	}
@@ -177,6 +183,69 @@ func (g *codeGenerator) compileAssignment(expr expression) {
 	default:
 		panic("unreachable")
 	}
+}
+
+func (g *codeGenerator) compileMacroExpression(macroDecl macroStmt) {
+	g.setLineFromSpan(macroDecl.span)
+	inst := g.add(JumpInstruction{JumpTarget: ^uint(0)})
+	j := len(macroDecl.defaults) - 1
+	for i := len(macroDecl.args) - 1; i >= 0; i-- {
+		if j >= 0 {
+			g.add(DupTopInstruction{})
+			g.add(IsUndefinedInstruction{})
+			g.startIf()
+			g.add(DiscardTopInstruction{})
+			g.compileExpr(macroDecl.defaults[j])
+			g.endIf()
+			j--
+		}
+		g.compileAssignment(macroDecl.args[i])
+	}
+	for _, node := range macroDecl.body {
+		g.CompileStmt(node)
+	}
+	undeclared := findMacroClosure(macroDecl)
+	callerReference := undeclared.Contains("caller")
+	undeclared.Delete("caller")
+	macroInst := g.nextInstruction()
+	for _, name := range undeclared.Keys() {
+		g.add(EncloseInstruction{Name: name})
+	}
+	g.add(GetClosureInstruction{})
+	ids := make([]value.Value, 0, len(macroDecl.args))
+	for _, arg := range macroDecl.args {
+		if varExp, ok := arg.(varExpr); ok {
+			ids = append(ids, value.FromString(varExp.id))
+		} else {
+			panic("unreachable")
+		}
+	}
+	g.add(LoadConstInstruction{Val: value.FromSlice(ids)})
+	flags := uint8(0)
+	if callerReference {
+		flags |= macroCaller
+	}
+	g.add(BuildMacroInstruction{Name: macroDecl.name, Size: inst + 1, Kind: flags})
+	if g.instructions.instructions[inst].Typ() == instTypeJump {
+		g.instructions.instructions[inst] = JumpInstruction{JumpTarget: macroInst}
+	} else {
+		panic("unreachable")
+	}
+	g.add(ReturnInstruction{})
+}
+
+func (g *codeGenerator) compileMacro(macroDecl macroStmt) {
+	g.compileMacroExpression(macroDecl)
+	g.add(StoreLocalInstruction{Name: macroDecl.name})
+}
+
+func (g *codeGenerator) compileCallBlock(callBlock callBlockStmt) {
+	g.compileCall(callBlock.call, callBlock.span, option.Some(callBlock.macroDecl))
+	g.add(EmitInstruction{})
+}
+
+func (g *codeGenerator) compileDo(doTag doStmt) {
+	g.compileCall(doTag.call, doTag.span, option.None[macroStmt]())
 }
 
 func (g *codeGenerator) compileIfStmt(ifCond ifCondStmt) {
@@ -277,6 +346,8 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		g.compileExpr(exp.subscriptExpr)
 		g.add(GetItemInstruction{})
 		g.popSpan()
+	case callExpr:
+		g.compileCall(exp.call, exp.span, option.None[macroStmt]())
 	case listExpr:
 		if v := exp.asConst(); option.IsSome(v) {
 			g.add(LoadConstInstruction{Val: option.Unwrap(v)})
@@ -302,9 +373,84 @@ func (g *codeGenerator) compileExpr(exp expression) {
 			}
 			g.add(BuildMapInstruction{PairCount: uint(len(exp.keys))})
 		}
+	case kwargsExpr:
+		optVal := exp.asConst()
+		if option.IsSome(optVal) {
+			g.add(LoadConstInstruction{Val: option.Unwrap(optVal)})
+		} else {
+			g.setLineFromSpan(exp.span)
+			for _, pair := range exp.pairs {
+				g.add(LoadConstInstruction{Val: value.FromString(pair.key)})
+				g.compileExpr(pair.arg)
+			}
+			g.add(BuildKwargsInstruction{PairCount: uint(len(exp.pairs))})
+		}
 	default:
 		panic(fmt.Sprintf("not implemented for exprType: %s", exp.typ()))
 	}
+}
+
+func (g *codeGenerator) compileCall(c call, spn internal.Span, caller option.Option[macroStmt]) {
+	g.pushSpan(spn)
+	switch ct := c.identityCall().(type) {
+	case callTypeFunction:
+		argCount := g.compileCallArgs(c.args, caller)
+		g.add(CallFunctionInstruction{Name: ct.name, ArgCount: argCount})
+	case callTypeBlock:
+		g.add(BeginCaptureInstruction{Mode: CaptureModeCapture})
+		g.add(CallBlockInstruction{Name: ct.name})
+		g.add(EndCaptureInstruction{})
+	case callTypeMethod:
+		g.compileExpr(ct.expr)
+		argCount := g.compileCallArgs(c.args, caller)
+		g.add(CallMethodInstruction{Name: ct.name, ArgCount: argCount + 1})
+	case callTypeObject:
+		g.compileExpr(ct.expr)
+		argCount := g.compileCallArgs(c.args, caller)
+		g.add(CallObjectInstruction{ArgCount: argCount + 1})
+	}
+	g.popSpan()
+}
+
+func (g *codeGenerator) compileCallArgs(args []expression, caller option.Option[macroStmt]) uint {
+	if option.IsSome(caller) {
+		return g.compileCallArgsWithCaller(args, option.Unwrap(caller))
+	}
+	for _, arg := range args {
+		g.compileExpr(arg)
+	}
+	return uint(len(args))
+}
+
+func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macroStmt) uint {
+	injectedCaller := false
+
+	// try to add the caller to already existing keyword arguments.
+	for _, arg := range args {
+		if m, ok := arg.(kwargsExpr); ok {
+			g.setLineFromSpan(m.span)
+			for _, pair := range m.pairs {
+				g.add(LoadConstInstruction{Val: value.FromString(pair.key)})
+				g.compileExpr(pair.arg)
+			}
+			g.add(LoadConstInstruction{Val: value.FromString("caller")})
+			g.compileMacroExpression(caller)
+			g.add(BuildKwargsInstruction{PairCount: uint(len(m.pairs)) + 1})
+			injectedCaller = true
+		} else {
+			g.compileExpr(arg)
+		}
+	}
+
+	// if there are no keyword args so far, create a new kwargs object
+	// and add caller to that.
+	if !injectedCaller {
+		g.add(LoadConstInstruction{Val: value.FromString("caller")})
+		g.compileMacroExpression(caller)
+		g.add(BuildKwargsInstruction{PairCount: 1})
+		return uint(len(args)) + 1
+	}
+	return uint(len(args))
 }
 
 func (g *codeGenerator) startForLoop(withLoopVar, recursive bool) {
