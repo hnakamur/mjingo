@@ -2,20 +2,18 @@ package mjingo
 
 import (
 	"github.com/hnakamur/mjingo/internal"
-	"github.com/hnakamur/mjingo/internal/compiler"
-	"github.com/hnakamur/mjingo/internal/vm"
 )
 
-type Environment = vm.Environment
-type Template = vm.Template
+type Environment = internal.Environment
+type Template = internal.Template
 
-type AutoEscape = compiler.AutoEscape
-type AutoEscapeNone = compiler.AutoEscapeNone
-type AutoEscapeHTML = compiler.AutoEscapeHTML
-type AutoEscapeJSON = compiler.AutoEscapeJSON
-type AutoEscapeCustom = compiler.AutoEscapeCustom
+type AutoEscape = internal.AutoEscape
+type AutoEscapeNone = internal.AutoEscapeNone
+type AutoEscapeHTML = internal.AutoEscapeHTML
+type AutoEscapeJSON = internal.AutoEscapeJSON
+type AutoEscapeCustom = internal.AutoEscapeCustom
 
-type UndefinedBehavior = compiler.UndefinedBehavior
+type UndefinedBehavior = internal.UndefinedBehavior
 
 const (
 	// The default, somewhat lenient undefined behavior.
@@ -23,21 +21,21 @@ const (
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** fails
-	UndefinedBehaviorLenient = compiler.UndefinedBehaviorLenient
+	UndefinedBehaviorLenient = internal.UndefinedBehaviorLenient
 
 	// Like `Lenient`, but also allows chaining of undefined lookups.
 	//
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** allowed (returns [`undefined`](Value::UNDEFINED))
-	UndefinedBehaviorChainable = compiler.UndefinedBehaviorChainable
+	UndefinedBehaviorChainable = internal.UndefinedBehaviorChainable
 
 	// Complains very quickly about undefined values.
 	//
 	// * **printing:** fails
 	// * **iteration:** fails
 	// * **attribute access of undefined values:** fails
-	UndefinedBehaviorStrict = compiler.UndefinedBehaviorStrict
+	UndefinedBehaviorStrict = internal.UndefinedBehaviorStrict
 
 	UndefinedBehaviorDefault = UndefinedBehaviorLenient
 )
@@ -45,5 +43,5 @@ const (
 type Error = internal.Error
 
 func NewEnvironment() *Environment {
-	return vm.NewEnvironment()
+	return internal.NewEnvironment()
 }

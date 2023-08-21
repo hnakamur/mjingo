@@ -48,15 +48,15 @@ const (
 	BadEscape ErrorType = 12
 	// An operation on an undefined value was attempted.
 	UndefinedError ErrorType = 13
-	// Not able to serialize this value.
+	// Not able to serialize this
 	BadSerialization ErrorType = 14
-	// Not able to deserialize this value.
+	// Not able to deserialize this
 	CannotDeserialize ErrorType = 15
 	// An error happened in an include.
 	BadInclude ErrorType = 16
 	// An error happened in a super block.
 	EvalBlock ErrorType = 17
-	// Unable to unpack a value.
+	// Unable to unpack a
 	CannotUnpack ErrorType = 18
 	// Failed writing output.
 	WriteFailure ErrorType = 19
