@@ -165,7 +165,7 @@ func Div(lhs, rhs Value) (Value, error) {
 	optB := rhs.AsF64()
 	if option.IsSome(optA) && option.IsSome(optB) {
 		d := option.Unwrap(optA) / option.Unwrap(optB)
-		return FromF64(d), nil
+		return ValueFromF64(d), nil
 	}
 	return nil, impossibleOp("/", lhs, rhs)
 }
@@ -227,7 +227,7 @@ func Contains(container Value, val Value) (Value, error) {
 	// Special case where if the container is undefined, it cannot hold
 	// values.  For strict containment checks the vm has a special case.
 	if container.IsUndefined() {
-		return FromBool(false), nil
+		return ValueFromBool(false), nil
 	}
 	var rv bool
 	if optContainerStr := container.AsStr(); option.IsSome(optContainerStr) {
@@ -256,7 +256,7 @@ func Contains(container Value, val Value) (Value, error) {
 		return nil, NewError(InvalidOperation,
 			"cannot perform a containment check on this value")
 	}
-	return FromBool(rv), nil
+	return ValueFromBool(rv), nil
 }
 
 type coerceResult interface {

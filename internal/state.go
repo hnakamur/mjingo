@@ -11,6 +11,7 @@ type State struct {
 	autoEscape   AutoEscape
 	instructions Instructions
 	blocks       map[string]blockStack
+	macros       []tuple2[Instructions, uint]
 }
 
 type locals = map[string]Value

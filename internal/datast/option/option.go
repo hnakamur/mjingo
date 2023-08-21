@@ -42,6 +42,13 @@ func MapOr[T any, E any](o Option[T], defaultVal E, f func(v T) E) E {
 	return defaultVal
 }
 
+func AndThen[T any, U any](o Option[T], f func(v T) U) Option[U] {
+	if IsSome(o) {
+		return Some(f(Unwrap(o)))
+	}
+	return None[U]()
+}
+
 func AsPtr[T any](o *Option[T]) *T {
 	if IsSome(*o) {
 		return &o.data

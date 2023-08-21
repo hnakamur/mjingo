@@ -43,8 +43,8 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "var",
 				source: "Hello {{ name }}",
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("name"), Value: internal.FromString("World"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("name"), Value: internal.ValueFromString("World"),
 				}})),
 				want: "Hello World",
 			},
@@ -87,11 +87,11 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "getFastAttr",
 				source: `Hello {{ user.name }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
 					Key: internal.KeyRefFromString("user"),
-					Value: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Value: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
 						Key:   internal.KeyRefFromString("name"),
-						Value: internal.FromString("John"),
+						Value: internal.ValueFromString("John"),
 					}})),
 				}})),
 				want: "Hello John",
@@ -99,11 +99,11 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "getItemOpt",
 				source: `Hello {{ user["name"] }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
 					Key: internal.KeyRefFromString("user"),
-					Value: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-						Key:   internal.KeyRefFromValue(internal.FromString("name")),
-						Value: internal.FromString("John"),
+					Value: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+						Key:   internal.KeyRefFromValue(internal.ValueFromString("name")),
+						Value: internal.ValueFromString("John"),
 					}})),
 				}})),
 				want: "Hello John",
@@ -123,8 +123,8 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "sliceVarElem",
 				source: `Hello {{ ["John", name][1] }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("name"), Value: internal.FromString("Paul"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("name"), Value: internal.ValueFromString("Paul"),
 				}})),
 				want: "Hello Paul",
 			},
@@ -137,8 +137,8 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "mapVarValue",
 				source: `Hello {{ {"name": name}["name"] }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("name"), Value: internal.FromString("Paul"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("name"), Value: internal.ValueFromString("Paul"),
 				}})),
 				want: "Hello Paul",
 			},
@@ -181,8 +181,8 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "stringConcat",
 				source: `{{ "Hello " ~ name ~ "!" }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("name"), Value: internal.FromString("John"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("name"), Value: internal.ValueFromString("John"),
 				}})),
 				want: "Hello John!",
 			},
@@ -212,42 +212,42 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "ifStmtNoElse",
 				source: `{% if down %}I am down{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("down"), Value: internal.FromBool(true),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("down"), Value: internal.ValueFromBool(true),
 				}})),
 				want: "I am down",
 			},
 			{
 				name:   "ifStmtWithElse",
 				source: `{% if down %}I am down{% else %}I am up{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("down"), Value: internal.FromBool(false),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("down"), Value: internal.ValueFromBool(false),
 				}})),
 				want: "I am up",
 			},
 			{
 				name:   "ifExprNoElse",
 				source: `{{ "I am down" if down }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("down"), Value: internal.FromBool(true),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("down"), Value: internal.ValueFromBool(true),
 				}})),
 				want: "I am down",
 			},
 			{
 				name:   "ifExprWithElse",
 				source: `{{ "I am down" if down else "I am up" }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("down"), Value: internal.FromBool(false),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("down"), Value: internal.ValueFromBool(false),
 				}})),
 				want: "I am up",
 			},
 			{
 				name:   "forStmtNoElse",
 				source: `{% for name in names %}{{ name }} {% endfor %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("names"), Value: internal.FromSlice([]internal.Value{
-						internal.FromString("John"),
-						internal.FromString("Paul"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("names"), Value: internal.ValueFromSlice([]internal.Value{
+						internal.ValueFromString("John"),
+						internal.ValueFromString("Paul"),
 					}),
 				}})),
 				want: "John Paul ",
@@ -291,8 +291,8 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "autoEscapeStmt",
 				source: `{% autoescape "html" %}{{ unsafe }}{% endautoescape %} {% autoescape "none" %}{{ unsafe }}{% endautoescape %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("unsafe"), Value: internal.FromString("<foo>"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("unsafe"), Value: internal.ValueFromString("<foo>"),
 				}})),
 				want: "&lt;foo&gt; <foo>",
 			},
@@ -311,15 +311,23 @@ func TestEnvironment(t *testing.T) {
 			// 	context: internal.None,
 			// 	want:    "",
 			// },
-			// {
-			// 	name: "callStmt",
-			// 	source: "{% macro dialog(title) %}\n" +
-			// 		"Dialog is {{ title }}\n" +
-			// 		"{% endmacro %}\n" +
-			// 		"{% do dialog(title=\"Hello World\") %}",
-			// 	context: internal.None,
-			// 	want:    "Dialog is Hello World",
-			// },
+			{
+				name: "callStmt",
+				source: "{% macro dialog(title) %}\n" +
+					"  <div class=\"dialog\">\n" +
+					"    <h3>{{ title }}</h3>\n" +
+					"    <div class=\"contents\">{{ caller() }}</div>\n" +
+					"  </div>\n" +
+					"{% endmacro %}\n" +
+					"{% call dialog(title=\"Hello World\") %}\n" +
+					"  This is the dialog body.\n" +
+					"{% endcall %}",
+				context: internal.None,
+				want: "  <div class=\"dialog\">\n" +
+					"    <h3>Hello World</h3>\n" +
+					"    <div class=\"contents\">This is the dialog body.</div>\n" +
+					"  </div>",
+			},
 		})
 	})
 	t.Run("filter", func(t *testing.T) {
@@ -327,16 +335,16 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "escape",
 				source: `{{ v|escape }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("v"), Value: internal.FromString("<br/>"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("v"), Value: internal.ValueFromString("<br/>"),
 				}})),
 				want: "&lt;br/&gt;",
 			},
 			{
 				name:   "safeEscape",
 				source: `{{ v|safe|e }}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("v"), Value: internal.FromString("<br/>"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("v"), Value: internal.ValueFromString("<br/>"),
 				}})),
 				want: "<br/>",
 			},
@@ -354,7 +362,7 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "isDefined",
 				source: `{% if v is defined %}I am defined{% else %}I am fallback{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
 					Key: internal.KeyRefFromString("v"), Value: internal.None,
 				}})),
 				want: "I am defined",
@@ -368,7 +376,7 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "isNone",
 				source: `{% if v is none %}I am none{% else %}I am not none{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
 					Key: internal.KeyRefFromString("v"), Value: internal.None,
 				}})),
 				want: "I am none",
@@ -376,24 +384,24 @@ func TestEnvironment(t *testing.T) {
 			{
 				name:   "isSafeTrue",
 				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("v"), Value: internal.FromSafeString("s"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("v"), Value: internal.ValueFromSafeString("s"),
 				}})),
 				want: "I am safe",
 			},
 			{
 				name:   "isSafeFalse",
 				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("v"), Value: internal.FromString("s"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("v"), Value: internal.ValueFromString("s"),
 				}})),
 				want: "I am not safe",
 			},
 			{
 				name:   "isEscaped",
 				source: `{% if v is escaped %}I am safe{% else %}I am not safe{% endif %}`,
-				context: internal.FromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
-					Key: internal.KeyRefFromString("v"), Value: internal.FromSafeString("s"),
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("v"), Value: internal.ValueFromSafeString("s"),
 				}})),
 				want: "I am safe",
 			},

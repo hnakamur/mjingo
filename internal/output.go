@@ -62,9 +62,9 @@ func (o *Output) endCapture(escape AutoEscape) Value {
 	if builder, ok := w.(*strings.Builder); ok {
 		str := builder.String()
 		if _, ok := escape.(AutoEscapeNone); !ok {
-			return FromSafeString(str)
+			return ValueFromSafeString(str)
 		} else {
-			return FromString(str)
+			return ValueFromString(str)
 		}
 	}
 	return Undefined

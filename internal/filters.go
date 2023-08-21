@@ -43,7 +43,7 @@ func filterFuncFromFilterWithStrArgStrRet(f func(val string) string) func(*State
 		if err != nil {
 			return nil, err
 		}
-		return FromString(f(a)), nil
+		return ValueFromString(f(a)), nil
 	}
 }
 
@@ -65,7 +65,7 @@ func filterFuncFromFilterWithStateStrStrStrArgStrRet(f func(state *State, v1, v2
 		if err != nil {
 			return nil, err
 		}
-		return FromString(f(state, a, b, c)), nil
+		return ValueFromString(f(state, a, b, c)), nil
 	}
 }
 
@@ -79,12 +79,12 @@ func filterFuncFromFilterWithValArgUintErrRet(f func(val Value) (uint, error)) f
 		if err != nil {
 			return nil, err
 		}
-		return FromI64(int64(l)), nil
+		return ValueFromI64(int64(l)), nil
 	}
 }
 
 func safe(v string) Value {
-	return FromSafeString(v)
+	return ValueFromSafeString(v)
 }
 
 func escape(state *State, v Value) (Value, error) {
@@ -109,7 +109,7 @@ func escape(state *State, v Value) (Value, error) {
 	if err := writeEscaped(out, autoEscape, v); err != nil {
 		return nil, err
 	}
-	return FromSafeString(b.String()), nil
+	return ValueFromSafeString(b.String()), nil
 }
 
 func lower(s string) string {

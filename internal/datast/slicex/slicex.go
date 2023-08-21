@@ -35,3 +35,15 @@ func Any[S ~[]E, E any](s S, predicate func(e E) bool) bool {
 	}
 	return false
 }
+
+// Map returns a new slice whose elements are converted with f from elements in s.
+func Map[S ~[]E, E any, T any](s S, f func(e E) T) []T {
+	if s == nil {
+		return nil
+	}
+	ret := make([]T, len(s))
+	for i, e := range s {
+		ret[i] = f(e)
+	}
+	return ret
+}

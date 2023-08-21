@@ -6,8 +6,15 @@ import (
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	"github.com/hnakamur/mjingo/internal/datast/stacks"
 )
+
+// the cost of a single include against the stack limit.
+const includeRecursionConst = 10
+
+// the cost of a single macro call against the stack limit.
+const macroRecursionConst = 5
 
 type virtualMachine struct {
 	env *Environment
@@ -27,12 +34,31 @@ func (m *virtualMachine) eval(instructions Instructions, root Value, blocks map[
 	return m.evalState(&state, out)
 }
 
+func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
+	caller option.Option[Value], out *Output, state *State, args []Value) (option.Option[Value], error) {
+	ctx := newContext(*newFrame(closure))
+	if option.IsSome(caller) {
+		ctx.store("caller", option.Unwrap(caller))
+	}
+	if err := ctx.incrDepth(state.ctx.depth() + macroRecursionConst); err != nil {
+		return option.None[Value](), err
+	}
+
+	return m.evalImpl(&State{
+		env:          m.env,
+		ctx:          *ctx,
+		currentBlock: option.None[string](),
+		autoEscape:   state.autoEscape,
+		instructions: insts,
+		blocks:       make(map[string]blockStack),
+		macros:       state.macros, // TODO: clone
+	}, out, &args, pc)
+}
+
 func (m *virtualMachine) evalState(state *State, out *Output) (option.Option[Value], error) {
 	var stack []Value
 	return m.evalImpl(state, out, &stack, 0)
 }
-
-// type autoEscapeStack = stack[autoEscape]
 
 func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc uint) (option.Option[Value], error) {
 	initialAutoEscape := state.autoEscape
@@ -42,6 +68,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 	loadedFilters := [MaxLocals]option.Option[FilterFunc]{}
 	loadedTests := [MaxLocals]option.Option[TestFunc]{}
 
+loop:
 	for pc < uint(len(state.instructions.Instructions())) {
 		var a, b Value
 
@@ -125,14 +152,14 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 				key := stacks.Pop(stack)
 				m.Set(KeyRefFromValue(key), val)
 			}
-			stacks.Push(stack, FromIndexMap(m))
+			stacks.Push(stack, ValueFromIndexMap(m))
 		case BuildListInstruction:
 			v := make([]Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
 				v = append(v, stacks.Pop(stack))
 			}
 			slices.Reverse(v)
-			stacks.Push(stack, FromSlice(v))
+			stacks.Push(stack, ValueFromSlice(v))
 		case UnpackListInstruction:
 			if err := m.unpackList(stack, inst.Count); err != nil {
 				return option.None[Value](), err
@@ -206,30 +233,30 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 		case EqInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(Equal(a, b)))
+			stacks.Push(stack, ValueFromBool(Equal(a, b)))
 		case NeInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(!Equal(a, b)))
+			stacks.Push(stack, ValueFromBool(!Equal(a, b)))
 		case GtInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(Cmp(a, b) > 0))
+			stacks.Push(stack, ValueFromBool(Cmp(a, b) > 0))
 		case GteInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(Cmp(a, b) >= 0))
+			stacks.Push(stack, ValueFromBool(Cmp(a, b) >= 0))
 		case LtInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(Cmp(a, b) < 0))
+			stacks.Push(stack, ValueFromBool(Cmp(a, b) < 0))
 		case LteInstruction:
 			b = stacks.Pop(stack)
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(Cmp(a, b) <= 0))
+			stacks.Push(stack, ValueFromBool(Cmp(a, b) <= 0))
 		case NotInstruction:
 			a = stacks.Pop(stack)
-			stacks.Push(stack, FromBool(!a.IsTrue()))
+			stacks.Push(stack, ValueFromBool(!a.IsTrue()))
 		case StringConcatInstruction:
 			a = stacks.Pop(stack)
 			b = stacks.Pop(stack)
@@ -357,7 +384,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stacks.DropTop(stack, inst.ArgCount)
-				stacks.Push(stack, FromBool(rv))
+				stacks.Push(stack, ValueFromBool(rv))
 			}
 		case DupTopInstruction:
 			if val, ok := stacks.Peek(*stack); ok {
@@ -367,8 +394,13 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 			}
 		case DiscardTopInstruction:
 			stacks.Pop(stack)
-		// case GetClosureInstruction:
-		// stacks.Push(stack, From(state.ctx.closure()))
+		case BuildMacroInstruction:
+			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
+		case ReturnInstruction:
+			break loop
+		case GetClosureInstruction:
+			closure := state.ctx.closure()
+			stacks.Push(stack, ValueFromObject(&closure))
 		default:
 			panic(fmt.Sprintf("not implemented for instruction %s", inst.Typ()))
 		}
@@ -457,6 +489,33 @@ func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {
 		stacks.Push(stack, item)
 	}
 	return nil
+}
+
+func (m *virtualMachine) buildMacro(stack *[]Value, state *State, offset uint, name string, flags uint8) {
+	var argSpec []string
+	if args, ok := stacks.Pop(stack).(SeqValue); ok {
+		argSpec = slicex.Map(args.items, func(arg Value) string {
+			if strVal, ok := arg.(stringValue); ok {
+				return strVal.str
+			}
+			panic("unreachable")
+		})
+	} else {
+		panic("unreachable")
+	}
+	closure := stacks.Pop(stack)
+	macroRefID := uint(len(state.macros))
+	stacks.Push(&state.macros, tuple2[Instructions, uint]{a: state.instructions, b: offset})
+	macro := &Macro{
+		data: MacroData{
+			name:            name,
+			argSpec:         argSpec,
+			macroRefID:      macroRefID,
+			closure:         closure,
+			callerReference: flags&macroCaller != 0,
+		},
+	}
+	stacks.Push(stack, ValueFromObject(macro))
 }
 
 func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() option.Option[T]) option.Option[T] {

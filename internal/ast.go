@@ -327,10 +327,10 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 	rv := NewIndexMapWithCapacity(uint(len(e.pairs)))
 	for _, pair := range e.pairs {
 		if v, ok := pair.arg.(constExpr); ok {
-			rv.Set(KeyRefFromValue(FromString(pair.key)), v.val.Clone())
+			rv.Set(KeyRefFromValue(ValueFromString(pair.key)), v.val.Clone())
 		}
 	}
-	return option.Some(FromKwargs(Kwargs{Values: *rv}))
+	return option.Some(ValueFromKwargs(Kwargs{Values: *rv}))
 }
 
 var _ = expression(varExpr{})
@@ -484,7 +484,7 @@ func (l listExpr) asConst() option.Option[Value] {
 			seq = append(seq, item.val)
 		}
 	}
-	return option.Some(FromSlice(seq))
+	return option.Some(ValueFromSlice(seq))
 }
 
 func (m mapExpr) asConst() option.Option[Value] {
@@ -507,7 +507,7 @@ func (m mapExpr) asConst() option.Option[Value] {
 			rv.Set(keyRf, val.(constExpr).val)
 		}
 	}
-	return option.Some(FromIndexMap(rv))
+	return option.Some(ValueFromIndexMap(rv))
 }
 
 type callType interface {

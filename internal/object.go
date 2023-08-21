@@ -4,7 +4,14 @@ import "github.com/hnakamur/mjingo/internal/datast/option"
 
 type Object interface {
 	Kind() ObjectKind
-	// CallMethod(state *vm.State)
+}
+
+type CallMethoder interface {
+	CallMethod(state *State, name string, args []Value) (Value, error)
+}
+
+type Caller interface {
+	Call(state *State, args []Value) (Value, error)
 }
 
 type ObjectKind uint
@@ -16,7 +23,6 @@ const (
 )
 
 type SeqObject interface {
-	// Object
 	GetItem(idx uint) option.Option[Value]
 	ItemCount() uint
 }

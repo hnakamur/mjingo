@@ -117,17 +117,29 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 	case doStmt:
 		g.compileDo(st)
 	default:
-		panic("not implemented")
+		panic(fmt.Sprintf("not implemented, st=%+v (%T)", st, st))
 	}
 }
 
 func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	g.setLineFromSpan(exp.span)
 
-	if _, ok := exp.expr.(callExpr); ok {
-		panic("not implemented")
+	if callExpr, ok := exp.expr.(callExpr); ok {
+		switch ct := callExpr.call.identityCall().(type) {
+		case callTypeFunction:
+			if ct.name == "super" && len(callExpr.call.args) == 0 {
+				g.addWithSpan(FastSuperInstruction{}, callExpr.span)
+				return
+			} else if ct.name == "loop" && len(callExpr.call.args) == 1 {
+				g.compileExpr(callExpr.call.args[0])
+				g.add(FastRecurseInstruction{})
+				return
+			}
+		case callTypeBlock:
+			g.add(CallBlockInstruction{Name: ct.name})
+			return
+		}
 	}
-
 	g.compileExpr(exp.expr)
 	g.add(EmitInstruction{})
 }
@@ -213,17 +225,17 @@ func (g *codeGenerator) compileMacroExpression(macroDecl macroStmt) {
 	ids := make([]Value, 0, len(macroDecl.args))
 	for _, arg := range macroDecl.args {
 		if varExp, ok := arg.(varExpr); ok {
-			ids = append(ids, FromString(varExp.id))
+			ids = append(ids, ValueFromString(varExp.id))
 		} else {
 			panic("unreachable")
 		}
 	}
-	g.add(LoadConstInstruction{Val: FromSlice(ids)})
+	g.add(LoadConstInstruction{Val: ValueFromSlice(ids)})
 	flags := uint8(0)
 	if callerReference {
 		flags |= macroCaller
 	}
-	g.add(BuildMacroInstruction{Name: macroDecl.name, Size: inst + 1, Kind: flags})
+	g.add(BuildMacroInstruction{Name: macroDecl.name, Offset: inst + 1, Flags: flags})
 	if g.instructions.instructions[inst].Typ() == instTypeJump {
 		g.instructions.instructions[inst] = JumpInstruction{JumpTarget: macroInst}
 	} else {
@@ -276,7 +288,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		if option.IsSome(exp.start) {
 			g.compileExpr(option.Unwrap(exp.start))
 		} else {
-			g.add(LoadConstInstruction{Val: FromI64(int64(0))})
+			g.add(LoadConstInstruction{Val: ValueFromI64(int64(0))})
 		}
 		if option.IsSome(exp.stop) {
 			g.compileExpr(option.Unwrap(exp.stop))
@@ -286,7 +298,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		if option.IsSome(exp.step) {
 			g.compileExpr(option.Unwrap(exp.step))
 		} else {
-			g.add(LoadConstInstruction{Val: FromI64(int64(1))})
+			g.add(LoadConstInstruction{Val: ValueFromI64(int64(1))})
 		}
 		g.add(SliceInstruction{})
 		g.popSpan()
@@ -378,7 +390,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		} else {
 			g.setLineFromSpan(exp.span)
 			for _, pair := range exp.pairs {
-				g.add(LoadConstInstruction{Val: FromString(pair.key)})
+				g.add(LoadConstInstruction{Val: ValueFromString(pair.key)})
 				g.compileExpr(pair.arg)
 			}
 			g.add(BuildKwargsInstruction{PairCount: uint(len(exp.pairs))})
@@ -428,10 +440,10 @@ func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macr
 		if m, ok := arg.(kwargsExpr); ok {
 			g.setLineFromSpan(m.span)
 			for _, pair := range m.pairs {
-				g.add(LoadConstInstruction{Val: FromString(pair.key)})
+				g.add(LoadConstInstruction{Val: ValueFromString(pair.key)})
 				g.compileExpr(pair.arg)
 			}
-			g.add(LoadConstInstruction{Val: FromString("caller")})
+			g.add(LoadConstInstruction{Val: ValueFromString("caller")})
 			g.compileMacroExpression(caller)
 			g.add(BuildKwargsInstruction{PairCount: uint(len(m.pairs)) + 1})
 			injectedCaller = true
@@ -443,7 +455,7 @@ func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macr
 	// if there are no keyword args so far, create a new kwargs object
 	// and add caller to that.
 	if !injectedCaller {
-		g.add(LoadConstInstruction{Val: FromString("caller")})
+		g.add(LoadConstInstruction{Val: ValueFromString("caller")})
 		g.compileMacroExpression(caller)
 		g.add(BuildKwargsInstruction{PairCount: 1})
 		return uint(len(args)) + 1

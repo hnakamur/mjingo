@@ -359,20 +359,20 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	case identToken:
 		switch tkn.ident {
 		case "true", "True":
-			return makeConst(FromBool(true), *spn), nil
+			return makeConst(ValueFromBool(true), *spn), nil
 		case "false", "False":
-			return makeConst(FromBool(false), *spn), nil
+			return makeConst(ValueFromBool(false), *spn), nil
 		case "none", "None":
 			return makeConst(None, *spn), nil
 		default:
 			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
 	case stringToken:
-		return makeConst(FromString(tkn.s), *spn), nil
+		return makeConst(ValueFromString(tkn.s), *spn), nil
 	case intToken:
-		return makeConst(FromI64(tkn.n), *spn), nil
+		return makeConst(ValueFromI64(tkn.n), *spn), nil
 	case floatToken:
-		return makeConst(FromF64(tkn.f), *spn), nil
+		return makeConst(ValueFromF64(tkn.f), *spn), nil
 	case parenOpenToken:
 		return p.parseTupleOrExpression(*spn)
 	case bracketOpenToken:
@@ -845,7 +845,8 @@ func (p *parser) parseMacroOrCallBlockBody(args, defaults []expression, name opt
 	p.inMacro = true
 	body, err := p.subparse(func(tkn token) bool {
 		tk, ok := tkn.(identToken)
-		return ok && (tk.ident == "endmacro" || tk.ident == "endcall") && option.IsSome(name)
+		return ok && ((tk.ident == "endmacro" && option.IsSome(name)) ||
+			(tk.ident == "endcall" && option.IsNone(name)))
 	})
 	if err != nil {
 		return macroStmt{}, err

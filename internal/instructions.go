@@ -122,9 +122,9 @@ type LoadBlocksInstruction struct{}
 type IncludeInstruction struct{ IgnoreMissing bool }
 type ExportLocalsInstruction struct{}
 type BuildMacroInstruction struct {
-	Name string
-	Size uint
-	Kind uint8
+	Name   string
+	Offset uint
+	Flags  uint8
 }
 type ReturnInstruction struct{}
 type IsUndefinedInstruction struct{}

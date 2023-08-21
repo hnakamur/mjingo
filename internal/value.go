@@ -156,7 +156,7 @@ type mapValue struct {
 	mapTyp mapType
 }
 type dynamicValue struct {
-	// TODO: implement
+	dy Object
 }
 
 // / The type of map
