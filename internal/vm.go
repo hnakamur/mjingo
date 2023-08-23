@@ -49,7 +49,7 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 	caller option.Option[Value], out *Output, state *State, args []Value) (option.Option[Value], error) {
 	ctx := newContext(*newFrame(closure))
 	if option.IsSome(caller) {
-		ctx.store("caller", option.Unwrap(caller))
+		ctx.store("caller", caller.Unwrap())
 	}
 	if err := ctx.incrDepth(state.ctx.depth() + macroRecursionConst); err != nil {
 		return option.None[Value](), err
@@ -97,7 +97,7 @@ loop:
 			// `LoadBlocks`).  If we do find instructions, we reset back to 0
 			// from the new instructions.
 			if option.IsSome(parentInstructions) {
-				state.instructions = option.Unwrap(parentInstructions)
+				state.instructions = parentInstructions.Unwrap()
 				parentInstructions = option.None[Instructions]()
 			} else {
 				break loop
@@ -125,7 +125,7 @@ loop:
 		case LookupInstruction:
 			var v Value
 			if val := state.lookup(inst.Name); option.IsSome(val) {
-				v = option.Unwrap(val)
+				v = val.Unwrap()
 			} else {
 				v = Undefined
 			}
@@ -138,7 +138,7 @@ loop:
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
 			if v := a.GetAttrFast(inst.Name); option.IsSome(v) {
-				if v, err := assertValid(option.Unwrap(v), pc, state); err != nil {
+				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
 					stacks.Push(stack, v)
@@ -154,7 +154,7 @@ loop:
 			a = stacks.Pop(stack)
 			b = stacks.Pop(stack)
 			if v := b.GetItemOpt(a); option.IsSome(v) {
-				if v, err := assertValid(option.Unwrap(v), pc, state); err != nil {
+				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
 					stacks.Push(stack, v)
@@ -328,9 +328,9 @@ loop:
 			}
 		case PopFrameInstruction:
 			if optLoopCtx := state.ctx.popFrame().currentLoop; option.IsSome(optLoopCtx) {
-				loopCtx := option.Unwrap(optLoopCtx)
+				loopCtx := optLoopCtx.Unwrap()
 				if option.IsSome(loopCtx.currentRecursionJump) {
-					recurJump := option.Unwrap(loopCtx.currentRecursionJump)
+					recurJump := loopCtx.currentRecursionJump.Unwrap()
 					loopCtx.currentRecursionJump = option.None[recursionJump]()
 					pc = recurJump.target
 					if recurJump.endCapture {
@@ -347,7 +347,7 @@ loop:
 		case IterateInstruction:
 			var l *loopState
 			if mayLoopState := state.ctx.currentLoop(); option.IsSome(mayLoopState) {
-				l = option.Unwrap(mayLoopState)
+				l = mayLoopState.Unwrap()
 			} else {
 				panic("no currentLoop")
 			}
@@ -358,10 +358,10 @@ loop:
 			triple[1] = triple[2]
 			triple[2] = l.iterator.Next()
 			if option.IsSome(triple[1]) {
-				next = option.Some(option.Unwrap(triple[1]).Clone())
+				next = option.Some(triple[1].Unwrap().Clone())
 			}
 			if option.IsSome(next) {
-				item := option.Unwrap(next)
+				item := next.Unwrap()
 				if v, err := assertValid(item, pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
@@ -406,7 +406,7 @@ loop:
 			f := func() option.Option[FilterFunc] { return state.env.getFilter(inst.Name) }
 			var tf FilterFunc
 			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); option.IsSome(optVal) {
-				tf = option.Unwrap(optVal)
+				tf = optVal.Unwrap()
 			} else {
 				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
@@ -422,7 +422,7 @@ loop:
 			f := func() option.Option[TestFunc] { return state.env.getTest(inst.Name) }
 			var tf TestFunc
 			if optVal := getOrLookupLocal(loadedTests[:], inst.LocalID, f); option.IsSome(optVal) {
-				tf = option.Unwrap(optVal)
+				tf = optVal.Unwrap()
 			} else {
 				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
@@ -451,7 +451,7 @@ loop:
 				// leave the one argument on the stack for the recursion
 				panic("not implemented")
 			} else if optFunc := state.lookup(inst.Name); option.IsSome(optFunc) {
-				f := option.Unwrap(optFunc)
+				f := optFunc.Unwrap()
 				args := stacks.SliceTop(*stack, inst.ArgCount)
 				a, err := f.Call(state, args)
 				if err != nil {
@@ -536,7 +536,7 @@ loop:
 func (m *virtualMachine) performInclude(name Value, state *State, out *Output, ignoreMissing bool) error {
 	var choices SeqObject
 	if optChoices := name.AsSeq(); option.IsSome(optChoices) {
-		choices = option.Unwrap(optChoices)
+		choices = optChoices.Unwrap()
 	} else {
 		choices = newSliceSeqObject([]Value{name})
 	}
@@ -544,12 +544,12 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 	var templatesTried []Value
 	l := choices.ItemCount()
 	for i := uint(0); i < l; i++ {
-		choice := option.Unwrap(choices.GetItem(i))
+		choice := choices.GetItem(i).Unwrap()
 		optName := choice.AsStr()
 		if option.IsNone(optName) {
 			return NewError(InvalidOperation, "template name was not a string")
 		}
-		tmpl, err := m.env.GetTemplate(option.Unwrap(optName))
+		tmpl, err := m.env.GetTemplate(optName.Unwrap())
 		if err != nil {
 			var er *Error
 			if errors.As(err, &er) && er.typ == TemplateNotFound {
@@ -602,7 +602,7 @@ func (m *virtualMachine) performSuper(state *State, out *Output, capture bool) (
 	if option.IsNone(state.currentBlock) {
 		return nil, NewError(InvalidOperation, "cannot super outside of block")
 	}
-	name := option.Unwrap(state.currentBlock)
+	name := state.currentBlock.Unwrap()
 
 	blockStack := state.blocks[name]
 	if !blockStack.push() {
@@ -640,7 +640,7 @@ func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, err
 	if option.IsNone(optName) {
 		return Instructions{}, NewError(InvalidOperation, "template name was not a string")
 	}
-	strName := option.Unwrap(optName)
+	strName := optName.Unwrap()
 	if state.loadedTemplates.Contains(strName) {
 		return Instructions{}, NewError(InvalidOperation,
 			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
@@ -683,7 +683,7 @@ func (m *virtualMachine) callBlock(name string, state *State, out *Output) (opti
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
 	strVal := val.AsStr()
 	if option.IsSome(strVal) {
-		switch option.Unwrap(strVal) {
+		switch strVal.Unwrap() {
 		case "html":
 			return AutoEscapeHTML{}, nil
 		case "json":
@@ -709,7 +709,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 	l := it.Len()
 	depth := uint(0)
 	if optLoopState := state.ctx.currentLoop(); option.IsSome(optLoopState) {
-		loopState := option.Unwrap(optLoopState)
+		loopState := optLoopState.Unwrap()
 		if option.IsSome(loopState.recurseJumpTarget) {
 			depth = loopState.object.depth + 1
 		}
@@ -740,7 +740,7 @@ func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {
 	top := stacks.Pop(stack)
 	var seq SeqObject
 	if optSeq := top.AsSeq(); option.IsSome(optSeq) {
-		seq = option.Unwrap(optSeq)
+		seq = optSeq.Unwrap()
 	} else {
 		return NewError(CannotUnpack, "not a sequence")
 	}
@@ -749,7 +749,7 @@ func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {
 			fmt.Sprintf("sequence of wrong length (expected %d, got %d)", count, seq.ItemCount()))
 	}
 	for i := uint(0); i < count; i++ {
-		item := option.Unwrap(seq.GetItem(i))
+		item := seq.GetItem(i).Unwrap()
 		stacks.Push(stack, item)
 	}
 	return nil
@@ -822,9 +822,9 @@ func processErr(err error, pc uint, st *State) error {
 	// only attach line information if the error does not have line info yet.
 	if option.IsNone[uint](er.Line()) {
 		if spn := st.instructions.GetSpan(pc); option.IsSome(spn) {
-			er.SetFilenameAndSpan(st.instructions.Name(), option.Unwrap(spn))
+			er.SetFilenameAndSpan(st.instructions.Name(), spn.Unwrap())
 		} else if lineno := st.instructions.GetLine(pc); option.IsSome(lineno) {
-			er.SetFilenameAndLine(st.instructions.Name(), option.Unwrap(lineno))
+			er.SetFilenameAndLine(st.instructions.Name(), lineno.Unwrap())
 		}
 	}
 	return er

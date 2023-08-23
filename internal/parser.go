@@ -204,7 +204,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 		if optVarExp, err := getVarInVarAssign(expr); err != nil {
 			return nil, err
 		} else if option.IsSome(optVarExp) {
-			varExp := option.Unwrap(optVarExp)
+			varExp := optVarExp.Unwrap()
 			if option.IsNone(firstSpan) {
 				firstSpan = option.Some(varExp.span)
 			}
@@ -223,7 +223,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 	if len(kwargs) != 0 {
 		args = append(args, kwargsExpr{
 			pairs: kwargs,
-			span:  p.stream.expandSpan(option.Unwrap(firstSpan)),
+			span:  p.stream.expandSpan(firstSpan.Unwrap()),
 		})
 	}
 
@@ -311,7 +311,7 @@ loop:
 				}
 				exp = getItemExpr{
 					expr:          exp,
-					subscriptExpr: option.Unwrap(start),
+					subscriptExpr: start.Unwrap(),
 					span:          p.stream.expandSpan(spn),
 				}
 			} else {
@@ -1487,7 +1487,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 		})
 	}
 	if option.IsSome(filter) {
-		return option.Unwrap(filter), nil
+		return filter.Unwrap(), nil
 	}
 	return nil, syntaxError("expected a filter")
 }
@@ -1619,7 +1619,7 @@ func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) 
 			return nil, err
 		}
 		left = binOpExpr{
-			op:    option.Unwrap(opType),
+			op:    opType.Unwrap(),
 			left:  left,
 			right: right,
 			span:  p.stream.expandSpan(spn),
@@ -1648,7 +1648,7 @@ func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn
 	if err != nil {
 		return nil, err
 	}
-	return unaryOpExpr{op: option.Unwrap(opType), expr: exp, span: p.stream.expandSpan(spn)}, nil
+	return unaryOpExpr{op: opType.Unwrap(), expr: exp, span: p.stream.expandSpan(spn)}, nil
 }
 
 type setParseResult interface {

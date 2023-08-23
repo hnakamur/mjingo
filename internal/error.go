@@ -128,7 +128,7 @@ func (e *Error) Error() string {
 		b.WriteString(e.detail)
 	}
 	if option.IsSome(e.name) {
-		fmt.Fprintf(&b, " (in %s:%d)", option.Unwrap(e.name), e.lineno)
+		fmt.Fprintf(&b, " (in %s:%d)", e.name.Unwrap(), e.lineno)
 	}
 	return b.String()
 }

@@ -103,7 +103,7 @@ func escape(state *State, v Value) (Value, error) {
 	}
 	var b strings.Builder
 	if optStr := v.AsStr(); option.IsSome(optStr) {
-		b.Grow(len(option.Unwrap(optStr)))
+		b.Grow(len(optStr.Unwrap()))
 	}
 	out := newOutput(&b)
 	if err := writeEscaped(out, autoEscape, v); err != nil {
@@ -148,7 +148,7 @@ func replace(_ *State, v, from, to string) string {
 
 func length(val Value) (uint, error) {
 	if optLen := val.Len(); option.IsSome(optLen) {
-		return option.Unwrap(optLen), nil
+		return optLen.Unwrap(), nil
 	}
 	return 0, NewError(InvalidOperation,
 		fmt.Sprintf("cannot calculate length of value of type %s", val.Kind()))

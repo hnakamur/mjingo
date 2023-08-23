@@ -27,7 +27,7 @@ func (t *assignmentTracker) assign(name string) {
 
 func (t *assignmentTracker) assignNested(name string) {
 	if option.IsSome(t.nestedOut) {
-		s := option.Unwrap(t.nestedOut)
+		s := t.nestedOut.Unwrap()
 		s.Add(name)
 	}
 }
@@ -68,7 +68,7 @@ func trackAssign(expr expression, state *assignmentTracker) {
 
 func trackVisitExprOpt(expr option.Option[expression], state *assignmentTracker) {
 	if option.IsSome(expr) {
-		trackVisitExpr(option.Unwrap(expr), state)
+		trackVisitExpr(expr.Unwrap(), state)
 	}
 }
 

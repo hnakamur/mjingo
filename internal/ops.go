@@ -11,7 +11,7 @@ import (
 func opsGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint) (uint, uint) {
 	var startIdx uint
 	var stopIdx uint
-	if start < 0 || (option.IsNone(stop) || option.Unwrap(stop) < 0) {
+	if start < 0 || (option.IsNone(stop) || stop.Unwrap() < 0) {
 		endIdx := end()
 		if start < 0 {
 			startIdx = uint(int64(endIdx) + start)
@@ -19,17 +19,17 @@ func opsGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint)
 			startIdx = uint(start)
 		}
 		if option.IsSome(stop) {
-			if option.Unwrap(stop) < 0 {
-				stopIdx = uint(int64(endIdx) + option.Unwrap(stop))
+			if stop.Unwrap() < 0 {
+				stopIdx = uint(int64(endIdx) + stop.Unwrap())
 			} else {
-				stopIdx = uint(option.Unwrap(stop))
+				stopIdx = uint(stop.Unwrap())
 			}
 		} else {
 			stopIdx = endIdx
 		}
 	} else {
 		startIdx = uint(start)
-		stopIdx = uint(option.Unwrap(stop))
+		stopIdx = uint(stop.Unwrap())
 	}
 	if stopIdx > startIdx {
 		stopIdx -= startIdx
@@ -96,7 +96,7 @@ func Slice(val, start, stop, step Value) (Value, error) {
 		sliced := make([]Value, 0, maybeSeq.ItemCount())
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
 			if item := maybeSeq.GetItem(i); option.IsSome(item) {
-				sliced = append(sliced, option.Unwrap(item))
+				sliced = append(sliced, item.Unwrap())
 			}
 		}
 		return SeqValue{items: sliced}, nil
@@ -164,7 +164,7 @@ func Div(lhs, rhs Value) (Value, error) {
 	optA := lhs.AsF64()
 	optB := rhs.AsF64()
 	if option.IsSome(optA) && option.IsSome(optB) {
-		d := option.Unwrap(optA) / option.Unwrap(optB)
+		d := optA.Unwrap() / optB.Unwrap()
 		return ValueFromF64(d), nil
 	}
 	return nil, impossibleOp("/", lhs, rhs)
@@ -231,19 +231,19 @@ func Contains(container Value, val Value) (Value, error) {
 	}
 	var rv bool
 	if optContainerStr := container.AsStr(); option.IsSome(optContainerStr) {
-		containerStr := option.Unwrap(optContainerStr)
+		containerStr := optContainerStr.Unwrap()
 		var valStr string
 		if optValStr := val.AsStr(); option.IsSome(optValStr) {
-			valStr = option.Unwrap(optValStr)
+			valStr = optValStr.Unwrap()
 		} else {
 			valStr = val.String()
 		}
 		rv = strings.Contains(containerStr, valStr)
 	} else if optSeq := container.AsSeq(); option.IsSome(optSeq) {
-		seq := option.Unwrap(optSeq)
+		seq := optSeq.Unwrap()
 		n := seq.ItemCount()
 		for i := uint(0); i < n; i++ {
-			elem := option.Unwrap(seq.GetItem(i))
+			elem := seq.GetItem(i).Unwrap()
 			if elem == val {
 				rv = true
 				break
@@ -319,14 +319,14 @@ func coerce(a, b Value) coerceResult {
 		if af, ok := a.(f64Value); ok {
 			aVal = af.f
 			if bMayVal := b.AsF64(); option.IsSome(bMayVal) {
-				bVal = option.Unwrap(bMayVal)
+				bVal = bMayVal.Unwrap()
 			} else {
 				return nil
 			}
 		} else if bf, ok := b.(f64Value); ok {
 			bVal = bf.f
 			if aMayVal := a.AsF64(); option.IsSome(aMayVal) {
-				aVal = option.Unwrap(aMayVal)
+				aVal = aMayVal.Unwrap()
 			} else {
 				return nil
 			}

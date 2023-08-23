@@ -73,7 +73,7 @@ func (c *context) closure() Closure {
 	if option.IsNone(top.closure) {
 		top.closure = option.Some(newClosure())
 	}
-	return option.Unwrap(top.closure).clone()
+	return top.closure.Unwrap().clone()
 }
 
 func (c *context) takeClosure() option.Option[Closure] {
@@ -99,7 +99,7 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 
 		// if we are a loop, check if we are looking up the special loop var.
 		if option.IsSome(frame.currentLoop) {
-			l := option.Unwrap(frame.currentLoop)
+			l := frame.currentLoop.Unwrap()
 			if l.withLoopVar && key == "loop" {
 				panic("not implemented")
 			}

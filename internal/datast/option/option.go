@@ -13,7 +13,7 @@ func None[T any]() (none Option[T]) {
 	return
 }
 
-func Unwrap[T any](o Option[T]) T {
+func (o Option[T]) Unwrap() T {
 	if !o.valid {
 		panic("option must be valid to unwrap")
 	}
@@ -30,21 +30,21 @@ func IsNone[T any](o Option[T]) bool {
 
 func UnwrapOr[T any](o Option[T], defaultVal T) T {
 	if IsSome(o) {
-		return Unwrap(o)
+		return o.Unwrap()
 	}
 	return defaultVal
 }
 
 func MapOr[T any, E any](o Option[T], defaultVal E, f func(v T) E) E {
 	if IsSome(o) {
-		return f(Unwrap(o))
+		return f(o.Unwrap())
 	}
 	return defaultVal
 }
 
 func AndThen[T any, U any](o Option[T], f func(v T) U) Option[U] {
 	if IsSome(o) {
-		return Some(f(Unwrap(o)))
+		return Some(f(o.Unwrap()))
 	}
 	return None[U]()
 }

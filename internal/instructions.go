@@ -693,7 +693,7 @@ func (i *Instructions) addWithSpan(instr Instruction, spn Span) uint {
 	sameLoc := false
 	if len(i.spanInfos) > 0 {
 		lastLoc := i.spanInfos[len(i.spanInfos)-1]
-		sameLoc = option.IsSome(lastLoc.span) && option.Unwrap(lastLoc.span) == spn
+		sameLoc = option.IsSome(lastLoc.span) && lastLoc.span.Unwrap() == spn
 	}
 	if !sameLoc {
 		i.spanInfos = append(i.spanInfos,

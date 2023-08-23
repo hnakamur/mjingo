@@ -242,7 +242,7 @@ func (v mapValue) String() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(option.Unwrap(e.Key.AsStr()))
+		b.WriteString(e.Key.AsStr().Unwrap())
 		b.WriteString(": ")
 		b.WriteString(e.Value.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
@@ -377,7 +377,7 @@ func (bytesValue) GetItemOpt(_ Value) option.Option[Value]     { return option.N
 func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
 	keyRf := valueKeyRef{val: key}
 	if optIdx := keyRf.AasI64(); option.IsSome(optIdx) {
-		idx := option.Unwrap(optIdx)
+		idx := optIdx.Unwrap()
 		if idx < math.MinInt || math.MaxInt < idx {
 			return option.None[Value]()
 		}
@@ -594,7 +594,7 @@ func (i *Iterator) All(f func(Value) bool) bool {
 		if option.IsNone(optVal) {
 			break
 		}
-		if !f(option.Unwrap(optVal)) {
+		if !f(optVal.Unwrap()) {
 			return false
 		}
 	}
@@ -617,7 +617,7 @@ func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
 			}
 			break
 		}
-		if c := f(option.Unwrap(optA), option.Unwrap(optB)); c != 0 {
+		if c := f(optA.Unwrap(), optB.Unwrap()); c != 0 {
 			return c
 		}
 	}
@@ -759,7 +759,7 @@ func Equal(v Value, other Value) bool {
 					return false
 				}
 				return iterA.All(func(itemA Value) bool {
-					itemB := option.Unwrap(iterB.Next())
+					itemB := iterB.Next().Unwrap()
 					return Equal(itemA, itemB)
 				})
 			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
@@ -774,7 +774,7 @@ func Equal(v Value, other Value) bool {
 					optValA := v.GetItemOpt(key)
 					optValB := other.GetItemOpt(key)
 					if option.IsSome(optValA) && option.IsSome(optValB) {
-						return Equal(option.Unwrap(optValA), option.Unwrap(optValB))
+						return Equal(optValA.Unwrap(), optValB.Unwrap())
 					}
 					return false
 				})
