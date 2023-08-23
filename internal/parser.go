@@ -857,7 +857,7 @@ func (p *parser) parseMacroOrCallBlockBody(args, defaults []expression, name opt
 		return macroStmt{}, err
 	}
 	return macroStmt{
-		name:     option.UnwrapOr(name, "caller"),
+		name:     name.UnwrapOr("caller"),
 		args:     args,
 		defaults: defaults,
 		body:     body,

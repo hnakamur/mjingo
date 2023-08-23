@@ -230,7 +230,7 @@ func trackWalk(node statement, state *assignmentTracker) {
 		trackAssign(st.name, state)
 	case fromImportStmt:
 		for _, name := range st.names {
-			trackAssign(option.UnwrapOr(name.as, name.name), state)
+			trackAssign(name.as.UnwrapOr(name.name), state)
 		}
 	case macroStmt:
 		state.assign(st.name)

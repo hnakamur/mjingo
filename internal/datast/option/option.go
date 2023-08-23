@@ -28,7 +28,7 @@ func (o Option[T]) IsNone() bool {
 	return !o.valid
 }
 
-func UnwrapOr[T any](o Option[T], defaultVal T) T {
+func (o Option[T]) UnwrapOr(defaultVal T) T {
 	if o.IsSome() {
 		return o.Unwrap()
 	}
