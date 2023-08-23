@@ -56,14 +56,14 @@ func (o *Option[T]) AsPtr() *T {
 	return nil
 }
 
-func Compare[T any](a, b Option[T], cmpData func(a, b T) int) int {
-	if a.valid == b.valid {
-		if a.valid {
-			return cmpData(a.data, b.data)
+func (o Option[T]) Compare(other Option[T], cmpData func(a, b T) int) int {
+	if o.valid == other.valid {
+		if o.valid {
+			return cmpData(o.data, other.data)
 		}
-	} else if a.valid {
+	} else if o.valid {
 		return 1
-	} else if b.valid {
+	} else if other.valid {
 		return -1
 	}
 	return 0

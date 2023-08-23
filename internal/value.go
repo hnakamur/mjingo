@@ -840,7 +840,7 @@ outer:
 					}
 					optValA := v.GetItemOpt(keyA)
 					optValB := other.GetItemOpt(keyB)
-					return option.Compare(optValA, optValB, Cmp)
+					return optValA.Compare(optValB, Cmp)
 				})
 			}
 		}
