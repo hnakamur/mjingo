@@ -70,7 +70,7 @@ func (c *context) store(key string, val Value) {
 
 func (c *context) closure() Closure {
 	top := &c.stack[len(c.stack)-1]
-	if option.IsNone(top.closure) {
+	if top.closure.IsNone() {
 		top.closure = option.Some(newClosure())
 	}
 	return top.closure.Unwrap().clone()

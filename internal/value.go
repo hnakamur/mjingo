@@ -591,7 +591,7 @@ func (i *Iterator) Len() uint {
 func (i *Iterator) All(f func(Value) bool) bool {
 	for {
 		optVal := i.Next()
-		if option.IsNone(optVal) {
+		if optVal.IsNone() {
 			break
 		}
 		if !f(optVal.Unwrap()) {
@@ -605,13 +605,13 @@ func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
 	for {
 		optA := i.Next()
 		optB := other.Next()
-		if option.IsNone(optA) {
+		if optA.IsNone() {
 			if optB.IsSome() {
 				return -1
 			}
 			break
 		}
-		if option.IsNone(optB) {
+		if optB.IsNone() {
 			if optA.IsSome() {
 				return 1
 			}

@@ -24,7 +24,7 @@ func (o Option[T]) IsSome() bool {
 	return o.valid
 }
 
-func IsNone[T any](o Option[T]) bool {
+func (o Option[T]) IsNone() bool {
 	return !o.valid
 }
 

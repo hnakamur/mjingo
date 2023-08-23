@@ -11,7 +11,7 @@ import (
 func opsGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint) (uint, uint) {
 	var startIdx uint
 	var stopIdx uint
-	if start < 0 || (option.IsNone(stop) || stop.Unwrap() < 0) {
+	if start < 0 || (stop.IsNone() || stop.Unwrap() < 0) {
 		endIdx := end()
 		if start < 0 {
 			startIdx = uint(int64(endIdx) + start)

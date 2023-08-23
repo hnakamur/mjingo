@@ -381,7 +381,7 @@ loop:
 				continue
 			}
 		case CallBlockInstruction:
-			if option.IsNone(parentInstructions) && !out.isDiscarding() {
+			if parentInstructions.IsNone() && !out.isDiscarding() {
 				m.callBlock(inst.Name, state, out)
 			}
 		case PushAutoEscapeInstruction:
@@ -546,7 +546,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 	for i := uint(0); i < l; i++ {
 		choice := choices.GetItem(i).Unwrap()
 		optName := choice.AsStr()
-		if option.IsNone(optName) {
+		if optName.IsNone() {
 			return NewError(InvalidOperation, "template name was not a string")
 		}
 		tmpl, err := m.env.GetTemplate(optName.Unwrap())
@@ -599,7 +599,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 }
 
 func (m *virtualMachine) performSuper(state *State, out *Output, capture bool) (Value, error) {
-	if option.IsNone(state.currentBlock) {
+	if state.currentBlock.IsNone() {
 		return nil, NewError(InvalidOperation, "cannot super outside of block")
 	}
 	name := state.currentBlock.Unwrap()
@@ -637,7 +637,7 @@ func untrustedSizeHint(val uint) uint {
 
 func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, error) {
 	optName := name.AsStr()
-	if option.IsNone(optName) {
+	if optName.IsNone() {
 		return Instructions{}, NewError(InvalidOperation, "template name was not a string")
 	}
 	strName := optName.Unwrap()
@@ -796,7 +796,7 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 		return optVal
 	} else {
 		optVal := f()
-		if option.IsNone(optVal) {
+		if optVal.IsNone() {
 			return option.None[T]()
 		}
 		vec[localID] = optVal
@@ -820,7 +820,7 @@ func processErr(err error, pc uint, st *State) error {
 		return err
 	}
 	// only attach line information if the error does not have line info yet.
-	if option.IsNone[uint](er.Line()) {
+	if er.Line().IsNone() {
 		if spn := st.instructions.GetSpan(pc); spn.IsSome() {
 			er.SetFilenameAndSpan(st.instructions.Name(), spn.Unwrap())
 		} else if lineno := st.instructions.GetLine(pc); lineno.IsSome() {

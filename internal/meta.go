@@ -79,7 +79,7 @@ func trackVisitExpr(expr expression, state *assignmentTracker) {
 			state.out.Add(exp.id)
 			// if we are not tracking nested assignments, we can consider a variable
 			// to be assigned the first time we perform a lookup.
-			if option.IsNone(state.nestedOut) {
+			if state.nestedOut.IsNone() {
 				state.assign(exp.id)
 			} else {
 				state.assignNested(exp.id)
