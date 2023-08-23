@@ -63,7 +63,7 @@ func newContext(f frame) *context {
 func (c *context) store(key string, val Value) {
 	top := &c.stack[len(c.stack)-1]
 	if top.closure.IsSome() {
-		option.AsPtr[Closure](&top.closure).store(key, val.Clone())
+		(&top.closure).AsPtr().store(key, val.Clone())
 	}
 	top.locals[key] = val
 }
@@ -133,7 +133,7 @@ func (c *context) currentLoop() option.Option[*loopState] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
 		frame := &c.stack[i]
 		if frame.currentLoop.IsSome() {
-			return option.Some(option.AsPtr(&frame.currentLoop))
+			return option.Some((&frame.currentLoop).AsPtr())
 		}
 	}
 	return option.None[*loopState]()

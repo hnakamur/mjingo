@@ -49,7 +49,7 @@ func AndThen[T any, U any](o Option[T], f func(v T) U) Option[U] {
 	return None[U]()
 }
 
-func AsPtr[T any](o *Option[T]) *T {
+func (o *Option[T]) AsPtr() *T {
 	if (*o).IsSome() {
 		return &o.data
 	}
