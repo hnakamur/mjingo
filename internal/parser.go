@@ -203,7 +203,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 		}
 		if optVarExp, err := getVarInVarAssign(expr); err != nil {
 			return nil, err
-		} else if option.IsSome(optVarExp) {
+		} else if optVarExp.IsSome() {
 			varExp := optVarExp.Unwrap()
 			if option.IsNone(firstSpan) {
 				firstSpan = option.Some(varExp.span)
@@ -846,7 +846,7 @@ func (p *parser) parseMacroOrCallBlockBody(args, defaults []expression, name opt
 	p.inMacro = true
 	body, err := p.subparse(func(tkn token) bool {
 		tk, ok := tkn.(identToken)
-		return ok && ((tk.ident == "endmacro" && option.IsSome(name)) ||
+		return ok && ((tk.ident == "endmacro" && name.IsSome()) ||
 			(tk.ident == "endcall" && option.IsNone(name)))
 	})
 	if err != nil {
@@ -1456,7 +1456,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 		} else if matched {
 			break
 		}
-		if option.IsSome(filter) {
+		if filter.IsSome() {
 			if _, _, err := p.expectToken(isTokenOfType[pipeToken], "`|`"); err != nil {
 				return nil, err
 			}
@@ -1486,7 +1486,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 			span: p.stream.expandSpan(spn),
 		})
 	}
-	if option.IsSome(filter) {
+	if filter.IsSome() {
 		return filter.Unwrap(), nil
 	}
 	return nil, syntaxError("expected a filter")

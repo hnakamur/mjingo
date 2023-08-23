@@ -102,7 +102,7 @@ func escape(state *State, v Value) (Value, error) {
 		}
 	}
 	var b strings.Builder
-	if optStr := v.AsStr(); option.IsSome(optStr) {
+	if optStr := v.AsStr(); optStr.IsSome() {
 		b.Grow(len(optStr.Unwrap()))
 	}
 	out := newOutput(&b)
@@ -147,7 +147,7 @@ func replace(_ *State, v, from, to string) string {
 }
 
 func length(val Value) (uint, error) {
-	if optLen := val.Len(); option.IsSome(optLen) {
+	if optLen := val.Len(); optLen.IsSome() {
 		return optLen.Unwrap(), nil
 	}
 	return 0, NewError(InvalidOperation,

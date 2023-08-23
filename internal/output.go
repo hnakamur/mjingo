@@ -5,8 +5,6 @@ import (
 	"html"
 	"io"
 	"strings"
-
-	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
 type Output struct {
@@ -84,7 +82,7 @@ func writeWithHTMLEscaping(o *Output, val Value) error {
 	case ValueKindUndefined, ValueKindNone, ValueKindBool, ValueKindNumber:
 		return writeString(o, val.String())
 	default:
-		if optStr := val.AsStr(); option.IsSome(optStr) {
+		if optStr := val.AsStr(); optStr.IsSome() {
 			return writeString(o, html.EscapeString(optStr.Unwrap()))
 		}
 		return writeString(o, html.EscapeString(val.String()))

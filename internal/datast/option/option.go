@@ -20,7 +20,7 @@ func (o Option[T]) Unwrap() T {
 	return o.data
 }
 
-func IsSome[T any](o Option[T]) bool {
+func (o Option[T]) IsSome() bool {
 	return o.valid
 }
 
@@ -29,28 +29,28 @@ func IsNone[T any](o Option[T]) bool {
 }
 
 func UnwrapOr[T any](o Option[T], defaultVal T) T {
-	if IsSome(o) {
+	if o.IsSome() {
 		return o.Unwrap()
 	}
 	return defaultVal
 }
 
 func MapOr[T any, E any](o Option[T], defaultVal E, f func(v T) E) E {
-	if IsSome(o) {
+	if o.IsSome() {
 		return f(o.Unwrap())
 	}
 	return defaultVal
 }
 
 func AndThen[T any, U any](o Option[T], f func(v T) U) Option[U] {
-	if IsSome(o) {
+	if o.IsSome() {
 		return Some(f(o.Unwrap()))
 	}
 	return None[U]()
 }
 
 func AsPtr[T any](o *Option[T]) *T {
-	if IsSome(*o) {
+	if (*o).IsSome() {
 		return &o.data
 	}
 	return nil

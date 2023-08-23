@@ -26,7 +26,7 @@ func (t *assignmentTracker) assign(name string) {
 }
 
 func (t *assignmentTracker) assignNested(name string) {
-	if option.IsSome(t.nestedOut) {
+	if t.nestedOut.IsSome() {
 		s := t.nestedOut.Unwrap()
 		s.Add(name)
 	}
@@ -67,7 +67,7 @@ func trackAssign(expr expression, state *assignmentTracker) {
 }
 
 func trackVisitExprOpt(expr option.Option[expression], state *assignmentTracker) {
-	if option.IsSome(expr) {
+	if expr.IsSome() {
 		trackVisitExpr(expr.Unwrap(), state)
 	}
 }
@@ -105,7 +105,7 @@ func trackVisitExpr(expr expression, state *assignmentTracker) {
 		// if we are tracking nested, we check if we have a chain of attribute
 		// lookups that terminate in a variable lookup.  In that case we can
 		// assign the nested lookup.
-		if option.IsSome(state.nestedOut) {
+		if state.nestedOut.IsSome() {
 			attrs := []string{exp.name}
 			ptr := &exp.expr
 		loop:

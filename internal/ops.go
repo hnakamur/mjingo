@@ -18,7 +18,7 @@ func opsGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint)
 		} else {
 			startIdx = uint(start)
 		}
-		if option.IsSome(stop) {
+		if stop.IsSome() {
 			if stop.Unwrap() < 0 {
 				stopIdx = uint(int64(endIdx) + stop.Unwrap())
 			} else {
@@ -95,7 +95,7 @@ func Slice(val, start, stop, step Value) (Value, error) {
 		startIdx, stopIdx := opsGetOffsetAndLen(startVal, stopVal, func() uint { return maybeSeq.ItemCount() })
 		sliced := make([]Value, 0, maybeSeq.ItemCount())
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
-			if item := maybeSeq.GetItem(i); option.IsSome(item) {
+			if item := maybeSeq.GetItem(i); item.IsSome() {
 				sliced = append(sliced, item.Unwrap())
 			}
 		}
@@ -163,7 +163,7 @@ func Mul(lhs, rhs Value) (Value, error) {
 func Div(lhs, rhs Value) (Value, error) {
 	optA := lhs.AsF64()
 	optB := rhs.AsF64()
-	if option.IsSome(optA) && option.IsSome(optB) {
+	if optA.IsSome() && optB.IsSome() {
 		d := optA.Unwrap() / optB.Unwrap()
 		return ValueFromF64(d), nil
 	}
@@ -230,16 +230,16 @@ func Contains(container Value, val Value) (Value, error) {
 		return ValueFromBool(false), nil
 	}
 	var rv bool
-	if optContainerStr := container.AsStr(); option.IsSome(optContainerStr) {
+	if optContainerStr := container.AsStr(); optContainerStr.IsSome() {
 		containerStr := optContainerStr.Unwrap()
 		var valStr string
-		if optValStr := val.AsStr(); option.IsSome(optValStr) {
+		if optValStr := val.AsStr(); optValStr.IsSome() {
 			valStr = optValStr.Unwrap()
 		} else {
 			valStr = val.String()
 		}
 		rv = strings.Contains(containerStr, valStr)
-	} else if optSeq := container.AsSeq(); option.IsSome(optSeq) {
+	} else if optSeq := container.AsSeq(); optSeq.IsSome() {
 		seq := optSeq.Unwrap()
 		n := seq.ItemCount()
 		for i := uint(0); i < n; i++ {
@@ -318,14 +318,14 @@ func coerce(a, b Value) coerceResult {
 		var aVal, bVal float64
 		if af, ok := a.(f64Value); ok {
 			aVal = af.f
-			if bMayVal := b.AsF64(); option.IsSome(bMayVal) {
+			if bMayVal := b.AsF64(); bMayVal.IsSome() {
 				bVal = bMayVal.Unwrap()
 			} else {
 				return nil
 			}
 		} else if bf, ok := b.(f64Value); ok {
 			bVal = bf.f
-			if aMayVal := a.AsF64(); option.IsSome(aMayVal) {
+			if aMayVal := a.AsF64(); aMayVal.IsSome() {
 				aVal = aMayVal.Unwrap()
 			} else {
 				return nil

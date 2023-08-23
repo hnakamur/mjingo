@@ -376,7 +376,7 @@ func (stringValue) GetItemOpt(_ Value) option.Option[Value]    { return option.N
 func (bytesValue) GetItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
 func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
 	keyRf := valueKeyRef{val: key}
-	if optIdx := keyRf.AasI64(); option.IsSome(optIdx) {
+	if optIdx := keyRf.AasI64(); optIdx.IsSome() {
 		idx := optIdx.Unwrap()
 		if idx < math.MinInt || math.MaxInt < idx {
 			return option.None[Value]()
@@ -576,7 +576,7 @@ type Iterator struct {
 
 func (i *Iterator) Next() option.Option[Value] {
 	optVal := i.iterState.advanceState()
-	if option.IsSome(optVal) {
+	if optVal.IsSome() {
 		i.len--
 	}
 	return optVal
@@ -606,13 +606,13 @@ func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
 		optA := i.Next()
 		optB := other.Next()
 		if option.IsNone(optA) {
-			if option.IsSome(optB) {
+			if optB.IsSome() {
 				return -1
 			}
 			break
 		}
 		if option.IsNone(optB) {
-			if option.IsSome(optA) {
+			if optA.IsSome() {
 				return 1
 			}
 			break
@@ -749,7 +749,7 @@ func Equal(v Value, other Value) bool {
 		case strCoerceResult:
 			return c.lhs == c.rhs
 		default:
-			if optA, optB := v.AsSeq(), other.AsSeq(); option.IsSome(optA) && option.IsSome(optB) {
+			if optA, optB := v.AsSeq(), other.AsSeq(); optA.IsSome() && optB.IsSome() {
 				iterA, err := v.TryIter()
 				if err != nil {
 					return false
@@ -773,7 +773,7 @@ func Equal(v Value, other Value) bool {
 				return iterA.All(func(key Value) bool {
 					optValA := v.GetItemOpt(key)
 					optValB := other.GetItemOpt(key)
-					if option.IsSome(optValA) && option.IsSome(optValB) {
+					if optValA.IsSome() && optValB.IsSome() {
 						return Equal(optValA.Unwrap(), optValB.Unwrap())
 					}
 					return false
@@ -815,7 +815,7 @@ outer:
 		case strCoerceResult:
 			rv = strings.Compare(c.lhs, c.rhs)
 		default:
-			if optA, optB := v.AsSeq(), other.AsSeq(); option.IsSome(optA) && option.IsSome(optB) {
+			if optA, optB := v.AsSeq(), other.AsSeq(); optA.IsSome() && optB.IsSome() {
 				iterA, err := v.TryIter()
 				if err != nil {
 					break outer

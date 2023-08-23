@@ -82,7 +82,7 @@ var _ = (argType[Value])(valueArgType{})
 type valueArgType struct{}
 
 func (valueArgType) fromValue(val option.Option[Value]) (Value, error) {
-	if option.IsSome(val) {
+	if val.IsSome() {
 		return val.Unwrap(), nil
 	}
 	return nil, NewError(MissingArgument, "")

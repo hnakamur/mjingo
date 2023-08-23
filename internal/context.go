@@ -62,7 +62,7 @@ func newContext(f frame) *context {
 
 func (c *context) store(key string, val Value) {
 	top := &c.stack[len(c.stack)-1]
-	if option.IsSome(top.closure) {
+	if top.closure.IsSome() {
 		option.AsPtr[Closure](&top.closure).store(key, val.Clone())
 	}
 	top.locals[key] = val
@@ -98,7 +98,7 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 		}
 
 		// if we are a loop, check if we are looking up the special loop var.
-		if option.IsSome(frame.currentLoop) {
+		if frame.currentLoop.IsSome() {
 			l := frame.currentLoop.Unwrap()
 			if l.withLoopVar && key == "loop" {
 				panic("not implemented")
@@ -107,7 +107,7 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 
 		// perform a fast lookup.  This one will not produce errors if the
 		// context is undefined or of the wrong type.
-		if rv := frame.ctx.GetAttrFast(key); option.IsSome(rv) {
+		if rv := frame.ctx.GetAttrFast(key); rv.IsSome() {
 			return rv
 		}
 	}
@@ -132,7 +132,7 @@ func (c *context) popFrame() frame {
 func (c *context) currentLoop() option.Option[*loopState] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
 		frame := &c.stack[i]
-		if option.IsSome(frame.currentLoop) {
+		if frame.currentLoop.IsSome() {
 			return option.Some(option.AsPtr(&frame.currentLoop))
 		}
 	}

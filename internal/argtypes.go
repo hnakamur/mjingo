@@ -56,9 +56,9 @@ func ValueFromObject(dy Object) Value {
 }
 
 func StringFromValue(value option.Option[Value]) (string, error) {
-	if option.IsSome(value) {
+	if value.IsSome() {
 		optStr := value.Unwrap().AsStr()
-		if option.IsSome(optStr) {
+		if optStr.IsSome() {
 			return optStr.Unwrap(), nil
 		}
 		return "", NewError(InvalidOperation, "value is not a string")

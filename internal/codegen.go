@@ -89,7 +89,7 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 			g.CompileStmt(node)
 		}
 		g.add(EndCaptureInstruction{})
-		if option.IsSome(st.filter) {
+		if st.filter.IsSome() {
 			g.compileExpr(st.filter.Unwrap())
 		}
 		g.compileAssignment(st.target)
@@ -167,7 +167,7 @@ func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 
 func (g *codeGenerator) compileForLoop(forLoop forLoopStmt) {
 	g.setLineFromSpan(forLoop.span)
-	if option.IsSome(forLoop.filterExpr) {
+	if forLoop.filterExpr.IsSome() {
 		// filter expressions work like a nested for loop without
 		// the special loop variable that append into a new list
 		// just outside of the loop.
@@ -306,17 +306,17 @@ func (g *codeGenerator) compileExpr(exp expression) {
 	case sliceExpr:
 		g.pushSpan(exp.span)
 		g.compileExpr(exp.expr)
-		if option.IsSome(exp.start) {
+		if exp.start.IsSome() {
 			g.compileExpr(exp.start.Unwrap())
 		} else {
 			g.add(LoadConstInstruction{Val: ValueFromI64(int64(0))})
 		}
-		if option.IsSome(exp.stop) {
+		if exp.stop.IsSome() {
 			g.compileExpr(exp.stop.Unwrap())
 		} else {
 			g.add(LoadConstInstruction{Val: None})
 		}
-		if option.IsSome(exp.step) {
+		if exp.step.IsSome() {
 			g.compileExpr(exp.step.Unwrap())
 		} else {
 			g.add(LoadConstInstruction{Val: ValueFromI64(int64(1))})
@@ -340,7 +340,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		g.startIf()
 		g.compileExpr(exp.trueExpr)
 		g.startElse()
-		if option.IsSome(exp.falseExpr) {
+		if exp.falseExpr.IsSome() {
 			g.compileExpr(exp.falseExpr.Unwrap())
 		} else {
 			g.add(LoadConstInstruction{Val: Undefined})
@@ -348,7 +348,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		g.endIf()
 	case filterExpr:
 		g.pushSpan(exp.span)
-		if option.IsSome(exp.expr) {
+		if exp.expr.IsSome() {
 			g.compileExpr(exp.expr.Unwrap())
 		}
 		for _, arg := range exp.args {
@@ -380,7 +380,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 	case callExpr:
 		g.compileCall(exp.call, exp.span, option.None[macroStmt]())
 	case listExpr:
-		if v := exp.asConst(); option.IsSome(v) {
+		if v := exp.asConst(); v.IsSome() {
 			g.add(LoadConstInstruction{Val: v.Unwrap()})
 		} else {
 			g.setLineFromSpan(exp.span)
@@ -390,7 +390,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 			g.add(BuildListInstruction{Count: uint(len(exp.items))})
 		}
 	case mapExpr:
-		if v := exp.asConst(); option.IsSome(v) {
+		if v := exp.asConst(); v.IsSome() {
 			g.add(LoadConstInstruction{Val: v.Unwrap()})
 		} else {
 			g.setLineFromSpan(exp.span)
@@ -406,7 +406,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 		}
 	case kwargsExpr:
 		optVal := exp.asConst()
-		if option.IsSome(optVal) {
+		if optVal.IsSome() {
 			g.add(LoadConstInstruction{Val: optVal.Unwrap()})
 		} else {
 			g.setLineFromSpan(exp.span)
@@ -444,7 +444,7 @@ func (g *codeGenerator) compileCall(c call, spn Span, caller option.Option[macro
 }
 
 func (g *codeGenerator) compileCallArgs(args []expression, caller option.Option[macroStmt]) uint {
-	if option.IsSome(caller) {
+	if caller.IsSome() {
 		return g.compileCallArgsWithCaller(args, caller.Unwrap())
 	}
 	for _, arg := range args {

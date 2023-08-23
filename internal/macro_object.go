@@ -85,7 +85,7 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 
 	if kwargs != nil {
 		for _, keyRef := range kwargs.keys() {
-			if optKey := keyRef.AsStr(); option.IsSome(optKey) {
+			if optKey := keyRef.AsStr(); optKey.IsSome() {
 				if !kwargsUsed.Contains(optKey.Unwrap()) {
 					return nil, NewError(TooManyArguments,
 						fmt.Sprintf("unknown keyword argument `%s`", optKey.Unwrap()))
