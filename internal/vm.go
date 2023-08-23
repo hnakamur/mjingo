@@ -1,9 +1,9 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -17,6 +17,14 @@ const includeRecursionConst = 10
 // the cost of a single macro call against the stack limit.
 const macroRecursionConst = 5
 
+func prepareBlocks(blocks map[string]Instructions) map[string]blockStack {
+	rv := make(map[string]blockStack, len(blocks))
+	for name, insts := range blocks {
+		rv[name] = blockStack{instrs: []Instructions{insts}}
+	}
+	return rv
+}
+
 type virtualMachine struct {
 	env *Environment
 }
@@ -28,9 +36,10 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 func (m *virtualMachine) eval(instructions Instructions, root Value, blocks map[string]Instructions, out *Output, escape AutoEscape) (option.Option[Value], error) {
 	state := State{
 		env:          m.env,
-		instructions: instructions,
 		ctx:          *newContext(*newFrame(root)),
 		autoEscape:   escape,
+		instructions: instructions,
+		blocks:       prepareBlocks(blocks),
 	}
 	return m.evalState(&state, out)
 }
@@ -74,7 +83,7 @@ loop:
 		var a, b Value
 
 		inst := state.instructions.Instructions()[pc]
-		log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
+		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
 		switch inst := inst.(type) {
 		case EmitRawInstruction:
 			if _, err := io.WriteString(out, inst.Val); err != nil {
@@ -432,6 +441,11 @@ loop:
 			}
 		case DiscardTopInstruction:
 			stacks.Pop(stack)
+		case IncludeInstruction:
+			a = stacks.Pop(stack)
+			if err := m.performInclude(a, state, out, inst.IgnoreMissing); err != nil {
+				return option.None[Value](), processErr(err, pc, state)
+			}
 		case BuildMacroInstruction:
 			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
 		case ReturnInstruction:
@@ -448,6 +462,71 @@ loop:
 		return option.Some(v), nil
 	}
 	return option.None[Value](), nil
+}
+
+func (m *virtualMachine) performInclude(name Value, state *State, out *Output, ignoreMissing bool) error {
+	var choices SeqObject
+	if optChoices := name.AsSeq(); option.IsSome(optChoices) {
+		choices = option.Unwrap(optChoices)
+	} else {
+		choices = newSliceSeqObject([]Value{name})
+	}
+
+	var templatesTried []Value
+	l := choices.ItemCount()
+	for i := uint(0); i < l; i++ {
+		choice := option.Unwrap(choices.GetItem(i))
+		optName := choice.AsStr()
+		if option.IsNone(optName) {
+			return NewError(InvalidOperation, "template name was not a string")
+		}
+		tmpl, err := m.env.GetTemplate(option.Unwrap(optName))
+		if err != nil {
+			var er *Error
+			if errors.As(err, &er) && er.typ == TemplateNotFound {
+				stacks.Push(&templatesTried, choice)
+			} else {
+				return err
+			}
+			continue
+		}
+
+		newInsts, newBlocks, err := tmpl.instructionsAndBlocks()
+		if err != nil {
+			return err
+		}
+		oldEscape := state.autoEscape
+		state.autoEscape = tmpl.initialAutoEscape
+		oldInsts := state.instructions
+		state.instructions = newInsts
+		oldBlocks := state.blocks
+		state.blocks = prepareBlocks(newBlocks)
+		oldClosure := state.ctx.takeClosure()
+		if err := state.ctx.incrDepth(includeRecursionConst); err != nil {
+			return err
+		}
+		_, err = m.evalState(state, out)
+		state.ctx.resetClosure(oldClosure)
+		state.ctx.decrDepth(includeRecursionConst)
+		state.autoEscape = oldEscape
+		state.instructions = oldInsts
+		state.blocks = oldBlocks
+		if err != nil {
+			return NewError(BadInclude, fmt.Sprintf("error in \"%s\"", tmpl.name())).WithSource(err)
+		}
+		return nil
+	}
+
+	if len(templatesTried) != 0 && !ignoreMissing {
+		var detail string
+		if len(templatesTried) == 1 {
+			detail = fmt.Sprintf("tried to include non-existing template %v", templatesTried[0])
+		} else {
+			detail = fmt.Sprintf("tried to include one of multiple templates, none of which existed %s", templatesTried)
+		}
+		return NewError(TemplateNotFound, detail)
+	}
+	return nil
 }
 
 func untrustedSizeHint(val uint) uint {

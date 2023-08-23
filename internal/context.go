@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"log"
-
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -63,7 +61,6 @@ func newContext(f frame) *context {
 }
 
 func (c *context) store(key string, val Value) {
-	log.Printf("context.store key=%s, val=%+v", key, val)
 	top := &c.stack[len(c.stack)-1]
 	if option.IsSome(top.closure) {
 		option.AsPtr[Closure](&top.closure).store(key, val.Clone())
@@ -77,6 +74,18 @@ func (c *context) closure() Closure {
 		top.closure = option.Some(newClosure())
 	}
 	return option.Unwrap(top.closure).clone()
+}
+
+func (c *context) takeClosure() option.Option[Closure] {
+	top := &c.stack[len(c.stack)-1]
+	rv := top.closure
+	top.closure = option.None[Closure]()
+	return rv
+}
+
+func (c *context) resetClosure(closure option.Option[Closure]) {
+	top := &c.stack[len(c.stack)-1]
+	top.closure = closure
 }
 
 func (c *context) load(env *Environment, key string) option.Option[Value] {
@@ -137,6 +146,10 @@ func (c *context) depth() uint {
 func (c *context) incrDepth(delta uint) error {
 	c.outerStackDepth += delta
 	return c.checkDepth()
+}
+
+func (c *context) decrDepth(delta uint) {
+	c.outerStackDepth -= delta
 }
 
 func (c *context) checkDepth() error {

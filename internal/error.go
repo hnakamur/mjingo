@@ -13,6 +13,7 @@ type Error struct {
 	name   option.Option[string]
 	lineno uint
 	span   option.Option[Span]
+	source error
 }
 
 func NewError(typ ErrorType, detail string) *Error {
@@ -148,4 +149,9 @@ func (e *Error) SetFilenameAndSpan(filename string, spn Span) {
 	e.name = option.Some(filename)
 	e.span = option.Some(spn)
 	e.lineno = uint(spn.StartLine)
+}
+
+func (e *Error) WithSource(err error) *Error {
+	e.source = err
+	return e
 }

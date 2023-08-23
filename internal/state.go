@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"log"
-
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -32,7 +30,6 @@ func (s *State) undefinedBehavior() UndefinedBehavior {
 }
 
 func (s *State) lookup(name string) option.Option[Value] {
-	log.Printf("State.lookup, name=%s, ret=%+v", name, s.ctx.load(s.env, name))
 	return s.ctx.load(s.env, name)
 }
 

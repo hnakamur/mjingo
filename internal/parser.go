@@ -1039,6 +1039,13 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "include":
+		st, err := p.parseInclude()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	case "macro":
 		st, err := p.parseMacro()
 		if err != nil {
@@ -1446,6 +1453,53 @@ func (p *parser) parseFilterBlock() (filterBlockStmt, error) {
 		filter: filter,
 		body:   body,
 	}, nil
+}
+
+func (p *parser) parseInclude() (includeStmt, error) {
+	name, err := p.parseExpr()
+	if err != nil {
+		return includeStmt{}, err
+	}
+
+	// with/without context is without meaning in MiniJinja, but for syntax
+	// compatibility it's supported.
+	if matched, err := p.skipToken(func(tkn token) bool {
+		if identTkn, ok := tkn.(identToken); ok {
+			return identTkn.ident == "without" || identTkn.ident == "with"
+		}
+		return false
+	}); err != nil {
+		return includeStmt{}, err
+	} else if matched {
+		if _, _, err := p.expectToken(isIdentTokenWithName("context"), "missing keyword"); err != nil {
+			return includeStmt{}, err
+		}
+	}
+
+	ignoreMissing := false
+	if matched, err := p.skipToken(isIdentTokenWithName("ignore")); err != nil {
+		return includeStmt{}, err
+	} else if matched {
+		if _, _, err := p.expectToken(isIdentTokenWithName("missing"), "missing keyword"); err != nil {
+			return includeStmt{}, err
+		}
+		if matched, err := p.skipToken(func(tkn token) bool {
+			if identTkn, ok := tkn.(identToken); ok {
+				return identTkn.ident == "without" || identTkn.ident == "with"
+			}
+			return false
+		}); err != nil {
+			return includeStmt{}, err
+		} else if matched {
+			if _, _, err := p.expectToken(isIdentTokenWithName("context"), "missing keyword"); err != nil {
+				return includeStmt{}, err
+			}
+			ignoreMissing = true
+		}
+
+	}
+
+	return includeStmt{name: name, ignoreMissing: ignoreMissing}, nil
 }
 
 func (p *parser) parse() (statement, error) {

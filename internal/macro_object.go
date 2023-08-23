@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
@@ -33,11 +32,9 @@ func (m *Macro) String() string {
 func (m *Macro) Kind() ObjectKind { return ObjectKindStruct }
 
 func (m *Macro) Call(state *State, args []Value) (Value, error) {
-	log.Print("Macro.Call start, name=%s", m.data.name)
 	var kwargs *IndexMap
 	if len(args) > 0 {
 		if mapVal, ok := args[len(args)-1].(mapValue); ok && mapVal.mapTyp == mapTypeKwargs {
-			log.Printf("Macro.Call found kwargs")
 			kwargs = mapVal.m
 			args = args[:len(args)-1]
 		}
@@ -50,14 +47,12 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 	kwargsUsed := hashset.NewStrHashSet()
 	argValues := make([]Value, 0, len(m.data.argSpec))
 	for i, name := range m.data.argSpec {
-		log.Printf("Macro.Call i=%d, name=%s", i, name)
 		var kwarg Value
 		if kwargs != nil {
 			kwarg, _ = kwargs.Get(KeyRefFromValue(ValueFromString(name)))
 			// TODO: change to below as well as IndexMap
 			// kwarg, _ = kwargs.Get(KeyRefFromString(name))
 		}
-		log.Printf("Macro.Call kwarg=%+v", kwarg)
 
 		var arg Value
 		switch {
@@ -66,7 +61,6 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 		case i < len(args) && kwarg == nil:
 			arg = args[i].Clone()
 		case i >= len(args) && kwarg != nil:
-			log.Printf("Macro.Call add name=%s to kwargsUsed", name)
 			kwargsUsed.Add(name)
 			arg = kwarg.Clone()
 		default:
@@ -92,7 +86,6 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 	if kwargs != nil {
 		for _, keyRef := range kwargs.keys() {
 			if optKey := keyRef.AsStr(); option.IsSome(optKey) {
-				log.Printf("Macro.Call check key=%s is contained in kwargsUsed", option.Unwrap(optKey))
 				if !kwargsUsed.Contains(option.Unwrap(optKey)) {
 					return nil, NewError(TooManyArguments,
 						fmt.Sprintf("unknown keyword argument `%s`", option.Unwrap(optKey)))
@@ -113,7 +106,6 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 	if _, err := vm.evalMacro(insts, offset, closure, caller, out, state, argValues); err != nil {
 		return nil, err
 	}
-	log.Printf("Macro.Call after evalMacro b.String()=%q", b.String())
 
 	if _, ok := state.autoEscape.(AutoEscapeNone); !ok {
 		return ValueFromSafeString(b.String()), nil

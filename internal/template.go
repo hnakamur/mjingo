@@ -20,6 +20,10 @@ func (t *Template) Render(context any) (string, error) {
 	return b.String(), nil
 }
 
+func (t *Template) name() string {
+	return t.compiled.instructions.Name()
+}
+
 func (t *Template) _eval(root Value, out *Output) error {
 	vm := newVirtualMachine(t.env)
 	if _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
@@ -27,6 +31,10 @@ func (t *Template) _eval(root Value, out *Output) error {
 		return err
 	}
 	return nil
+}
+
+func (t *Template) instructionsAndBlocks() (instructions Instructions, blocks map[string]Instructions, err error) {
+	return t.compiled.instructions, t.compiled.blocks, nil
 }
 
 type compiledTemplate struct {

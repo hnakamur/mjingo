@@ -6,7 +6,7 @@ import (
 	"github.com/hnakamur/mjingo/internal"
 )
 
-func TestEnvironment(t *testing.T) {
+func TestSingleTemplate(t *testing.T) {
 	type testCase struct {
 		name    string
 		source  string
@@ -424,5 +424,64 @@ func TestEnvironment(t *testing.T) {
 			{name: "isEndingWithTrue", source: `{{ "foobar" is endingwith("bar") }}`, context: internal.None, want: "true"},
 			{name: "isEndingWithFalse", source: `{{ "foobar" is endingwith("foo") }}`, context: internal.None, want: "false"},
 		})
+	})
+}
+
+func TestMultiTemplates(t *testing.T) {
+	type strTemplate struct {
+		name   string
+		source string
+	}
+
+	type testCase struct {
+		name      string
+		templates []strTemplate
+		context   any
+		want      string
+	}
+
+	runTests := func(t *testing.T, testCases []testCase) {
+		for i, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				env := NewEnvironment()
+				for _, tpl := range tc.templates {
+					err := env.AddTemplate(tpl.name, tpl.source)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				tpl, err := env.GetTemplate(tc.templates[0].name)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := tpl.Render(tc.context)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got != tc.want {
+					t.Errorf("result mismatch, i=%d, source=%s,\n got=%q,\nwant=%q", i, tc.templates[0].source, got, tc.want)
+				}
+			})
+		}
+	}
+
+	t.Run("include", func(t *testing.T) {
+		runTests(t, []testCase{{
+			name: "simple",
+			templates: []strTemplate{{
+				name: "main.html",
+				source: "{% include 'header.html' %}\n" +
+					"  Body\n" +
+					"{% include 'footer.html' %}",
+			}, {
+				name:   "header.html",
+				source: "Header",
+			}, {
+				name:   "footer.html",
+				source: "Footer",
+			}},
+			context: internal.None,
+			want:    "Header\n  Body\nFooter",
+		}})
 	})
 }
