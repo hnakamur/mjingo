@@ -10,8 +10,12 @@ func New[T comparable]() *HashSet[T] {
 	}
 }
 
-func Add[T comparable](s *HashSet[T], v T) {
-	s.s[v] = struct{}{}
+func Add[T comparable](s *HashSet[T], v T) bool {
+	_, ok := s.s[v]
+	if !ok {
+		s.s[v] = struct{}{}
+	}
+	return !ok
 }
 
 func Delete[T comparable](s *HashSet[T], v T) {

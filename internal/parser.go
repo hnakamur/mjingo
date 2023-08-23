@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -62,14 +63,14 @@ func (s *tokenStream) currentSpan() Span {
 type parser struct {
 	stream  *tokenStream
 	inMacro bool
-	blocks  map[string]struct{}
+	blocks  *hashset.StrHashSet
 	depth   uint
 }
 
 func newParser(source string, inExpr bool, syntax *SyntaxConfig) *parser {
 	return &parser{
 		stream: newTokenStream(source, inExpr, syntax),
-		blocks: make(map[string]struct{}),
+		blocks: hashset.NewStrHashSet(),
 	}
 }
 
@@ -1039,6 +1040,20 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "block":
+		st, err := p.parseBlock()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	case "extends":
+		st, err := p.parseExtends()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	case "include":
 		st, err := p.parseInclude()
 		if err != nil {
@@ -1368,6 +1383,49 @@ func (p *parser) parseSet() (setParseResult, error) {
 	}
 }
 
+func (p *parser) parseBlock() (blockStmt, error) {
+	if p.inMacro {
+		return blockStmt{}, syntaxError("block tags in macros are not allowed")
+	}
+
+	tkn, _, err := p.expectToken(isTokenOfType[identToken], "identifier")
+	if err != nil {
+		return blockStmt{}, err
+	}
+	name := tkn.(identToken).ident
+	if !p.blocks.Add(name) {
+		return blockStmt{}, syntaxError(fmt.Sprintf("block '%s' defined twice", name))
+	}
+
+	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
+		return blockStmt{}, err
+	}
+	body, err := p.subparse(isIdentTokenWithName("endblock"))
+	if err != nil {
+		return blockStmt{}, err
+	}
+	if _, _, err := p.stream.next(); err != nil {
+		return blockStmt{}, err
+	}
+
+	tkn, _, err = p.stream.current()
+	if err != nil {
+		return blockStmt{}, err
+	}
+	if tknIdent, ok := tkn.(identToken); ok {
+		trailingName := tknIdent.ident
+		if trailingName != name {
+			return blockStmt{},
+				syntaxError(fmt.Sprintf("mismatching name on block. Got `%s`, expected `%s`", trailingName, name))
+		}
+		if _, _, err := p.stream.next(); err != nil {
+			return blockStmt{}, err
+		}
+	}
+
+	return blockStmt{name: name, body: body}, nil
+}
+
 func (p *parser) parseAutoEscape() (autoEscapeStmt, error) {
 	enabled, err := p.parseExpr()
 	if err != nil {
@@ -1453,6 +1511,14 @@ func (p *parser) parseFilterBlock() (filterBlockStmt, error) {
 		filter: filter,
 		body:   body,
 	}, nil
+}
+
+func (p *parser) parseExtends() (extendsStmt, error) {
+	name, err := p.parseExpr()
+	if err != nil {
+		return extendsStmt{}, err
+	}
+	return extendsStmt{name: name}, nil
 }
 
 func (p *parser) parseInclude() (includeStmt, error) {

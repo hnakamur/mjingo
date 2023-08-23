@@ -6,7 +6,6 @@ import (
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
-
 )
 
 // Controls the autoescaping behavior.
@@ -225,28 +224,26 @@ func (u *unescaper) pushChar(r rune) error {
 	return nil
 }
 
-type stack[T any] struct {
-	elems []T
-}
+type stack[T any] []T
 
 func newStackWithCapacity[T any](capacity uint) stack[T] {
-	return stack[T]{elems: make([]T, 0, capacity)}
+	return make([]T, 0, capacity)
 }
 
 func (s *stack[T]) push(elem T) {
-	s.elems = append(s.elems, elem)
+	*s = append(*s, elem)
 }
 
 func (s *stack[T]) empty() bool {
-	return len(s.elems) == 0
+	return len(*s) == 0
 }
 
 func (s *stack[T]) pop() *T {
 	if s.empty() {
 		return nil
 	}
-	st := s.elems[len(s.elems)-1]
-	s.elems = s.elems[:len(s.elems)-1]
+	st := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
 	return &st
 }
 
@@ -254,5 +251,5 @@ func (s *stack[T]) peek() *T {
 	if s.empty() {
 		return nil
 	}
-	return &s.elems[len(s.elems)-1]
+	return &(*s)[len(*s)-1]
 }

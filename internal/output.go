@@ -34,6 +34,10 @@ func (o *Output) target() io.Writer {
 	return o.w
 }
 
+func (o *Output) isDiscarding() bool {
+	return len(o.captureStack) > 0 && o.captureStack[len(o.captureStack)-1] == io.Discard
+}
+
 func (o *Output) Write(p []byte) (n int, err error) {
 	return o.target().Write(p)
 }

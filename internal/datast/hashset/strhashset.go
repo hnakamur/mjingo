@@ -6,8 +6,8 @@ func NewStrHashSet() *StrHashSet {
 	return (*StrHashSet)(New[string]())
 }
 
-func (s *StrHashSet) Add(v string) {
-	Add[string]((*HashSet[string])(s), v)
+func (s *StrHashSet) Add(v string) bool {
+	return Add[string]((*HashSet[string])(s), v)
 }
 
 func (s *StrHashSet) Delete(v string) {

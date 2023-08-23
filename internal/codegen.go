@@ -110,6 +110,12 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 		g.add(EndCaptureInstruction{})
 		g.compileExpr(st.filter)
 		g.add(EmitInstruction{})
+	case blockStmt:
+		g.compileBlock(st)
+	case extendsStmt:
+		g.setLineFromSpan(st.span)
+		g.compileExpr(st.name)
+		g.addWithSpan(LoadBlocksInstruction{}, st.span)
 	case includeStmt:
 		g.setLineFromSpan(st.span)
 		g.compileExpr(st.name)
@@ -123,6 +129,17 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 	default:
 		panic(fmt.Sprintf("not implemented, st=%+v (%T)", st, st))
 	}
+}
+
+func (g *codeGenerator) compileBlock(block blockStmt) {
+	g.setLineFromSpan(block.span)
+	sub := g.newSubgenerator()
+	for _, node := range block.body {
+		sub.CompileStmt(node)
+	}
+	insts := g.finishSubgenerator(sub)
+	g.blocks[block.name] = insts
+	g.add(CallBlockInstruction{Name: block.name})
 }
 
 func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
@@ -572,6 +589,24 @@ func (g *codeGenerator) nextInstruction() uint {
 	return uint(len(g.instructions.instructions))
 }
 
+func (g *codeGenerator) newSubgenerator() *codeGenerator {
+	sub := NewCodeGenerator(g.instructions.name, g.instructions.source)
+	sub.currentLine = g.currentLine
+	if !g.spanStack.empty() {
+		sub.spanStack.push(*g.spanStack.peek())
+	}
+	return sub
+}
+
+func (g *codeGenerator) finishSubgenerator(sub *codeGenerator) Instructions {
+	g.currentLine = sub.currentLine
+	insts, blocks := sub.finish()
+	for name, block := range blocks {
+		g.blocks[name] = block
+	}
+	return insts
+}
+
 func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	g.pushSpan(exp.span)
 	var instr Instruction
@@ -613,6 +648,13 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	g.compileExpr(exp.right)
 	g.add(instr)
 	g.popSpan()
+}
+
+func (g *codeGenerator) finish() (Instructions, map[string]Instructions) {
+	if !g.pendingBlock.empty() {
+		panic("unreachable")
+	}
+	return g.instructions, g.blocks
 }
 
 func getLocalID(ids map[string]LocalID, name string) LocalID {

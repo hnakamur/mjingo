@@ -6,6 +6,7 @@ import (
 	"io"
 	"slices"
 
+	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	"github.com/hnakamur/mjingo/internal/datast/stacks"
@@ -17,10 +18,10 @@ const includeRecursionConst = 10
 // the cost of a single macro call against the stack limit.
 const macroRecursionConst = 5
 
-func prepareBlocks(blocks map[string]Instructions) map[string]blockStack {
-	rv := make(map[string]blockStack, len(blocks))
+func prepareBlocks(blocks map[string]Instructions) map[string]*blockStack {
+	rv := make(map[string]*blockStack, len(blocks))
 	for name, insts := range blocks {
-		rv[name] = blockStack{instrs: []Instructions{insts}}
+		rv[name] = &blockStack{instrs: []Instructions{insts}}
 	}
 	return rv
 }
@@ -55,13 +56,14 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 	}
 
 	return m.evalImpl(&State{
-		env:          m.env,
-		ctx:          *ctx,
-		currentBlock: option.None[string](),
-		autoEscape:   state.autoEscape,
-		instructions: insts,
-		blocks:       make(map[string]blockStack),
-		macros:       state.macros, // TODO: clone
+		env:             m.env,
+		ctx:             *ctx,
+		currentBlock:    option.None[string](),
+		autoEscape:      state.autoEscape,
+		instructions:    insts,
+		blocks:          make(map[string]*blockStack),
+		loadedTemplates: *hashset.NewStrHashSet(),
+		macros:          state.macros, // TODO: clone
 	}, out, &args, pc)
 }
 
@@ -78,12 +80,36 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 	loadedFilters := [MaxLocals]option.Option[FilterFunc]{}
 	loadedTests := [MaxLocals]option.Option[TestFunc]{}
 
+	// If we are extending we are holding the instructions of the target parent
+	// template here.  This is used to detect multiple extends and the evaluation
+	// uses these instructions when it makes it to the end of the instructions.
+	parentInstructions := option.None[Instructions]()
+
 loop:
-	for pc < uint(len(state.instructions.Instructions())) {
+	for {
+		var inst Instruction
+		if pc < uint(len(state.instructions.Instructions())) {
+			inst = state.instructions.Instructions()[pc]
+		} else {
+			// when an extends statement appears in a template, when we hit the
+			// last instruction we need to check if parent instructions were
+			// stashed away (which means we found an extends tag which invoked
+			// `LoadBlocks`).  If we do find instructions, we reset back to 0
+			// from the new instructions.
+			if option.IsSome(parentInstructions) {
+				state.instructions = option.Unwrap(parentInstructions)
+				parentInstructions = option.None[Instructions]()
+			} else {
+				break loop
+			}
+			out.endCapture(AutoEscapeNone{})
+			pc = 0
+			continue
+		}
+		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
+
 		var a, b Value
 
-		inst := state.instructions.Instructions()[pc]
-		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
 		switch inst := inst.(type) {
 		case EmitRawInstruction:
 			if _, err := io.WriteString(out, inst.Val); err != nil {
@@ -354,6 +380,10 @@ loop:
 				pc = inst.JumpTarget
 				continue
 			}
+		case CallBlockInstruction:
+			if option.IsNone(parentInstructions) && !out.isDiscarding() {
+				m.callBlock(inst.Name, state, out)
+			}
 		case PushAutoEscapeInstruction:
 			a = stacks.Pop(stack)
 			stacks.Push(&autoEscapeStack, state.autoEscape)
@@ -441,6 +471,45 @@ loop:
 			}
 		case DiscardTopInstruction:
 			stacks.Pop(stack)
+		case FastSuperInstruction:
+			if _, err := m.performSuper(state, out, false); err != nil {
+				return option.None[Value](), processErr(err, pc, state)
+			}
+		case LoadBlocksInstruction:
+			// Explanation on the behavior of `LoadBlocks` and rendering of
+			// inherited templates:
+			//
+			// MiniJinja inherits the behavior from Jinja2 where extending
+			// loads the blocks (`LoadBlocks`) and the rest of the template
+			// keeps executing but with output disabled, only at the end the
+			// parent template is then invoked.  This has the effect that
+			// you can still set variables or declare macros and that they
+			// become visible in the blocks.
+			//
+			// This behavior has a few downsides.  First of all what happens
+			// in the parent template overrides what happens in the child.
+			// For instance if you declare a macro named `foo` after `{%
+			// extends %}` and then a variable with that named is also set
+			// in the parent template, then you won't be able to call that
+			// macro in the body.
+			//
+			// The reason for this is that blocks unlike macros do not have
+			// closures in Jinja2/MiniJinja.
+			//
+			// However for the common case this is convenient because it
+			// lets you put some imports there and for as long as you do not
+			// create name clashes this works fine.
+			a = stacks.Pop(stack)
+			if option.IsSome(parentInstructions) {
+				err := NewError(InvalidOperation, "tried to extend a second time in a template")
+				return option.None[Value](), processErr(err, pc, state)
+			}
+			insts, err := m.loadBlocks(a, state)
+			if err != nil {
+				return option.None[Value](), err
+			}
+			parentInstructions = option.Some(insts)
+			out.beginCapture(CaptureModeDiscard)
 		case IncludeInstruction:
 			a = stacks.Pop(stack)
 			if err := m.performInclude(a, state, out, inst.IgnoreMissing); err != nil {
@@ -529,8 +598,86 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 	return nil
 }
 
+func (m *virtualMachine) performSuper(state *State, out *Output, capture bool) (Value, error) {
+	if option.IsNone(state.currentBlock) {
+		return nil, NewError(InvalidOperation, "cannot super outside of block")
+	}
+	name := option.Unwrap(state.currentBlock)
+
+	blockStack := state.blocks[name]
+	if !blockStack.push() {
+		return nil, NewError(InvalidOperation, "no parent block exists")
+	}
+
+	if capture {
+		out.beginCapture(CaptureModeCapture)
+	}
+
+	oldInsts := state.instructions
+	state.instructions = blockStack.instructions()
+	if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
+		return nil, err
+	}
+	_, err := m.evalState(state, out)
+	state.ctx.popFrame()
+	state.instructions = oldInsts
+	state.blocks[name].pop()
+	if err != nil {
+		return nil, NewError(EvalBlock, "error in super block").WithSource(err)
+	}
+	if capture {
+		return out.endCapture(state.autoEscape), nil
+	}
+	return Undefined, nil
+}
+
 func untrustedSizeHint(val uint) uint {
 	return min(val, 1024)
+}
+
+func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, error) {
+	optName := name.AsStr()
+	if option.IsNone(optName) {
+		return Instructions{}, NewError(InvalidOperation, "template name was not a string")
+	}
+	strName := option.Unwrap(optName)
+	if state.loadedTemplates.Contains(strName) {
+		return Instructions{}, NewError(InvalidOperation,
+			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
+	}
+	tmpl, err := m.env.GetTemplate(strName)
+	if err != nil {
+		return Instructions{}, err
+	}
+	newInsts, newBlocks, err := tmpl.instructionsAndBlocks()
+	if err != nil {
+		return Instructions{}, err
+	}
+	for strName, insts := range newBlocks {
+		if _, ok := state.blocks[strName]; ok {
+			state.blocks[strName].appendInstructions(insts)
+		} else {
+			state.blocks[strName] = newBlockStack(insts)
+		}
+
+	}
+	return newInsts, nil
+}
+
+func (m *virtualMachine) callBlock(name string, state *State, out *Output) (option.Option[Value], error) {
+	if blockStack, ok := state.blocks[name]; ok {
+		oldBlock := state.currentBlock
+		state.currentBlock = option.Some(name)
+		oldInsts := state.instructions
+		state.instructions = blockStack.instructions()
+		state.ctx.pushFrame(*newFrameDefault())
+		rv, err := m.evalState(state, out)
+		state.ctx.popFrame()
+		state.instructions = oldInsts
+		state.currentBlock = oldBlock
+		return rv, err
+	}
+	return option.None[Value](), NewError(UnknownBlock, fmt.Sprintf("block '%s' not found", name))
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {

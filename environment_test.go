@@ -484,4 +484,43 @@ func TestMultiTemplates(t *testing.T) {
 			want:    "Header\n  Body\nFooter",
 		}})
 	})
+	t.Run("extends", func(t *testing.T) {
+		runTests(t, []testCase{{
+			name: "simple",
+			templates: []strTemplate{{
+				name: "child.html",
+				source: "{% extends \"base.html\" %}\n" +
+					"{% block title %}Index{% endblock %}\n" +
+					"{% block head %}\n" +
+					"  {{ super() }}\n" +
+					"  <style type=\"text/css\">\n" +
+					"	.important { color: #336699; }\n" +
+					"  </style>\n" +
+					"{% endblock %}\n" +
+					"{% block body %}\n" +
+					"  <h1>Index</h1>\n" +
+					"  <p class=\"important\">\n" +
+					"	Welcome to my awesome homepage.\n" +
+					"  </p>\n" +
+					"{% endblock body %}",
+			}, {
+				name: "base.html",
+				source: "<!doctype html>\n" +
+					"{% block head %}\n" +
+					"<title>{% block title %}{% endblock %}</title>\n" +
+					"{% endblock %}\n" +
+					"{% block body %}{% endblock %}",
+			}},
+			context: internal.None,
+			want: "<!doctype html>\n\n  \n" +
+				"<title>Index</title>\n\n" +
+				"  <style type=\"text/css\">\n" +
+				"	.important { color: #336699; }\n" +
+				"  </style>\n\n\n" +
+				"  <h1>Index</h1>\n" +
+				"  <p class=\"important\">\n" +
+				"	Welcome to my awesome homepage.\n" +
+				"  </p>\n",
+		}})
+	})
 }

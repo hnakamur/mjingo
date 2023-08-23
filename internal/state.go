@@ -1,17 +1,19 @@
 package internal
 
 import (
+	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
 type State struct {
-	env          *Environment
-	ctx          context
-	currentBlock option.Option[string]
-	autoEscape   AutoEscape
-	instructions Instructions
-	blocks       map[string]blockStack
-	macros       []tuple2[Instructions, uint]
+	env             *Environment
+	ctx             context
+	currentBlock    option.Option[string]
+	autoEscape      AutoEscape
+	instructions    Instructions
+	blocks          map[string]*blockStack
+	loadedTemplates hashset.StrHashSet
+	macros          []tuple2[Instructions, uint]
 }
 
 type locals = map[string]Value
@@ -33,8 +35,8 @@ func (s *State) lookup(name string) option.Option[Value] {
 	return s.ctx.load(s.env, name)
 }
 
-func newBlockStack(instrs Instructions) blockStack {
-	return blockStack{instrs: []Instructions{instrs}, depth: 0}
+func newBlockStack(instrs Instructions) *blockStack {
+	return &blockStack{instrs: []Instructions{instrs}, depth: 0}
 }
 
 func (b *blockStack) instructions() Instructions {
