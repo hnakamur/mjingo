@@ -253,6 +253,23 @@ func TestSingleTemplate(t *testing.T) {
 				want: "John Paul ",
 			},
 			{
+				name:   "forStmtWithElseUnused",
+				source: `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
+				context: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key: internal.KeyRefFromString("names"), Value: internal.ValueFromSlice([]internal.Value{
+						internal.ValueFromString("John"),
+						internal.ValueFromString("Paul"),
+					}),
+				}})),
+				want: "John Paul ",
+			},
+			{
+				name:    "forStmtWithElseUsed",
+				source:  `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
+				context: internal.Undefined,
+				want:    "no users",
+			},
+			{
 				name:    "rawStmt",
 				source:  `{% raw %}Hello {{ name }}{% endraw %}`,
 				context: internal.None,

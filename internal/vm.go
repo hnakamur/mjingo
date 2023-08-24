@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
@@ -106,7 +107,7 @@ loop:
 			pc = 0
 			continue
 		}
-		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
+		log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
 
 		var a, b Value
 
@@ -359,6 +360,7 @@ loop:
 				panic("no currentLoop")
 			}
 			l.object.idx++
+			log.Printf("IterateInstruction l.object.idx=%d", l.object.idx)
 			next := option.None[Value]()
 			triple := &l.object.valueTriple
 			triple[0] = triple[1]
@@ -379,7 +381,9 @@ loop:
 				continue
 			}
 		case PushDidNotIterateInstruction:
-			panic("not implemented for PushDidNotIterateInstruction")
+			l := state.ctx.currentLoop().Unwrap()
+			log.Printf("PushDidNotIterateInstruction, l.object.idx=%d", l.object.idx)
+			stacks.Push(stack, ValueFromBool(l.object.idx == 0))
 		case JumpInstruction:
 			pc = inst.JumpTarget
 			continue
@@ -762,7 +766,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 		recurseJumpTarget:    recurseJumpTarget,
 		currentRecursionJump: currentRecursionJump,
 		object: loop{
-			idx:         uint(0),
+			idx:         ^uint(0),
 			len:         l,
 			depth:       depth,
 			valueTriple: optValueTriple{option.None[Value](), option.None[Value](), it.Next()},
