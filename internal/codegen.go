@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
@@ -63,8 +62,7 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 	case emitExprStmt:
 		g.compileEmitExpr(emitExprStmt{expr: st.expr, span: st.span})
 	case emitRawStmt:
-		inst := g.add(EmitRawInstruction{Val: st.raw})
-		log.Printf("codeGen emitRaw st=%+v, inst=%v", st, inst)
+		g.add(EmitRawInstruction{Val: st.raw})
 		g.rawTemplateBytes += uint(len(st.raw))
 	case forLoopStmt:
 		g.compileForLoop(st)
