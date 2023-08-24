@@ -8,6 +8,9 @@ type FuncFunc = func(*State, []Value) (Value, error)
 
 type FuncObject struct{ f FuncFunc }
 
+var _ = (Object)(FuncObject{})
+var _ = (Caller)(FuncObject{})
+
 func (FuncObject) Kind() ObjectKind { return ObjectKindPlain }
 
 func (f FuncObject) Call(state *State, args []Value) (Value, error) {

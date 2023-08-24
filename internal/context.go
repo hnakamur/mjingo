@@ -23,18 +23,8 @@ type loopState struct {
 	// tells us if we need to end capturing.
 	currentRecursionJump option.Option[recursionJump]
 	iterator             Iterator
-	object               loop
+	object               LoopObject
 }
-
-type loop struct {
-	len              uint
-	idx              uint // atomic.Uint64
-	depth            uint
-	valueTriple      optValueTriple
-	lastChangedValue option.Option[[]Value]
-}
-
-type optValueTriple [3]option.Option[Value]
 
 type recursionJump struct {
 	target     uint
@@ -108,7 +98,7 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 		if frame.currentLoop.IsSome() {
 			l := frame.currentLoop.Unwrap()
 			if l.withLoopVar && key == "loop" {
-				panic("not implemented")
+				return option.Some(ValueFromObject(l.object.Clone()))
 			}
 		}
 

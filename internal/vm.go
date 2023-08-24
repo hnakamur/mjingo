@@ -85,6 +85,23 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 	// uses these instructions when it makes it to the end of the instructions.
 	parentInstructions := option.None[Instructions]()
 
+	recurseLoop := func(capture bool) error {
+		jumpTarget, err := m.prepareLoopRecursion(state)
+		if err != nil {
+			return processErr(err, pc, state)
+		}
+		// the way this works is that we remember the next instruction
+		// as loop exit jump target.  Whenever a loop is pushed, it
+		// memorizes the value in `next_loop_iteration_jump` to jump
+		// to.
+		nextRecursionJump = option.Some(recursionJump{
+			target:     pc + 1,
+			endCapture: capture,
+		})
+		pc = jumpTarget
+		return nil
+	}
+
 loop:
 	for {
 		var inst Instruction
@@ -481,7 +498,10 @@ loop:
 					return option.None[Value](), processErr(err, pc, state)
 				}
 				// leave the one argument on the stack for the recursion
-				panic("not implemented")
+				if err := recurseLoop(true); err != nil {
+					return option.None[Value](), err
+				}
+				continue
 			} else if optFunc := state.lookup(inst.Name); optFunc.IsSome() {
 				f := optFunc.Unwrap()
 				args := stacks.SliceTop(*stack, inst.ArgCount)
@@ -518,7 +538,10 @@ loop:
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case FastRecurseInstruction:
-			panic("not implemented for FastRecurseInstruction")
+			if err := recurseLoop(false); err != nil {
+				return option.None[Value](), err
+			}
+			continue
 		case LoadBlocksInstruction:
 			// Explanation on the behavior of `LoadBlocks` and rendering of
 			// inherited templates:
@@ -690,6 +713,17 @@ func untrustedSizeHint(val uint) uint {
 	return min(val, 1024)
 }
 
+func (m *virtualMachine) prepareLoopRecursion(state *State) (uint, error) {
+	if optLoopState := state.ctx.currentLoop(); optLoopState.IsSome() {
+		loopCtx := optLoopState.Unwrap()
+		if loopCtx.recurseJumpTarget.IsSome() {
+			return loopCtx.recurseJumpTarget.Unwrap(), nil
+		}
+		return 0, NewError(InvalidOperation, "cannot recurse outside of recursive loop")
+	}
+	return 0, NewError(InvalidOperation, "cannot recurse outside of loop")
+}
+
 func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, error) {
 	optName := name.AsStr()
 	if optName.IsNone() {
@@ -780,11 +814,11 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 		withLoopVar:          withLoopVar,
 		recurseJumpTarget:    recurseJumpTarget,
 		currentRecursionJump: currentRecursionJump,
-		object: loop{
+		object: LoopObject{
 			idx:         ^uint(0),
 			len:         l,
 			depth:       depth,
-			valueTriple: optValueTriple{option.None[Value](), option.None[Value](), it.Next()},
+			valueTriple: [3]option.Option[Value]{option.None[Value](), option.None[Value](), it.Next()},
 		},
 		iterator: it,
 	})

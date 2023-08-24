@@ -353,6 +353,34 @@ func TestSingleTemplate(t *testing.T) {
 			},
 		})
 	})
+	t.Run("loopVariable", func(t *testing.T) {
+		ctx := internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+			Key: internal.KeyRefFromString("users"),
+			Value: internal.ValueFromSlice([]internal.Value{
+				internal.ValueFromString("John"),
+				internal.ValueFromString("Paul"),
+				internal.ValueFromString("George"),
+				internal.ValueFromString("Ringo"),
+			}),
+		}}))
+
+		runTests(t, []testCase{{
+			name:    "index",
+			source:  "{% for user in users %}{{ loop.index }} {{ user }}\n{% endfor %}",
+			context: ctx,
+			want:    "1 John\n2 Paul\n3 George\n4 Ringo\n",
+		}, {
+			name:    "index0",
+			source:  "{% for user in users %}{{ loop.index0 }} {{ user }}\n{% endfor %}",
+			context: ctx,
+			want:    "0 John\n1 Paul\n2 George\n3 Ringo\n",
+		}, {
+			name:    "cycle",
+			source:  "{% for user in users %}{{ loop.cycle('odd', 'even') }} {{ user }}\n{% endfor %}",
+			context: ctx,
+			want:    "odd John\neven Paul\nodd George\neven Ringo\n",
+		}})
+	})
 	t.Run("macro", func(t *testing.T) {
 		runTests(t, []testCase{{
 			name: "closure",
