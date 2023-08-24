@@ -68,12 +68,19 @@ func (c *context) store(key string, val Value) {
 	top.locals[key] = val
 }
 
+func (c *context) enclose(env *Environment, key string) {
+	cl := c.closure()
+	cl.storeIfMissing(key, func() Value {
+		return c.load(env, key).UnwrapOr(Undefined)
+	})
+}
+
 func (c *context) closure() Closure {
 	top := &c.stack[len(c.stack)-1]
 	if top.closure.IsNone() {
 		top.closure = option.Some(newClosure())
 	}
-	return top.closure.Unwrap().clone()
+	return top.closure.Unwrap()
 }
 
 func (c *context) takeClosure() option.Option[Closure] {

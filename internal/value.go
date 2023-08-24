@@ -360,8 +360,11 @@ func (v mapValue) GetAttrFast(key string) option.Option[Value] {
 	}
 	return option.None[Value]()
 }
-func (dynamicValue) GetAttrFast(_ string) option.Option[Value] {
-	panic("not implemented yet")
+func (v dynamicValue) GetAttrFast(key string) option.Option[Value] {
+	if s, ok := v.dy.(StructObject); ok {
+		return s.GetField(key)
+	}
+	return option.None[Value]()
 }
 
 func (undefinedValue) GetItemOpt(_ Value) option.Option[Value] { return option.None[Value]() }

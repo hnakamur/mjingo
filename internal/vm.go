@@ -343,6 +343,9 @@ loop:
 					continue
 				}
 			}
+		case IsUndefinedInstruction:
+			a = stacks.Pop(stack)
+			stacks.Push(stack, ValueFromBool(a.IsUndefined()))
 		case PushLoopInstruction:
 			a = stacks.Pop(stack)
 			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
@@ -375,6 +378,8 @@ loop:
 				pc = inst.JumpTarget
 				continue
 			}
+		case PushDidNotIterateInstruction:
+			panic("not implemented for PushDidNotIterateInstruction")
 		case JumpInstruction:
 			pc = inst.JumpTarget
 			continue
@@ -384,6 +389,10 @@ loop:
 				pc = inst.JumpTarget
 				continue
 			}
+		case JumpIfFalseOrPopInstruction:
+			panic("not implemented for JumpIfFalseOrPopInstruction")
+		case JumpIfTrueOrPopInstruction:
+			panic("not implemented for JumpIfTrueOrPopInstruction")
 		case CallBlockInstruction:
 			if parentInstructions.IsNone() && !out.isDiscarding() {
 				m.callBlock(inst.Name, state, out)
@@ -475,6 +484,8 @@ loop:
 			}
 			stacks.DropTop(stack, inst.ArgCount)
 			stacks.Push(stack, a)
+		case CallObjectInstruction:
+			panic("not implemented for CallObjectInstruction")
 		case DupTopInstruction:
 			if val, ok := stacks.Peek(*stack); ok {
 				stacks.Push(stack, val.Clone())
@@ -487,6 +498,8 @@ loop:
 			if _, err := m.performSuper(state, out, false); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
+		case FastRecurseInstruction:
+			panic("not implemented for FastRecurseInstruction")
 		case LoadBlocksInstruction:
 			// Explanation on the behavior of `LoadBlocks` and rendering of
 			// inherited templates:
@@ -540,6 +553,8 @@ loop:
 			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
 		case ReturnInstruction:
 			break loop
+		case EncloseInstruction:
+			state.ctx.enclose(state.env, inst.Name)
 		case GetClosureInstruction:
 			closure := state.ctx.closure()
 			stacks.Push(stack, ValueFromObject(&closure))

@@ -330,6 +330,16 @@ func TestSingleTemplate(t *testing.T) {
 			},
 		})
 	})
+	t.Run("macro", func(t *testing.T) {
+		runTests(t, []testCase{{
+			name: "closure",
+			source: "{% set d = \"closure\" -%}\n" +
+				"{% macro example(a, b, c=\"default\") %}{{ [a, b, c, d] }}{% endmacro -%}\n" +
+				"{{ example(\"Hello\", \"World\") }}\n",
+			context: internal.Undefined,
+			want:    "[Hello, World, default, closure]",
+		}})
+	})
 	t.Run("filter", func(t *testing.T) {
 		runTests(t, []testCase{
 			{
