@@ -326,6 +326,10 @@ loop:
 			} else {
 				stacks.Push(stack, v)
 			}
+		case PushWithInstruction:
+			if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
+				return option.None[Value](), err
+			}
 		case PopFrameInstruction:
 			if optLoopCtx := state.ctx.popFrame().currentLoop; optLoopCtx.IsSome() {
 				loopCtx := optLoopCtx.Unwrap()
@@ -463,6 +467,14 @@ loop:
 				err := NewError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
+		case CallMethodInstruction:
+			args := stacks.SliceTop(*stack, inst.ArgCount)
+			a, err := args[0].CallMethod(state, inst.Name, args[1:])
+			if err != nil {
+				return option.None[Value](), processErr(err, pc, state)
+			}
+			stacks.DropTop(stack, inst.ArgCount)
+			stacks.Push(stack, a)
 		case DupTopInstruction:
 			if val, ok := stacks.Peek(*stack); ok {
 				stacks.Push(stack, val.Clone())
@@ -515,6 +527,15 @@ loop:
 			if err := m.performInclude(a, state, out, inst.IgnoreMissing); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
+		case ExportLocalsInstruction:
+			locals := state.ctx.currentLocals()
+			module := NewIndexMapWithCapacity(uint(len(*locals)))
+			for key, value := range *locals {
+				module.Set(KeyRefFromString(key), value.Clone())
+				// TODO: Use KeyRefFromValue instead of KeyRefFromString
+				// module.Set(KeyRefFromValue(ValueFromString(key)), value.Clone())
+			}
+			stacks.Push(stack, ValueFromIndexMap(module))
 		case BuildMacroInstruction:
 			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
 		case ReturnInstruction:

@@ -112,6 +112,28 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 		g.add(EmitInstruction{})
 	case blockStmt:
 		g.compileBlock(st)
+	case importStmt:
+		g.add(BeginCaptureInstruction{Mode: CaptureModeDiscard})
+		g.add(PushWithInstruction{})
+		g.compileExpr(st.expr)
+		g.addWithSpan(IncludeInstruction{IgnoreMissing: false}, st.span)
+		g.add(ExportLocalsInstruction{})
+		g.add(PopFrameInstruction{})
+		g.compileAssignment(st.name)
+		g.add(EndCaptureInstruction{})
+	case fromImportStmt:
+		g.add(BeginCaptureInstruction{Mode: CaptureModeDiscard})
+		g.add(PushWithInstruction{})
+		g.compileExpr(st.expr)
+		g.addWithSpan(IncludeInstruction{IgnoreMissing: false}, st.span)
+		for _, importName := range st.names {
+			g.compileExpr(importName.name)
+		}
+		g.add(PopFrameInstruction{})
+		for _, importName := range st.names {
+			g.compileAssignment(importName.as.UnwrapOr(importName.name))
+		}
+		g.add(EndCaptureInstruction{})
 	case extendsStmt:
 		g.setLineFromSpan(st.span)
 		g.compileExpr(st.name)

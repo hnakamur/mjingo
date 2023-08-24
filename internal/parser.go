@@ -1061,6 +1061,20 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 		}
 		st.span = p.stream.expandSpan(spn)
 		return st, nil
+	case "import":
+		st, err := p.parseImport()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
+	case "from":
+		st, err := p.parseFromImport()
+		if err != nil {
+			return nil, err
+		}
+		st.span = p.stream.expandSpan(spn)
+		return st, nil
 	case "macro":
 		st, err := p.parseMacro()
 		if err != nil {
@@ -1566,6 +1580,65 @@ func (p *parser) parseInclude() (includeStmt, error) {
 	}
 
 	return includeStmt{name: name, ignoreMissing: ignoreMissing}, nil
+}
+
+func (p *parser) parseImport() (importStmt, error) {
+	expr, err := p.parseExpr()
+	if err != nil {
+		return importStmt{}, err
+	}
+	if _, _, err = p.expectToken(isIdentTokenWithName("as"), "as"); err != nil {
+		return importStmt{}, err
+	}
+	name, err := p.parseExpr()
+	if err != nil {
+		return importStmt{}, err
+	}
+	return importStmt{expr: expr, name: name}, nil
+}
+
+func (p *parser) parseFromImport() (fromImportStmt, error) {
+	expr, err := p.parseExpr()
+	if err != nil {
+		return fromImportStmt{}, err
+	}
+	if _, _, err = p.expectToken(isIdentTokenWithName("import"), "import"); err != nil {
+		return fromImportStmt{}, err
+	}
+	var names []importName
+	for {
+		if matched, err := p.matchesToken(isTokenOfType[blockEndToken]); err != nil {
+			return fromImportStmt{}, err
+		} else if matched {
+			break
+		}
+		if len(names) > 0 {
+			if _, _, err = p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				return fromImportStmt{}, err
+			}
+		}
+		if matched, err := p.matchesToken(isTokenOfType[blockEndToken]); err != nil {
+			return fromImportStmt{}, err
+		} else if matched {
+			break
+		}
+		name, err := p.parseAssignName()
+		if err != nil {
+			return fromImportStmt{}, err
+		}
+		optAlias := option.None[expression]()
+		if matched, err := p.skipToken(isIdentTokenWithName("as")); err != nil {
+			return fromImportStmt{}, err
+		} else if matched {
+			alias, err := p.parseAssignName()
+			if err != nil {
+				return fromImportStmt{}, err
+			}
+			optAlias = option.Some(alias)
+		}
+		names = append(names, importName{name: name, as: optAlias})
+	}
+	return fromImportStmt{expr: expr, names: names}, nil
 }
 
 func (p *parser) parse() (statement, error) {

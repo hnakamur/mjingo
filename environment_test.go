@@ -441,6 +441,7 @@ func TestMultiTemplates(t *testing.T) {
 	}
 
 	runTests := func(t *testing.T, testCases []testCase) {
+		t.Helper()
 		for i, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				env := NewEnvironment()
@@ -521,6 +522,44 @@ func TestMultiTemplates(t *testing.T) {
 				"  <p class=\"important\">\n" +
 				"	Welcome to my awesome homepage.\n" +
 				"  </p>\n",
+		}})
+	})
+	t.Run("import", func(t *testing.T) {
+		runTests(t, []testCase{{
+			name: "simple",
+			templates: []strTemplate{{
+				name: "main.html",
+				source: "{% import \"my_template.html\" as helpers %}\n" +
+					"{{ helpers.my_macro(helpers.my_variable) }}",
+			}, {
+				name: "my_template.html",
+				source: "{% macro my_macro(name) %}\n" +
+					"Hello {{ name }}\n" +
+					"{% endmacro %}\n" +
+					"{% set my_variable = \"World\" %}\n",
+			}},
+			context: internal.None,
+			want:    "\n\nHello World\n",
+		}})
+	})
+	t.Run("from", func(t *testing.T) {
+		runTests(t, []testCase{{
+			name: "simple",
+			templates: []strTemplate{{
+				name: "main.html",
+				source: "{% from \"my_template.html\" import my_macro, my_alias as alias %}\n" +
+					"{{ my_macro(\"World\") }}\n" +
+					"{{ alias(\"日本\") }}",
+			}, {
+				name: "my_template.html",
+				source: "{% macro my_macro(name) %}\n" +
+					"Hello {{ name }}\n" +
+					"{% endmacro %}\n" +
+					"{% set my_alias = my_macro %}\n",
+			}},
+			context: internal.None,
+			want: "\n\nHello World\n" +
+				"\n\nHello 日本\n",
 		}})
 	})
 }

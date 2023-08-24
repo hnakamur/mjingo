@@ -31,6 +31,7 @@ type Value interface {
 	TryIter() (Iterator, error)
 	Len() option.Option[uint]
 	Call(state *State, args []Value) (Value, error)
+	CallMethod(state *State, name string, args []Value) (Value, error)
 }
 
 type valueType int
@@ -884,4 +885,61 @@ func (v dynamicValue) Call(state *State, args []Value) (Value, error) {
 func notCallableValueType(v Value) (Value, error) {
 	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s is not callable", v.Kind()))
+}
+
+func (v undefinedValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v BoolValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v u64Value) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v i64Value) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v f64Value) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v noneValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v InvalidValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v u128Value) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v i128Value) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v stringValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v bytesValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v SeqValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	return noCallMethod(name)
+}
+func (v mapValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	if val, ok := v.m.Get(KeyRefFromString(name)); ok {
+		if c, ok := val.(Caller); ok {
+			return c.Call(state, args)
+		}
+		return notCallableValueType(val)
+	}
+	return noCallMethod(name)
+}
+func (v dynamicValue) CallMethod(state *State, name string, args []Value) (Value, error) {
+	if c, ok := v.dy.(CallMethoder); ok {
+		return c.CallMethod(state, name, args)
+	}
+	return noCallMethod(name)
+}
+
+func noCallMethod(name string) (Value, error) {
+	return nil, NewError(InvalidOperation,
+		fmt.Sprintf("object has no method named %s", name))
 }

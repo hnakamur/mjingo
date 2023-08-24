@@ -128,6 +128,11 @@ func (c *context) popFrame() frame {
 	return f
 }
 
+// Returns the current locals mutably.
+func (c *context) currentLocals() *locals {
+	return &c.stack[len(c.stack)-1].locals
+}
+
 // Returns the current innermost loop.
 func (c *context) currentLoop() option.Option[*loopState] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
