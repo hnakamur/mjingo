@@ -205,6 +205,12 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "tuipleTreatedAsSeq0", source: `{{ () }}`, context: internal.None, want: "[]"},
 			{name: "tuipleTreatedAsSeq1", source: `{{ (1,) }}`, context: internal.None, want: "[1]"},
 			{name: "tuipleTreatedAsSeq2", source: `{{ (1, 2) }}`, context: internal.None, want: "[1, 2]"},
+			{name: "scAnd1", source: `{{ false and false }}`, context: internal.None, want: "false"},
+			{name: "scAnd2", source: `{{ true and false }}`, context: internal.None, want: "false"},
+			{name: "scAnd3", source: `{{ true and true }}`, context: internal.None, want: "true"},
+			{name: "scOr1", source: `{{ false or false }}`, context: internal.None, want: "false"},
+			{name: "scOr2", source: `{{ false or true }}`, context: internal.None, want: "true"},
+			{name: "scOr3", source: `{{ true or false }}`, context: internal.None, want: "true"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {

@@ -391,9 +391,27 @@ loop:
 				continue
 			}
 		case JumpIfFalseOrPopInstruction:
-			panic("not implemented for JumpIfFalseOrPopInstruction")
+			if a, ok := stacks.Peek(*stack); ok {
+				if a.IsTrue() {
+					stacks.Pop(stack)
+				} else {
+					pc = inst.JumpTarget
+					continue
+				}
+			} else {
+				panic("unreachable")
+			}
 		case JumpIfTrueOrPopInstruction:
-			panic("not implemented for JumpIfTrueOrPopInstruction")
+			if a, ok := stacks.Peek(*stack); ok {
+				if a.IsTrue() {
+					pc = inst.JumpTarget
+					continue
+				} else {
+					stacks.Pop(stack)
+				}
+			} else {
+				panic("unreachable")
+			}
 		case CallBlockInstruction:
 			if parentInstructions.IsNone() && !out.isDiscarding() {
 				m.callBlock(inst.Name, state, out)

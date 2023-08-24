@@ -556,6 +556,46 @@ func (g *codeGenerator) endIf() {
 	g.endCondition(g.nextInstruction())
 }
 
+// Starts a short cirquited bool block.
+func (g *codeGenerator) startScBool() {
+	g.pendingBlock.push(scBoolPendingBlock{})
+}
+
+// Emits a short circuited bool operator.
+func (g *codeGenerator) scBool(and bool) {
+	if blk := g.pendingBlock.peek(); blk != nil {
+		var inst Instruction
+		if and {
+			inst = JumpIfFalseOrPopInstruction{JumpTarget: ^uint(0)}
+		} else {
+			inst = JumpIfTrueOrPopInstruction{JumpTarget: ^uint(0)}
+		}
+		instIdx := g.instructions.add(inst)
+		scBoolBlk := (*blk).(scBoolPendingBlock)
+		scBoolBlk.instructions = append(scBoolBlk.instructions, instIdx)
+		*blk = scBoolBlk
+	}
+}
+
+// Ends a short circuited bool block.
+func (g *codeGenerator) endScBool() {
+	end := g.nextInstruction()
+	if blk := g.pendingBlock.pop(); blk != nil {
+		if scBoolBlk, ok := (*blk).(scBoolPendingBlock); ok {
+			for _, instIdx := range scBoolBlk.instructions {
+				switch g.instructions.instructions[instIdx].(type) {
+				case JumpIfFalseOrPopInstruction:
+					g.instructions.instructions[instIdx] = JumpIfFalseOrPopInstruction{JumpTarget: end}
+				case JumpIfTrueOrPopInstruction:
+					g.instructions.instructions[instIdx] = JumpIfTrueOrPopInstruction{JumpTarget: end}
+				default:
+					panic("unreachable")
+				}
+			}
+		}
+	}
+}
+
 func (g *codeGenerator) endCondition(jumpInst uint) {
 	b := g.pendingBlock.pop()
 	if b == nil {
@@ -646,7 +686,13 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 	case binOpTypeGte:
 		instr = GteInstruction{}
 	case binOpTypeScAnd, binOpTypeScOr:
-		panic("not implemented yet")
+		g.startScBool()
+		g.compileExpr(exp.left)
+		g.scBool(exp.op == binOpTypeScAnd)
+		g.compileExpr(exp.right)
+		g.endScBool()
+		g.popSpan()
+		return
 	case binOpTypeAdd:
 		instr = AddInstruction{}
 	case binOpTypeSub:
