@@ -458,6 +458,52 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "isEndingWithFalse", source: `{{ "foobar" is endingwith("foo") }}`, context: internal.None, want: "false"},
 		})
 	})
+	t.Run("function", func(t *testing.T) {
+		runTests(t, []testCase{
+			{name: "rangeJustUpper", source: "{{ range(3) }}", context: internal.None, want: "[0, 1, 2]"},
+			{name: "rangeLowerUpper", source: "{{ range(2, 4) }}", context: internal.None, want: "[2, 3]"},
+			{name: "rangeLowerUpperStep", source: "{{ range(2, 9, 3) }}", context: internal.None, want: "[2, 5, 8]"},
+		})
+	})
+}
+
+func TestErrorSingleTemplate(t *testing.T) {
+	type testCase struct {
+		name    string
+		source  string
+		context any
+		want    string
+	}
+
+	runTests := func(t *testing.T, testCases []testCase) {
+		for i, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				env := NewEnvironment()
+				const templateName = "test.html"
+				err := env.AddTemplate(templateName, tc.source)
+				if err != nil {
+					t.Fatal(err)
+				}
+				tpl, err := env.GetTemplate(templateName)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var got string
+				if _, err := tpl.Render(tc.context); err != nil {
+					got = err.Error()
+				}
+				if got != tc.want {
+					t.Errorf("error mismatch, i=%d, source=%s, got=%s, want=%s", i, tc.source, got, tc.want)
+				}
+			})
+		}
+	}
+	t.Run("function", func(t *testing.T) {
+		runTests(t, []testCase{
+			{name: "rangeNoArgErr", source: "{{ range() }}", context: internal.None, want: "missing argument"},
+			{name: "rangeTooManyArgErr", source: "{{ range(1, 2, 3, 4) }}", context: internal.None, want: "too many arguments"},
+		})
+	})
 }
 
 func TestMultiTemplates(t *testing.T) {

@@ -55,6 +55,10 @@ func ValueFromObject(dy Object) Value {
 	return dynamicValue{dy: dy}
 }
 
+func ValueFromFunc(f FuncFunc) Value {
+	return dynamicValue{dy: FuncObject{f: f}}
+}
+
 func StringFromValue(value option.Option[Value]) (string, error) {
 	if value.IsSome() {
 		optStr := value.Unwrap().AsStr()

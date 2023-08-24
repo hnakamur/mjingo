@@ -29,7 +29,7 @@ func NewEnvironment() *Environment {
 		templates:         make(map[string]*Template),
 		filters:           getDefaultBuiltinFilters(),
 		tests:             getDefaultBuiltinTests(),
-		globals:           make(map[string]Value),
+		globals:           getDefaultGlobals(),
 		defaultAutoEscape: defaultAutoEscapeCallback,
 		formatter:         escapeFormatter,
 	}

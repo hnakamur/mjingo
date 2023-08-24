@@ -1,6 +1,5 @@
 package internal
 
-
 func escapeFormatter(out *Output, state *State, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }
@@ -39,5 +38,11 @@ func getDefaultBuiltinTests() map[string]TestFunc {
 	rv["startingwith"] = testFuncFromPredicateWithStringStringArgs(isStartingWith)
 	rv["endingwith"] = testFuncFromPredicateWithStringStringArgs(isEndingWith)
 
+	return rv
+}
+
+func getDefaultGlobals() map[string]Value {
+	rv := make(map[string]Value)
+	rv["range"] = ValueFromFunc(funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(fnRange))
 	return rv
 }
