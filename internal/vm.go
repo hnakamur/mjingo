@@ -87,6 +87,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc 
 
 	recurseLoop := func(capture bool) error {
 		jumpTarget, err := m.prepareLoopRecursion(state)
+		// log.Printf("recurseLoop capture=%v, jumpTarget=%d, err=%v", capture, jumpTarget, err)
 		if err != nil {
 			return processErr(err, pc, state)
 		}

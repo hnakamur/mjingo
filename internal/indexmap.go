@@ -1,6 +1,8 @@
 package internal
 
-import "github.com/hnakamur/mjingo/internal/datast/indexmap"
+import (
+	"github.com/hnakamur/mjingo/internal/datast/indexmap"
+)
 
 type IndexMap indexmap.Map[KeyRef, Value]
 type IndexMapEntry = indexmap.Entry[KeyRef, Value]

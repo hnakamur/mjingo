@@ -364,6 +364,62 @@ func TestSingleTemplate(t *testing.T) {
 			}),
 		}}))
 
+		recurCtx := internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+			Key: internal.KeyRefFromString("menu"),
+			Value: internal.ValueFromSlice([]internal.Value{
+				internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key:   internal.KeyRefFromString("href"),
+					Value: internal.ValueFromString("/menu1"),
+				}, {
+					Key:   internal.KeyRefFromString("title"),
+					Value: internal.ValueFromString("menu1"),
+				}, {
+					Key: internal.KeyRefFromString("children"),
+					Value: internal.ValueFromSlice([]internal.Value{
+						internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+							Key: internal.KeyRefFromString("menu"),
+							Value: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+								Key:   internal.KeyRefFromString("href"),
+								Value: internal.ValueFromString("/submenu1"),
+							}, {
+								Key:   internal.KeyRefFromString("title"),
+								Value: internal.ValueFromString("submenu1"),
+							}, {
+								Key: internal.KeyRefFromString("children"),
+								Value: internal.ValueFromSlice([]internal.Value{
+									internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+										Key: internal.KeyRefFromString("menu"),
+										Value: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+											Key:   internal.KeyRefFromString("href"),
+											Value: internal.ValueFromString("/submenu1-1"),
+										}, {
+											Key:   internal.KeyRefFromString("title"),
+											Value: internal.ValueFromString("submenu1-1"),
+										}, {
+											Key:   internal.KeyRefFromString("children"),
+											Value: internal.ValueFromSlice([]internal.Value{}),
+										}})),
+									}})),
+								}),
+							}})),
+						}})),
+						internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+							Key: internal.KeyRefFromString("menu"),
+							Value: internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+								Key:   internal.KeyRefFromString("href"),
+								Value: internal.ValueFromString("/submenu2"),
+							}, {
+								Key:   internal.KeyRefFromString("title"),
+								Value: internal.ValueFromString("submenu2"),
+							}, {
+								Key:   internal.KeyRefFromString("children"),
+								Value: internal.ValueFromSlice([]internal.Value{}),
+							}})),
+						}}))}),
+				}})),
+			}),
+		}}))
+
 		runTests(t, []testCase{{
 			name:    "index",
 			source:  "{% for user in users %}{{ loop.index }} {{ user }}\n{% endfor %}",
@@ -374,6 +430,51 @@ func TestSingleTemplate(t *testing.T) {
 			source:  "{% for user in users %}{{ loop.index0 }} {{ user }}\n{% endfor %}",
 			context: ctx,
 			want:    "0 John\n1 Paul\n2 George\n3 Ringo\n",
+		}, {
+			name:    "revindex",
+			source:  "{% for user in users %}{{ loop.revindex }} {{ user }}\n{% endfor %}",
+			context: ctx,
+			want:    "4 John\n3 Paul\n2 George\n1 Ringo\n",
+		}, {
+			name:    "revindex0",
+			source:  "{% for user in users %}{{ loop.revindex0 }} {{ user }}\n{% endfor %}",
+			context: ctx,
+			want:    "3 John\n2 Paul\n1 George\n0 Ringo\n",
+		}, {
+			name:    "firstAndLast",
+			source:  "{% for user in users %}{{ ', ' if not loop.first }}{{ 'and ' if loop.last }}{{ user }}{% endfor %}",
+			context: ctx,
+			want:    "John, Paul, George, and Ringo",
+		}, {
+			name: "depth",
+			source: "<ul class=\"menu\">\n" +
+				"{% for item in menu recursive %}\n" +
+				"  <li><a href=\"{{ item.href }}\">{{ item.title }} (depth={{ loop.depth }})</a>\n" +
+				"  {% if item.children %}\n" +
+				"	<ul class=\"submenu\">{{ loop(item.children) }}</ul>\n" +
+				"  {% endif %}</li>\n" +
+				"{% endfor %}\n" +
+				"</ul>",
+			context: recurCtx,
+			want: "<ul class=\"menu\">\n\n  <li><a href=\"/menu1\">menu1 (depth=1)</a>\n" +
+				"  \n\t<ul class=\"submenu\">\n  <li><a href=\"\"> (depth=2)</a>\n" +
+				"  </li>\n\n  <li><a href=\"\"> (depth=2)</a>\n" +
+				"  </li>\n</ul>\n  </li>\n\n</ul>",
+		}, {
+			name: "depth0",
+			source: "<ul class=\"menu\">\n" +
+				"{% for item in menu recursive %}\n" +
+				"  <li><a href=\"{{ item.href }}\">{{ item.title }} (depth={{ loop.depth0 }})</a>\n" +
+				"  {% if item.children %}\n" +
+				"	<ul class=\"submenu\">{{ loop(item.children) }}</ul>\n" +
+				"  {% endif %}</li>\n" +
+				"{% endfor %}\n" +
+				"</ul>",
+			context: recurCtx,
+			want: "<ul class=\"menu\">\n\n  <li><a href=\"/menu1\">menu1 (depth=0)</a>\n" +
+				"  \n\t<ul class=\"submenu\">\n  <li><a href=\"\"> (depth=1)</a>\n" +
+				"  </li>\n\n  <li><a href=\"\"> (depth=1)</a>\n" +
+				"  </li>\n</ul>\n  </li>\n\n</ul>",
 		}, {
 			name:    "cycle",
 			source:  "{% for user in users %}{{ loop.cycle('odd', 'even') }} {{ user }}\n{% endfor %}",

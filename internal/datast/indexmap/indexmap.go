@@ -99,7 +99,7 @@ func Clone[K comparable, V any](m *Map[K, V]) *Map[K, V] {
 	l := Len(m)
 	rv := WithCapacity[K, V](l)
 	for i := uint(0); i < l; i++ {
-		e, _ := EntryAt(m, l)
+		e, _ := EntryAt(m, i)
 		Set(rv, e.Key, e.Value)
 	}
 	return rv
