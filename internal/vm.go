@@ -9,7 +9,6 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
-	"github.com/hnakamur/mjingo/internal/datast/stacks"
 )
 
 // the cost of a single include against the stack limit.
@@ -55,6 +54,7 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 		return option.None[Value](), err
 	}
 
+	stack := Stack[Value](args)
 	return m.evalImpl(&State{
 		env:             m.env,
 		ctx:             *ctx,
@@ -64,18 +64,18 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 		blocks:          make(map[string]*blockStack),
 		loadedTemplates: *hashset.NewStrHashSet(),
 		macros:          state.macros, // TODO: clone
-	}, out, &args, pc)
+	}, out, &stack, pc)
 }
 
 func (m *virtualMachine) evalState(state *State, out *Output) (option.Option[Value], error) {
-	var stack []Value
+	var stack Stack[Value]
 	return m.evalImpl(state, out, &stack, 0)
 }
 
-func (m *virtualMachine) evalImpl(state *State, out *Output, stack *[]Value, pc uint) (option.Option[Value], error) {
+func (m *virtualMachine) evalImpl(state *State, out *Output, stack *Stack[Value], pc uint) (option.Option[Value], error) {
 	initialAutoEscape := state.autoEscape
 	undefinedBehavior := state.undefinedBehavior()
-	autoEscapeStack := []AutoEscape{}
+	var autoEscapeStack Stack[AutoEscape]
 	nextRecursionJump := option.None[recursionJump]()
 	loadedFilters := [MaxLocals]option.Option[FilterFunc]{}
 	loadedTests := [MaxLocals]option.Option[TestFunc]{}
@@ -134,12 +134,12 @@ loop:
 				return option.None[Value](), err
 			}
 		case EmitInstruction:
-			v := stacks.Pop(stack)
+			v := stack.Pop()
 			if err := m.env.format(v, state, out); err != nil {
 				return option.None[Value](), err
 			}
 		case StoreLocalInstruction:
-			state.ctx.store(inst.Name, stacks.Pop(stack))
+			state.ctx.store(inst.Name, stack.Pop())
 		case LookupInstruction:
 			var v Value
 			if val := state.lookup(inst.Name); val.IsSome() {
@@ -147,9 +147,9 @@ loop:
 			} else {
 				v = Undefined
 			}
-			stacks.Push(stack, v)
+			stack.Push(v)
 		case GetAttrInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			// This is a common enough operation that it's interesting to consider a fast
 			// path here.  This is slightly faster than the regular attr lookup because we
 			// do not need to pass down the error object for the more common success case.
@@ -159,174 +159,174 @@ loop:
 				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
-					stacks.Push(stack, v)
+					stack.Push(v)
 				}
 			} else {
 				if v, err := undefinedBehavior.HandleUndefined(a.IsUndefined()); err != nil {
 					return option.None[Value](), processErr(err, pc, state)
 				} else {
-					stacks.Push(stack, v)
+					stack.Push(v)
 				}
 			}
 		case GetItemInstruction:
-			a = stacks.Pop(stack)
-			b = stacks.Pop(stack)
+			a = stack.Pop()
+			b = stack.Pop()
 			if v := b.GetItemOpt(a); v.IsSome() {
 				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
-					stacks.Push(stack, v)
+					stack.Push(v)
 				}
 			} else {
 				if v, err := undefinedBehavior.HandleUndefined(b.IsUndefined()); err != nil {
 					return option.None[Value](), processErr(err, pc, state)
 				} else {
-					stacks.Push(stack, v)
+					stack.Push(v)
 				}
 			}
 		case SliceInstruction:
-			step := stacks.Pop(stack)
-			stop := stacks.Pop(stack)
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			step := stack.Pop()
+			stop := stack.Pop()
+			b = stack.Pop()
+			a = stack.Pop()
 			if a.IsUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
 				return option.None[Value](), processErr(NewError(UndefinedError, ""), pc, state)
 			}
 			if s, err := Slice(a, b, stop, step); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
-				stacks.Push(stack, s)
+				stack.Push(s)
 			}
 		case LoadConstInstruction:
-			stacks.Push(stack, inst.Val)
+			stack.Push(inst.Val)
 		case BuildMapInstruction:
 			m := NewIndexMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
-				val := stacks.Pop(stack)
-				key := stacks.Pop(stack)
+				val := stack.Pop()
+				key := stack.Pop()
 				m.Set(KeyRefFromValue(key), val)
 			}
-			stacks.Push(stack, ValueFromIndexMap(m))
+			stack.Push(ValueFromIndexMap(m))
 		case BuildKwargsInstruction:
 			m := NewIndexMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
-				val := stacks.Pop(stack)
-				key := stacks.Pop(stack)
+				val := stack.Pop()
+				key := stack.Pop()
 				m.Set(KeyRefFromValue(key), val)
 			}
-			stacks.Push[[]Value, Value](stack, mapValue{m: m, mapTyp: mapTypeKwargs})
+			stack.Push(mapValue{m: m, mapTyp: mapTypeKwargs})
 		case BuildListInstruction:
 			v := make([]Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
-				v = append(v, stacks.Pop(stack))
+				v = append(v, stack.Pop())
 			}
 			slices.Reverse(v)
-			stacks.Push(stack, ValueFromSlice(v))
+			stack.Push(ValueFromSlice(v))
 		case UnpackListInstruction:
 			if err := m.unpackList(stack, inst.Count); err != nil {
 				return option.None[Value](), err
 			}
 		case ListAppendInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			// this intentionally only works with actual sequences
-			if v, ok := stacks.Pop(stack).(SeqValue); ok {
+			if v, ok := stack.Pop().(SeqValue); ok {
 				v.Append(a)
-				stacks.Push[[]Value, Value](stack, v)
+				stack.Push(v)
 			} else {
 				err := NewError(InvalidOperation, "cannot append to non-list")
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case AddInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Add(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case SubInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Sub(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case MulInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Mul(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case DivInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Div(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case IntDivInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := IntDiv(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case RemInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Rem(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case PowInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
+			b = stack.Pop()
+			a = stack.Pop()
 			if v, err := Pow(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case EqInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(Equal(a, b)))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(Equal(a, b)))
 		case NeInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(!Equal(a, b)))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(!Equal(a, b)))
 		case GtInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(Cmp(a, b) > 0))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(Cmp(a, b) > 0))
 		case GteInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(Cmp(a, b) >= 0))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(Cmp(a, b) >= 0))
 		case LtInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(Cmp(a, b) < 0))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(Cmp(a, b) < 0))
 		case LteInstruction:
-			b = stacks.Pop(stack)
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(Cmp(a, b) <= 0))
+			b = stack.Pop()
+			a = stack.Pop()
+			stack.Push(ValueFromBool(Cmp(a, b) <= 0))
 		case NotInstruction:
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(!a.IsTrue()))
+			a = stack.Pop()
+			stack.Push(ValueFromBool(!a.IsTrue()))
 		case StringConcatInstruction:
-			a = stacks.Pop(stack)
-			b = stacks.Pop(stack)
+			a = stack.Pop()
+			b = stack.Pop()
 			v := StringConcat(b, a)
-			stacks.Push(stack, v)
+			stack.Push(v)
 		case InInstruction:
-			a = stacks.Pop(stack)
-			b = stacks.Pop(stack)
+			a = stack.Pop()
+			b = stack.Pop()
 			// the in-operator can fail if the value is undefined and
 			// we are in strict mode.
 			if err := state.undefinedBehavior().AssertIterable(a); err != nil {
@@ -336,13 +336,13 @@ loop:
 			if err != nil {
 				return option.None[Value](), err
 			}
-			stacks.Push(stack, rv)
+			stack.Push(rv)
 		case NegInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			if v, err := Neg(a); err != nil {
 				return option.None[Value](), err
 			} else {
-				stacks.Push(stack, v)
+				stack.Push(v)
 			}
 		case PushWithInstruction:
 			if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
@@ -356,16 +356,16 @@ loop:
 					loopCtx.currentRecursionJump = option.None[recursionJump]()
 					pc = recurJump.target
 					if recurJump.endCapture {
-						stacks.Push(stack, out.endCapture(state.autoEscape))
+						stack.Push(out.endCapture(state.autoEscape))
 					}
 					continue
 				}
 			}
 		case IsUndefinedInstruction:
-			a = stacks.Pop(stack)
-			stacks.Push(stack, ValueFromBool(a.IsUndefined()))
+			a = stack.Pop()
+			stack.Push(ValueFromBool(a.IsUndefined()))
 		case PushLoopInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
@@ -390,7 +390,7 @@ loop:
 				if v, err := assertValid(item, pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
-					stacks.Push(stack, v)
+					stack.Push(v)
 				}
 			} else {
 				pc = inst.JumpTarget
@@ -398,20 +398,20 @@ loop:
 			}
 		case PushDidNotIterateInstruction:
 			l := state.ctx.currentLoop().Unwrap()
-			stacks.Push(stack, ValueFromBool(l.object.idx == 0))
+			stack.Push(ValueFromBool(l.object.idx == 0))
 		case JumpInstruction:
 			pc = inst.JumpTarget
 			continue
 		case JumpIfFalseInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			if !a.IsTrue() {
 				pc = inst.JumpTarget
 				continue
 			}
 		case JumpIfFalseOrPopInstruction:
-			if a, ok := stacks.Peek(*stack); ok {
+			if a, ok := stack.Peek(); ok {
 				if a.IsTrue() {
-					stacks.Pop(stack)
+					stack.Pop()
 				} else {
 					pc = inst.JumpTarget
 					continue
@@ -420,12 +420,12 @@ loop:
 				panic("unreachable")
 			}
 		case JumpIfTrueOrPopInstruction:
-			if a, ok := stacks.Peek(*stack); ok {
+			if a, ok := stack.Peek(); ok {
 				if a.IsTrue() {
 					pc = inst.JumpTarget
 					continue
 				} else {
-					stacks.Pop(stack)
+					stack.Pop()
 				}
 			} else {
 				panic("unreachable")
@@ -435,15 +435,15 @@ loop:
 				m.callBlock(inst.Name, state, out)
 			}
 		case PushAutoEscapeInstruction:
-			a = stacks.Pop(stack)
-			stacks.Push(&autoEscapeStack, state.autoEscape)
+			a = stack.Pop()
+			autoEscapeStack.Push(state.autoEscape)
 			if escape, err := m.deriveAutoEscape(a, initialAutoEscape); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				state.autoEscape = escape
 			}
 		case PopAutoEscapeInstruction:
-			if autoEscape, ok := stacks.TryPop(&autoEscapeStack); ok {
+			if autoEscape, ok := autoEscapeStack.TryPop(); ok {
 				state.autoEscape = autoEscape
 			} else {
 				panic("unreachable")
@@ -451,7 +451,7 @@ loop:
 		case BeginCaptureInstruction:
 			out.beginCapture(inst.Mode)
 		case EndCaptureInstruction:
-			stacks.Push(stack, out.endCapture(state.autoEscape))
+			stack.Push(out.endCapture(state.autoEscape))
 		case ApplyFilterInstruction:
 			f := func() option.Option[FilterFunc] { return state.env.getFilter(inst.Name) }
 			var tf FilterFunc
@@ -461,12 +461,12 @@ loop:
 				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
-			args := stacks.SliceTop(*stack, inst.ArgCount)
+			args := stack.SliceTop(inst.ArgCount)
 			if rv, err := tf(state, args); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
-				stacks.DropTop(stack, inst.ArgCount)
-				stacks.Push(stack, rv)
+				stack.DropTop(inst.ArgCount)
+				stack.Push(rv)
 			}
 		case PerformTestInstruction:
 			f := func() option.Option[TestFunc] { return state.env.getTest(inst.Name) }
@@ -477,12 +477,12 @@ loop:
 				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
-			args := stacks.SliceTop(*stack, inst.ArgCount)
+			args := stack.SliceTop(inst.ArgCount)
 			if rv, err := tf(state, args); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
-				stacks.DropTop(stack, inst.ArgCount)
-				stacks.Push(stack, ValueFromBool(rv))
+				stack.DropTop(inst.ArgCount)
+				stack.Push(ValueFromBool(rv))
 			}
 		case CallFunctionInstruction:
 			if inst.Name == "super" {
@@ -495,7 +495,7 @@ loop:
 				if err != nil {
 					return option.None[Value](), processErr(err, pc, state)
 				}
-				stacks.Push(stack, val)
+				stack.Push(val)
 			} else if inst.Name == "loop" {
 				// loop is a special name which when called recurses the current loop.
 				if inst.ArgCount != 1 {
@@ -510,35 +510,35 @@ loop:
 				continue
 			} else if optFunc := state.lookup(inst.Name); optFunc.IsSome() {
 				f := optFunc.Unwrap()
-				args := stacks.SliceTop(*stack, inst.ArgCount)
+				args := stack.SliceTop(inst.ArgCount)
 				a, err := f.Call(state, args)
 				if err != nil {
 					return option.None[Value](), err
 				}
-				stacks.DropTop(stack, inst.ArgCount)
-				stacks.Push(stack, a)
+				stack.DropTop(inst.ArgCount)
+				stack.Push(a)
 			} else {
 				err := NewError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case CallMethodInstruction:
-			args := stacks.SliceTop(*stack, inst.ArgCount)
+			args := stack.SliceTop(inst.ArgCount)
 			a, err := args[0].CallMethod(state, inst.Name, args[1:])
 			if err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
-			stacks.DropTop(stack, inst.ArgCount)
-			stacks.Push(stack, a)
+			stack.DropTop(inst.ArgCount)
+			stack.Push(a)
 		case CallObjectInstruction:
 			panic("not implemented for CallObjectInstruction")
 		case DupTopInstruction:
-			if val, ok := stacks.Peek(*stack); ok {
-				stacks.Push(stack, val.Clone())
+			if val, ok := stack.Peek(); ok {
+				stack.Push(val.Clone())
 			} else {
 				panic("stack must not be empty")
 			}
 		case DiscardTopInstruction:
-			stacks.Pop(stack)
+			stack.Pop()
 		case FastSuperInstruction:
 			if _, err := m.performSuper(state, out, false); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
@@ -572,7 +572,7 @@ loop:
 			// However for the common case this is convenient because it
 			// lets you put some imports there and for as long as you do not
 			// create name clashes this works fine.
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			if parentInstructions.IsSome() {
 				err := NewError(InvalidOperation, "tried to extend a second time in a template")
 				return option.None[Value](), processErr(err, pc, state)
@@ -584,7 +584,7 @@ loop:
 			parentInstructions = option.Some(insts)
 			out.beginCapture(CaptureModeDiscard)
 		case IncludeInstruction:
-			a = stacks.Pop(stack)
+			a = stack.Pop()
 			if err := m.performInclude(a, state, out, inst.IgnoreMissing); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
@@ -596,7 +596,7 @@ loop:
 				// TODO: Use KeyRefFromValue instead of KeyRefFromString
 				// module.Set(KeyRefFromValue(ValueFromString(key)), value.Clone())
 			}
-			stacks.Push(stack, ValueFromIndexMap(module))
+			stack.Push(ValueFromIndexMap(module))
 		case BuildMacroInstruction:
 			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
 		case ReturnInstruction:
@@ -605,13 +605,13 @@ loop:
 			state.ctx.enclose(state.env, inst.Name)
 		case GetClosureInstruction:
 			closure := state.ctx.closure()
-			stacks.Push(stack, ValueFromObject(&closure))
+			stack.Push(ValueFromObject(&closure))
 		default:
 			panic("unreachable")
 		}
 		pc++
 	}
-	if v, ok := stacks.TryPop(stack); ok {
+	if v, ok := stack.TryPop(); ok {
 		return option.Some(v), nil
 	}
 	return option.None[Value](), nil
@@ -625,7 +625,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 		choices = newSliceSeqObject([]Value{name})
 	}
 
-	var templatesTried []Value
+	var templatesTried Stack[Value]
 	l := choices.ItemCount()
 	for i := uint(0); i < l; i++ {
 		choice := choices.GetItem(i).Unwrap()
@@ -637,7 +637,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 		if err != nil {
 			var er *Error
 			if errors.As(err, &er) && er.typ == TemplateNotFound {
-				stacks.Push(&templatesTried, choice)
+				templatesTried.Push(choice)
 			} else {
 				return err
 			}
@@ -831,8 +831,8 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 	return state.ctx.pushFrame(*f)
 }
 
-func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {
-	top := stacks.Pop(stack)
+func (m *virtualMachine) unpackList(stack *Stack[Value], count uint) error {
+	top := stack.Pop()
 	var seq SeqObject
 	if optSeq := top.AsSeq(); optSeq.IsSome() {
 		seq = optSeq.Unwrap()
@@ -845,14 +845,14 @@ func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {
 	}
 	for i := uint(0); i < count; i++ {
 		item := seq.GetItem(i).Unwrap()
-		stacks.Push(stack, item)
+		stack.Push(item)
 	}
 	return nil
 }
 
-func (m *virtualMachine) buildMacro(stack *[]Value, state *State, offset uint, name string, flags uint8) {
+func (m *virtualMachine) buildMacro(stack *Stack[Value], state *State, offset uint, name string, flags uint8) {
 	var argSpec []string
-	if args, ok := stacks.Pop(stack).(SeqValue); ok {
+	if args, ok := stack.Pop().(SeqValue); ok {
 		argSpec = slicex.Map(args.items, func(arg Value) string {
 			if strVal, ok := arg.(stringValue); ok {
 				return strVal.str
@@ -862,9 +862,9 @@ func (m *virtualMachine) buildMacro(stack *[]Value, state *State, offset uint, n
 	} else {
 		panic("unreachable")
 	}
-	closure := stacks.Pop(stack)
+	closure := stack.Pop()
 	macroRefID := uint(len(state.macros))
-	stacks.Push(&state.macros, tuple2[Instructions, uint]{a: state.instructions, b: offset})
+	state.macros.Push(tuple2[Instructions, uint]{a: state.instructions, b: offset})
 	macro := &Macro{
 		data: MacroData{
 			name:            name,
@@ -874,7 +874,7 @@ func (m *virtualMachine) buildMacro(stack *[]Value, state *State, offset uint, n
 			callerReference: flags&macroCaller != 0,
 		},
 	}
-	stacks.Push(stack, ValueFromObject(macro))
+	stack.Push(ValueFromObject(macro))
 }
 
 func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() option.Option[T]) option.Option[T] {

@@ -7,9 +7,9 @@ import (
 type codeGenerator struct {
 	instructions     Instructions
 	blocks           map[string]Instructions
-	pendingBlock     stack[pendingBlock]
+	pendingBlock     Stack[pendingBlock]
 	currentLine      uint32
-	spanStack        stack[Span]
+	spanStack        Stack[Span]
 	filterLocalIds   map[string]LocalID
 	testLocalIds     map[string]LocalID
 	rawTemplateBytes uint
@@ -45,7 +45,7 @@ func NewCodeGenerator(file, source string) *codeGenerator {
 	return &codeGenerator{
 		instructions:   newInstructions(file, source),
 		blocks:         make(map[string]Instructions),
-		pendingBlock:   newStackWithCapacity[pendingBlock](32),
+		pendingBlock:   NewStackWithCapacity[pendingBlock](32),
 		filterLocalIds: make(map[string]LocalID),
 		testLocalIds:   make(map[string]LocalID),
 	}
@@ -514,15 +514,15 @@ func (g *codeGenerator) startForLoop(withLoopVar, recursive bool) {
 	}
 	g.add(PushLoopInstruction{Flags: flags})
 	iterInst := g.add(IterateInstruction{JumpTarget: 0})
-	g.pendingBlock.push(loopPendingBlock{iterInst: iterInst})
+	g.pendingBlock.Push(loopPendingBlock{iterInst: iterInst})
 }
 
 func (g *codeGenerator) endForLoop(pushDidNotIterate bool) {
-	b := g.pendingBlock.pop()
+	b := g.pendingBlock.Pop()
 	if b == nil {
 		panic("pendingBlock should not be empty in endForLoop")
 	}
-	if b, ok := (*b).(loopPendingBlock); ok {
+	if b, ok := b.(loopPendingBlock); ok {
 		g.add(JumpInstruction{JumpTarget: b.iterInst})
 		loopEnd := g.nextInstruction()
 		if pushDidNotIterate {
@@ -541,13 +541,13 @@ func (g *codeGenerator) endForLoop(pushDidNotIterate bool) {
 
 func (g *codeGenerator) startIf() {
 	jumpInst := g.add(JumpIfFalseInstruction{JumpTarget: 0})
-	g.pendingBlock.push(branchPendingBlock{jumpInst: jumpInst})
+	g.pendingBlock.Push(branchPendingBlock{jumpInst: jumpInst})
 }
 
 func (g *codeGenerator) startElse() {
 	jumpInst := g.add(JumpInstruction{JumpTarget: 0})
 	g.endCondition(jumpInst + 1)
-	g.pendingBlock.push(branchPendingBlock{jumpInst: jumpInst})
+	g.pendingBlock.Push(branchPendingBlock{jumpInst: jumpInst})
 }
 
 func (g *codeGenerator) endIf() {
@@ -556,12 +556,12 @@ func (g *codeGenerator) endIf() {
 
 // Starts a short cirquited bool block.
 func (g *codeGenerator) startScBool() {
-	g.pendingBlock.push(scBoolPendingBlock{})
+	g.pendingBlock.Push(scBoolPendingBlock{})
 }
 
 // Emits a short circuited bool operator.
 func (g *codeGenerator) scBool(and bool) {
-	if blk := g.pendingBlock.peek(); blk != nil {
+	if blk, ok := g.pendingBlock.Peek(); ok {
 		var inst Instruction
 		if and {
 			inst = JumpIfFalseOrPopInstruction{JumpTarget: ^uint(0)}
@@ -569,17 +569,18 @@ func (g *codeGenerator) scBool(and bool) {
 			inst = JumpIfTrueOrPopInstruction{JumpTarget: ^uint(0)}
 		}
 		instIdx := g.instructions.add(inst)
-		scBoolBlk := (*blk).(scBoolPendingBlock)
+		scBoolBlk := blk.(scBoolPendingBlock)
 		scBoolBlk.instructions = append(scBoolBlk.instructions, instIdx)
-		*blk = scBoolBlk
+		g.pendingBlock[len(g.pendingBlock)-1] = scBoolBlk
 	}
 }
 
 // Ends a short circuited bool block.
 func (g *codeGenerator) endScBool() {
 	end := g.nextInstruction()
-	if blk := g.pendingBlock.pop(); blk != nil {
-		if scBoolBlk, ok := (*blk).(scBoolPendingBlock); ok {
+	if !g.pendingBlock.Empty() {
+		blk := g.pendingBlock.Pop()
+		if scBoolBlk, ok := blk.(scBoolPendingBlock); ok {
 			for _, instIdx := range scBoolBlk.instructions {
 				switch g.instructions.instructions[instIdx].(type) {
 				case JumpIfFalseOrPopInstruction:
@@ -595,11 +596,11 @@ func (g *codeGenerator) endScBool() {
 }
 
 func (g *codeGenerator) endCondition(jumpInst uint) {
-	b := g.pendingBlock.pop()
-	if b == nil {
+	if g.pendingBlock.Empty() {
 		panic("pendingBlock should not be empty in endCondition")
 	}
-	if b, ok := (*b).(branchPendingBlock); ok {
+	b := g.pendingBlock.Pop()
+	if b, ok := b.(branchPendingBlock); ok {
 		switch g.instructions.instructions[b.jumpInst].(type) {
 		case JumpIfFalseInstruction:
 			g.instructions.instructions[b.jumpInst] = JumpIfFalseInstruction{JumpTarget: jumpInst}
@@ -624,18 +625,18 @@ func (g *codeGenerator) setLineFromSpan(spn Span) {
 }
 
 func (g *codeGenerator) pushSpan(spn Span) {
-	g.spanStack.push(spn)
+	g.spanStack.Push(spn)
 	g.setLineFromSpan(spn)
 }
 
 func (g *codeGenerator) popSpan() {
-	g.spanStack.pop()
+	g.spanStack.Pop()
 }
 
 func (g *codeGenerator) add(instr Instruction) uint {
-	if spn := g.spanStack.peek(); spn != nil {
+	if spn, ok := g.spanStack.Peek(); ok {
 		if spn.StartLine == g.currentLine {
-			return g.instructions.addWithSpan(instr, *spn)
+			return g.instructions.addWithSpan(instr, spn)
 		}
 	}
 	return g.instructions.addWithLine(instr, g.currentLine)
@@ -652,8 +653,9 @@ func (g *codeGenerator) nextInstruction() uint {
 func (g *codeGenerator) newSubgenerator() *codeGenerator {
 	sub := NewCodeGenerator(g.instructions.name, g.instructions.source)
 	sub.currentLine = g.currentLine
-	if !g.spanStack.empty() {
-		sub.spanStack.push(*g.spanStack.peek())
+	if !g.spanStack.Empty() {
+		v, _ := g.spanStack.Peek()
+		sub.spanStack.Push(v)
 	}
 	return sub
 }
@@ -717,7 +719,7 @@ func (g *codeGenerator) compileBinOp(exp binOpExpr) {
 }
 
 func (g *codeGenerator) finish() (Instructions, map[string]Instructions) {
-	if !g.pendingBlock.empty() {
+	if !g.pendingBlock.Empty() {
 		panic("unreachable")
 	}
 	return g.instructions, g.blocks

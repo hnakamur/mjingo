@@ -223,33 +223,3 @@ func (u *unescaper) pushChar(r rune) error {
 	u.out = utf8.AppendRune(u.out, r)
 	return nil
 }
-
-type stack[T any] []T
-
-func newStackWithCapacity[T any](capacity uint) stack[T] {
-	return make([]T, 0, capacity)
-}
-
-func (s *stack[T]) push(elem T) {
-	*s = append(*s, elem)
-}
-
-func (s *stack[T]) empty() bool {
-	return len(*s) == 0
-}
-
-func (s *stack[T]) pop() *T {
-	if s.empty() {
-		return nil
-	}
-	st := (*s)[len(*s)-1]
-	*s = (*s)[:len(*s)-1]
-	return &st
-}
-
-func (s *stack[T]) peek() *T {
-	if s.empty() {
-		return nil
-	}
-	return &(*s)[len(*s)-1]
-}

@@ -6,13 +6,12 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
-	"github.com/hnakamur/mjingo/internal/datast/stacks"
 )
 
 type assignmentTracker struct {
 	out       *hashset.StrHashSet
 	nestedOut option.Option[*hashset.StrHashSet]
-	assigned  []*hashset.StrHashSet
+	assigned  Stack[*hashset.StrHashSet]
 }
 
 func (t *assignmentTracker) isAssigned(name string) bool {
@@ -33,11 +32,11 @@ func (t *assignmentTracker) assignNested(name string) {
 }
 
 func (t *assignmentTracker) push() {
-	stacks.Push(&t.assigned, hashset.NewStrHashSet())
+	t.assigned.Push(hashset.NewStrHashSet())
 }
 
 func (t *assignmentTracker) pop() {
-	stacks.Pop(&t.assigned)
+	t.assigned.Pop()
 }
 
 func findMacroClosure(m macroStmt) *hashset.StrHashSet {

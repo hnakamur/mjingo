@@ -13,7 +13,7 @@ type State struct {
 	instructions    Instructions
 	blocks          map[string]*blockStack
 	loadedTemplates hashset.StrHashSet
-	macros          []tuple2[Instructions, uint]
+	macros          Stack[tuple2[Instructions, uint]]
 }
 
 type locals = map[string]Value
