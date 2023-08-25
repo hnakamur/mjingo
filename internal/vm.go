@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
@@ -518,6 +519,7 @@ loop:
 			}
 		case CallMethodInstruction:
 			args := stacks.SliceTop(*stack, inst.ArgCount)
+			log.Printf("stack[len(stack)-1]=%p, args[0]=%p", &(*stack)[len(*stack)-1], &args[0])
 			a, err := args[0].CallMethod(state, inst.Name, args[1:])
 			if err != nil {
 				return option.None[Value](), processErr(err, pc, state)
@@ -823,7 +825,11 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 		},
 		iterator: it,
 	})
-	return state.ctx.pushFrame(*f)
+	log.Printf("virtualMachine.pushLoop, loop=%p", &f.currentLoop.AsPtr().object)
+	err = state.ctx.pushFrame(*f)
+	log.Printf("virtualMachine.pushLoop, pushed loop=%p",
+		&state.ctx.stack[len(state.ctx.stack)-1].currentLoop.AsPtr().object)
+	return err
 }
 
 func (m *virtualMachine) unpackList(stack *[]Value, count uint) error {

@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"log"
+
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -87,7 +89,7 @@ func (c *context) resetClosure(closure option.Option[Closure]) {
 
 func (c *context) load(env *Environment, key string) option.Option[Value] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
-		frame := c.stack[i]
+		frame := &c.stack[i]
 
 		// look at locals first
 		if v, ok := frame.locals[key]; ok {
@@ -96,9 +98,11 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 
 		// if we are a loop, check if we are looking up the special loop var.
 		if frame.currentLoop.IsSome() {
-			l := frame.currentLoop.Unwrap()
+			l := frame.currentLoop.AsPtr()
+			log.Printf("context.load l=%p", l)
 			if l.withLoopVar && key == "loop" {
-				return option.Some(ValueFromObject(l.object.Clone()))
+				log.Printf("context.load &l.object=%p", &l.object)
+				return option.Some(ValueFromObject(&l.object))
 			}
 		}
 
@@ -135,6 +139,7 @@ func (c *context) currentLoop() option.Option[*loopState] {
 	for i := len(c.stack) - 1; i >= 0; i-- {
 		frame := &c.stack[i]
 		if frame.currentLoop.IsSome() {
+			log.Printf("context.currentLoop i=%d, currentLoop=%p", i, (&frame.currentLoop).AsPtr())
 			return option.Some((&frame.currentLoop).AsPtr())
 		}
 	}

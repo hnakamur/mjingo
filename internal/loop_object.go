@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -21,15 +22,18 @@ var _ = (StructObject)((*LoopObject)(nil))
 
 func (l *LoopObject) Kind() ObjectKind { return ObjectKindStruct }
 
-func (l *LoopObject) Clone() *LoopObject { return &*l }
-
 func (l *LoopObject) CallMethod(state *State, name string, args []Value) (Value, error) {
 	switch name {
 	case "changed":
+		log.Printf("LoopObject.CallMethod name=changed, l.lastChangedValue=%v, args=%v, l=%p", l.lastChangedValue, args, l)
+		// panic("LoopObject.CallMethod name=changed")
 		if slices.Equal(l.lastChangedValue, args) {
 			return ValueFromBool(false), nil
 		}
-		l.lastChangedValue = args
+		l.lastChangedValue = make([]Value, len(args))
+		for i, arg := range args {
+			l.lastChangedValue[i] = arg
+		}
 		return ValueFromBool(true), nil
 	case "cycle":
 		idx := l.idx % uint(len(args))

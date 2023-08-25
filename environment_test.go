@@ -420,6 +420,40 @@ func TestSingleTemplate(t *testing.T) {
 			}),
 		}}))
 
+		changedCtx := internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+			Key: internal.KeyRefFromString("entries"),
+			Value: internal.ValueFromSlice([]internal.Value{
+				internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key:   internal.KeyRefFromString("category"),
+					Value: internal.ValueFromString("Go"),
+				}, {
+					Key:   internal.KeyRefFromString("message"),
+					Value: internal.ValueFromString("Forward Compatibility and Toolchain Management in Go 1.21"),
+				}})),
+				internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key:   internal.KeyRefFromString("category"),
+					Value: internal.ValueFromString("Go"),
+				}, {
+					Key:   internal.KeyRefFromString("message"),
+					Value: internal.ValueFromString("Structured Logging with slog"),
+				}})),
+				internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key:   internal.KeyRefFromString("category"),
+					Value: internal.ValueFromString("Rust"),
+				}, {
+					Key:   internal.KeyRefFromString("message"),
+					Value: internal.ValueFromString("2022 Annual Rust Survey Results"),
+				}})),
+				internal.ValueFromIndexMap(internal.NewIndexMapFromEntries([]internal.IndexMapEntry{{
+					Key:   internal.KeyRefFromString("category"),
+					Value: internal.ValueFromString("Rust"),
+				}, {
+					Key:   internal.KeyRefFromString("message"),
+					Value: internal.ValueFromString("Announcing Rust 1.72.0"),
+				}})),
+			}),
+		}}))
+
 		runTests(t, []testCase{{
 			name:    "index",
 			source:  "{% for user in users %}{{ loop.index }} {{ user }}\n{% endfor %}",
@@ -475,6 +509,19 @@ func TestSingleTemplate(t *testing.T) {
 				"  \n\t<ul class=\"submenu\">\n  <li><a href=\"\"> (depth=1)</a>\n" +
 				"  </li>\n\n  <li><a href=\"\"> (depth=1)</a>\n" +
 				"  </li>\n</ul>\n  </li>\n\n</ul>",
+		}, {
+			name: "changed",
+			source: "{% for entry in entries %}\n" +
+				"{% if loop.changed(entry.category) %}\n" +
+				"  <h2>{{ entry.category }}</h2>\n" +
+				"{% endif %}\n" +
+				"  <p>{{ entry.message }}</p>\n" +
+				"{% endfor %}",
+			context: changedCtx,
+			want: "\n\n  <h2>Go</h2>\n\n  <p>Forward Compatibility and Toolchain Management in Go 1.21</p>\n" +
+				"\n\n  <p>Structured Logging with slog</p>\n" +
+				"\n\n  <h2>Rust</h2>\n\n  <p>2022 Annual Rust Survey Results</p>\n" +
+				"\n\n  <p>Announcing Rust 1.72.0</p>\n",
 		}, {
 			name:    "cycle",
 			source:  "{% for user in users %}{{ loop.cycle('odd', 'even') }} {{ user }}\n{% endfor %}",

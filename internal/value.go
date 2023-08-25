@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -937,6 +938,7 @@ func (v mapValue) CallMethod(state *State, name string, args []Value) (Value, er
 }
 func (v dynamicValue) CallMethod(state *State, name string, args []Value) (Value, error) {
 	if c, ok := v.dy.(CallMethoder); ok {
+		log.Printf("dynamicValue.CallMethod v.dy=%p %T", v.dy, v.dy)
 		return c.CallMethod(state, name, args)
 	}
 	return noCallMethod(name)
