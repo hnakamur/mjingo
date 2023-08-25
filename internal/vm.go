@@ -486,13 +486,18 @@ loop:
 			}
 		case CallFunctionInstruction:
 			if inst.Name == "super" {
+				// super is a special function reserved for super-ing into blocks.
 				if inst.ArgCount != 0 {
 					err := NewError(InvalidOperation, "super() takes no arguments")
 					return option.None[Value](), processErr(err, pc, state)
 				}
-				panic("not implemented")
-				// stacks.Push(stack)
+				val, err := m.performSuper(state, out, true)
+				if err != nil {
+					return option.None[Value](), processErr(err, pc, state)
+				}
+				stacks.Push(stack, val)
 			} else if inst.Name == "loop" {
+				// loop is a special name which when called recurses the current loop.
 				if inst.ArgCount != 1 {
 					err := NewError(InvalidOperation,
 						fmt.Sprintf("loop() takes one argument, got %d", inst.ArgCount))

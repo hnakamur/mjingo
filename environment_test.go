@@ -325,15 +325,15 @@ func TestSingleTemplate(t *testing.T) {
 				context: internal.None,
 				want:    "HELLO world",
 			},
-			// {
-			// 	name: "doStmt",
-			// 	source: "{% macro dialog(title) %}\n" +
-			// 		"Dialog is {{ title }}\n" +
-			// 		"{% endmacro %}\n" +
-			// 		"{% do dialog(title=\"Hello World\") %}",
-			// 	context: internal.None,
-			// 	want:    "",
-			// },
+			{
+				name: "doStmt",
+				source: "{% macro dialog(title) %}\n" +
+					"Dialog is {{ title }}\n" +
+					"{% endmacro %}\n" +
+					"{% do dialog(title=\"Hello World\") %}",
+				context: internal.None,
+				want:    "\n",
+			},
 			{
 				name: "callStmt",
 				source: "{% macro dialog(title) %}\n" +
