@@ -84,7 +84,7 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 	}
 
 	if kwargs != nil {
-		for _, keyRef := range kwargs.keys() {
+		for _, keyRef := range kwargs.Keys() {
 			if optKey := keyRef.AsStr(); optKey.IsSome() {
 				if !kwargsUsed.Contains(optKey.Unwrap()) {
 					return nil, NewError(TooManyArguments,

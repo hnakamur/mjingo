@@ -562,7 +562,7 @@ func (v SeqValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &seqValueIteratorState{items: v.items}, len: uint(len(v.items))}, nil
 }
 func (v mapValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &mapValueIteratorState{keys: v.m.keys()}, len: uint(len(v.m.keys()))}, nil
+	return Iterator{iterState: &mapValueIteratorState{keys: v.m.Keys()}, len: uint(len(v.m.Keys()))}, nil
 }
 func (v dynamicValue) TryIter() (Iterator, error) {
 	panic("not implemented yet")
