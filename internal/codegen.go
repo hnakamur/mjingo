@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"fmt"
-
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -149,7 +147,7 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 	case doStmt:
 		g.compileDo(st)
 	default:
-		panic(fmt.Sprintf("not implemented, st=%+v (%T)", st, st))
+		panic("unreachable")
 	}
 }
 
@@ -439,7 +437,7 @@ func (g *codeGenerator) compileExpr(exp expression) {
 			g.add(BuildKwargsInstruction{PairCount: uint(len(exp.pairs))})
 		}
 	default:
-		panic(fmt.Sprintf("not implemented for exprType: %s", exp.typ()))
+		panic("unreachable")
 	}
 }
 

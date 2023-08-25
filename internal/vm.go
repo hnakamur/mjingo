@@ -602,7 +602,7 @@ loop:
 			closure := state.ctx.closure()
 			stacks.Push(stack, ValueFromObject(&closure))
 		default:
-			panic(fmt.Sprintf("not implemented for instruction %s", inst.Typ()))
+			panic("unreachable")
 		}
 		pc++
 	}
