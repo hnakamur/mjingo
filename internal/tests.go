@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"log"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -10,12 +11,35 @@ type TestFunc = func(*State, []Value) (bool, error)
 
 func testFuncFromPredicateWithValueArg(f func(val Value) bool) func(*State, []Value) (bool, error) {
 	return func(state *State, values []Value) (bool, error) {
-		// tpl, err := tuple1FromValues[valu.Value, argType[valu.Value]](state, values)
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return false, err
 		}
 		return f(tpl.a), nil
+	}
+}
+
+func testFuncFromPredicateWithValValArgs(f func(val, other Value) bool) func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
+		tpl, err := tuple2FromValues(state, values)
+		if err != nil {
+			return false, err
+		}
+		return f(tpl.a, tpl.b), nil
+	}
+}
+
+func testFuncFromPredicateWithStateStrArgs(f func(state *State, name string) bool) func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return false, err
+		}
+		a, err := StringFromValue(option.Some(tpl.a))
+		if err != nil {
+			return false, err
+		}
+		return f(state, a), nil
 	}
 }
 
@@ -498,3 +522,38 @@ func isStartingWith(v, other string) bool { return strings.HasPrefix(v, other) }
 // {{ "foobar" is endingwith("foo") }} -> false
 // ```
 func isEndingWith(v, other string) bool { return strings.HasSuffix(v, other) }
+
+func isEq(val, other Value) bool { return Equal(val, other) }
+func isNe(val, other Value) bool { return !Equal(val, other) }
+func isLt(val, other Value) bool { return Cmp(val, other) < 0 }
+func isLe(val, other Value) bool { return Cmp(val, other) <= 0 }
+func isGt(val, other Value) bool { return Cmp(val, other) > 0 }
+func isGe(val, other Value) bool { return Cmp(val, other) >= 0 }
+
+func isIn(val, other Value) bool {
+	b, err := Contains(other, val)
+	if err != nil {
+		return false
+	}
+	return b.IsTrue()
+}
+
+func isTrue(val Value) bool {
+	boolVal, ok := val.(BoolValue)
+	return ok && boolVal.B
+}
+
+func isFalse(val Value) bool {
+	boolVal, ok := val.(BoolValue)
+	return ok && !boolVal.B
+}
+
+func isFilter(state *State, name string) bool {
+	optFilter := state.env.getFilter(name)
+	log.Printf("isFilter start name=%s, optFilter=%+v", name, optFilter)
+	return optFilter.IsSome()
+}
+
+func isTest(state *State, name string) bool {
+	return state.env.getTest(name).IsSome()
+}
