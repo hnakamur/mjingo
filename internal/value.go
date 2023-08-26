@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -24,6 +25,8 @@ type Value interface {
 	GetAttrFast(key string) option.Option[Value]
 	GetItemOpt(key Value) option.Option[Value]
 	AsStr() option.Option[string]
+	// AsI128() option.Option[big.Int]
+	TryToI128() (big.Int, error)
 	TryToI64() (int64, error)
 	AsF64() option.Option[float64]
 	AsSeq() option.Option[SeqObject]
@@ -142,11 +145,8 @@ type i64Value struct{ n int64 }
 type f64Value struct{ f float64 }
 type noneValue struct{}
 type InvalidValue struct{ Detail string }
-type u128Value struct{ hi, lo uint64 }
-type i128Value struct {
-	hi int64
-	lo uint64
-}
+type u128Value struct{ n big.Int }
+type i128Value struct{ n big.Int }
 type stringValue struct {
 	str    string
 	strTyp stringType
@@ -215,8 +215,8 @@ func (v f64Value) String() string {
 }
 func (v noneValue) String() string    { return "none" }
 func (v InvalidValue) String() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
-func (v u128Value) String() string    { panic("not implemented yet") }
-func (v i128Value) String() string    { panic("not implemented yet") }
+func (v u128Value) String() string    { return v.n.String() }
+func (v i128Value) String() string    { return v.n.String() }
 func (v stringValue) String() string  { return v.str }
 func (v bytesValue) String() string   { return string(v.b) } // TODO: equivalent impl as String::from_utf8_lossy
 func (v SeqValue) String() string {
@@ -273,14 +273,29 @@ func (u64Value) Kind() ValueKind       { return ValueKindNumber }
 func (i64Value) Kind() ValueKind       { return ValueKindNumber }
 func (f64Value) Kind() ValueKind       { return ValueKindNumber }
 func (noneValue) Kind() ValueKind      { return ValueKindNone }
-func (InvalidValue) Kind() ValueKind   { return ValueKindMap } // XXX: invalid values report themselves as maps which is a lie
-func (u128Value) Kind() ValueKind      { return ValueKindNumber }
-func (i128Value) Kind() ValueKind      { return ValueKindNumber }
-func (stringValue) Kind() ValueKind    { return ValueKindString }
-func (bytesValue) Kind() ValueKind     { return ValueKindBytes }
-func (SeqValue) Kind() ValueKind       { return ValueKindSeq }
-func (mapValue) Kind() ValueKind       { return ValueKindMap }
-func (dynamicValue) Kind() ValueKind   { panic("not implemented for valueTypeDynamic") }
+func (InvalidValue) Kind() ValueKind {
+	// XXX: invalid values report themselves as maps which is a lie
+	return ValueKindMap
+}
+func (u128Value) Kind() ValueKind   { return ValueKindNumber }
+func (i128Value) Kind() ValueKind   { return ValueKindNumber }
+func (stringValue) Kind() ValueKind { return ValueKindString }
+func (bytesValue) Kind() ValueKind  { return ValueKindBytes }
+func (SeqValue) Kind() ValueKind    { return ValueKindSeq }
+func (mapValue) Kind() ValueKind    { return ValueKindMap }
+func (v dynamicValue) Kind() ValueKind {
+	switch v.dy.Kind() {
+	case ObjectKindPlain:
+		// XXX: basic objects should probably not report as map
+		return ValueKindMap
+	case ObjectKindSeq:
+		return ValueKindSeq
+	case ObjectKindStruct:
+		return ValueKindMap
+	default:
+		panic("unreachable")
+	}
+}
 
 func (undefinedValue) IsUndefined() bool { return true }
 func (BoolValue) IsUndefined() bool      { return false }
@@ -334,13 +349,30 @@ func (v i64Value) IsTrue() bool     { return v.n != 0 }
 func (v f64Value) IsTrue() bool     { return v.f != 0.0 }
 func (noneValue) IsTrue() bool      { return false }
 func (InvalidValue) IsTrue() bool   { return false }
-func (v u128Value) IsTrue() bool    { panic("not implemented") }
-func (v i128Value) IsTrue() bool    { panic("not implemented") }
-func (v stringValue) IsTrue() bool  { return len(v.str) != 0 }
-func (v bytesValue) IsTrue() bool   { return len(v.b) != 0 }
-func (v SeqValue) IsTrue() bool     { return len(v.items) != 0 }
-func (v mapValue) IsTrue() bool     { return v.m.Len() != 0 }
-func (v dynamicValue) IsTrue() bool { panic("not implemented for valueTypeDynamic") }
+func (v u128Value) IsTrue() bool {
+	var zero big.Int
+	return v.n.Cmp(&zero) != 0
+}
+func (v i128Value) IsTrue() bool {
+	var zero big.Int
+	return v.n.Cmp(&zero) != 0
+}
+func (v stringValue) IsTrue() bool { return len(v.str) != 0 }
+func (v bytesValue) IsTrue() bool  { return len(v.b) != 0 }
+func (v SeqValue) IsTrue() bool    { return len(v.items) != 0 }
+func (v mapValue) IsTrue() bool    { return v.m.Len() != 0 }
+func (v dynamicValue) IsTrue() bool {
+	switch v.dy.Kind() {
+	case ObjectKindPlain:
+		return true
+	case ObjectKindSeq:
+		return v.dy.(SeqObject).ItemCount() != 0
+	case ObjectKindStruct:
+		return FieldCount(v.dy.(StructObject)) != 0
+	default:
+		panic("unreachable")
+	}
+}
 
 func (undefinedValue) GetAttrFast(_ string) option.Option[Value] { return option.None[Value]() }
 func (BoolValue) GetAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
@@ -379,13 +411,37 @@ func (i128Value) GetItemOpt(_ Value) option.Option[Value]      { return option.N
 func (stringValue) GetItemOpt(_ Value) option.Option[Value]    { return option.None[Value]() }
 func (bytesValue) GetItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
 func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
+	return getItemOptFromSeq(newSliceSeqObject(v.items), key)
+}
+func (v mapValue) GetItemOpt(key Value) option.Option[Value] {
+	if v, ok := v.m.Get(KeyRefFromValue(key)); ok {
+		return option.Some(v)
+	}
+	return option.None[Value]()
+}
+func (v dynamicValue) GetItemOpt(key Value) option.Option[Value] {
+	switch v.dy.Kind() {
+	case ObjectKindPlain:
+		return option.None[Value]()
+	case ObjectKindSeq:
+		return getItemOptFromSeq(v.dy.(SeqObject), key)
+	case ObjectKindStruct:
+		if optKey := key.AsStr(); optKey.IsSome() {
+			return v.dy.(StructObject).GetField(optKey.Unwrap())
+		}
+		return option.None[Value]()
+	default:
+		panic("unreachable")
+	}
+}
+
+func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
 	keyRf := valueKeyRef{val: key}
-	if optIdx := keyRf.AasI64(); optIdx.IsSome() {
+	if optIdx := keyRf.AsI64(); optIdx.IsSome() {
 		idx := optIdx.Unwrap()
 		if idx < math.MinInt || math.MaxInt < idx {
 			return option.None[Value]()
 		}
-		seq := newSliceSeqObject(v.items)
 		var i uint
 		if idx < 0 {
 			c := seq.ItemCount()
@@ -399,15 +455,6 @@ func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
 		return seq.GetItem(i)
 	}
 	return option.None[Value]()
-}
-func (v mapValue) GetItemOpt(key Value) option.Option[Value] {
-	if v, ok := v.m.Get(KeyRefFromValue(key)); ok {
-		return option.Some(v)
-	}
-	return option.None[Value]()
-}
-func (dynamicValue) GetItemOpt(_ Value) option.Option[Value] {
-	panic("not implemented yet")
 }
 
 func (undefinedValue) AsStr() option.Option[string] { return option.None[string]() }
@@ -423,8 +470,69 @@ func (v stringValue) AsStr() option.Option[string]  { return option.Some(v.str) 
 func (bytesValue) AsStr() option.Option[string]     { return option.None[string]() }
 func (SeqValue) AsStr() option.Option[string]       { return option.None[string]() }
 func (v mapValue) AsStr() option.Option[string]     { return option.None[string]() }
-func (dynamicValue) AsStr() option.Option[string] {
-	panic("not implemented yet")
+func (dynamicValue) AsStr() option.Option[string]   { return option.None[string]() }
+
+func (v undefinedValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v BoolValue) TryToI128() (big.Int, error) {
+	var n big.Int
+	if v.B {
+		n.SetUint64(1)
+	}
+	return n, nil
+}
+func (v u64Value) TryToI128() (big.Int, error) {
+	var n big.Int
+	n.SetUint64(v.n)
+	return n, nil
+}
+func (v i64Value) TryToI128() (big.Int, error) {
+	var n big.Int
+	n.SetInt64(v.n)
+	return n, nil
+}
+func (v f64Value) TryToI128() (big.Int, error) {
+	if float64(int64(v.f)) == v.f {
+		var n big.Int
+		n.SetInt64(int64(v.f))
+		return n, nil
+	}
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v noneValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v InvalidValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v u128Value) TryToI128() (big.Int, error) {
+	if v.n.Cmp(getI128Max()) > 0 {
+		return big.Int{}, unsupportedConversion(v.typ(), "i128")
+	}
+	var n big.Int
+	n.Set(&v.n)
+	return n, nil
+}
+func (v i128Value) TryToI128() (big.Int, error) {
+	var n big.Int
+	n.Set(&v.n)
+	return n, nil
+}
+func (v stringValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v bytesValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v SeqValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v mapValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+}
+func (v dynamicValue) TryToI128() (big.Int, error) {
+	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
 
 func (v undefinedValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
@@ -444,8 +552,18 @@ func (v f64Value) TryToI64() (int64, error) {
 }
 func (v noneValue) TryToI64() (int64, error)    { return 0, unsupportedConversion(v.typ(), "i64") }
 func (v InvalidValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v u128Value) TryToI64() (int64, error)    { panic("not implemented yet") }
-func (v i128Value) TryToI64() (int64, error)    { panic("not implemented yet") }
+func (v u128Value) TryToI64() (int64, error) {
+	if v.n.IsInt64() {
+		return v.n.Int64(), nil
+	}
+	return 0, unsupportedConversion(v.typ(), "i64")
+}
+func (v i128Value) TryToI64() (int64, error) {
+	if v.n.IsInt64() {
+		return v.n.Int64(), nil
+	}
+	return 0, unsupportedConversion(v.typ(), "i64")
+}
 func (v stringValue) TryToI64() (int64, error)  { return 0, unsupportedConversion(v.typ(), "i64") }
 func (v bytesValue) TryToI64() (int64, error)   { return 0, unsupportedConversion(v.typ(), "i64") }
 func (v SeqValue) TryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
@@ -454,25 +572,30 @@ func (v dynamicValue) TryToI64() (int64, error) { return 0, unsupportedConversio
 
 func (undefinedValue) AsF64() option.Option[float64] { return option.None[float64]() }
 func (v BoolValue) AsF64() option.Option[float64] {
+	var f float64
 	if v.B {
-		return option.Some(float64(1))
+		f = 1
 	}
-	return option.None[float64]()
+	return option.Some(f)
 }
-func (v u64Value) AsF64() option.Option[float64]    { return option.Some(float64(v.n)) }
-func (v i64Value) AsF64() option.Option[float64]    { return option.Some(float64(v.n)) }
-func (v f64Value) AsF64() option.Option[float64]    { return option.Some(v.f) }
-func (noneValue) AsF64() option.Option[float64]     { return option.None[float64]() }
-func (InvalidValue) AsF64() option.Option[float64]  { return option.None[float64]() }
-func (u128Value) AsF64() option.Option[float64]     { panic("not implemented yet") }
-func (i128Value) AsF64() option.Option[float64]     { panic("not implemented yet") }
-func (v stringValue) AsF64() option.Option[float64] { return option.None[float64]() }
-func (bytesValue) AsF64() option.Option[float64]    { return option.None[float64]() }
-func (SeqValue) AsF64() option.Option[float64]      { return option.None[float64]() }
-func (mapValue) AsF64() option.Option[float64]      { return option.None[float64]() }
-func (dynamicValue) AsF64() option.Option[float64] {
-	panic("not implemented yet")
+func (v u64Value) AsF64() option.Option[float64]   { return option.Some(float64(v.n)) }
+func (v i64Value) AsF64() option.Option[float64]   { return option.Some(float64(v.n)) }
+func (v f64Value) AsF64() option.Option[float64]   { return option.Some(v.f) }
+func (noneValue) AsF64() option.Option[float64]    { return option.None[float64]() }
+func (InvalidValue) AsF64() option.Option[float64] { return option.None[float64]() }
+func (v u128Value) AsF64() option.Option[float64] {
+	f, _ := v.n.Float64()
+	return option.Some(f)
 }
+func (v i128Value) AsF64() option.Option[float64] {
+	f, _ := v.n.Float64()
+	return option.Some(f)
+}
+func (stringValue) AsF64() option.Option[float64]  { return option.None[float64]() }
+func (bytesValue) AsF64() option.Option[float64]   { return option.None[float64]() }
+func (SeqValue) AsF64() option.Option[float64]     { return option.None[float64]() }
+func (mapValue) AsF64() option.Option[float64]     { return option.None[float64]() }
+func (dynamicValue) AsF64() option.Option[float64] { return option.None[float64]() }
 
 func (undefinedValue) AsSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
 func (BoolValue) AsSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
@@ -489,8 +612,11 @@ func (v SeqValue) AsSeq() option.Option[SeqObject] {
 	return option.Some(newSliceSeqObject(v.items))
 }
 func (mapValue) AsSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
-func (dynamicValue) AsSeq() option.Option[SeqObject] {
-	panic("not implemented yet")
+func (v dynamicValue) AsSeq() option.Option[SeqObject] {
+	if seq, ok := v.dy.(SeqObject); ok {
+		return option.Some(seq)
+	}
+	return option.None[SeqObject]()
 }
 
 func (v undefinedValue) Clone() Value { return v }
@@ -500,9 +626,17 @@ func (v i64Value) Clone() Value       { return v }
 func (v f64Value) Clone() Value       { return v }
 func (v noneValue) Clone() Value      { return v }
 func (v InvalidValue) Clone() Value   { return v }
-func (v u128Value) Clone() Value      { return v }
-func (v i128Value) Clone() Value      { return v }
-func (v stringValue) Clone() Value    { return v }
+func (v u128Value) Clone() Value {
+	c := v
+	c.n.Set(&v.n)
+	return c
+}
+func (v i128Value) Clone() Value {
+	c := v
+	c.n.Set(&v.n)
+	return c
+}
+func (v stringValue) Clone() Value { return v }
 func (v bytesValue) Clone() Value {
 	b := make([]byte, len(v.b))
 	copy(b, v.b)
@@ -565,7 +699,20 @@ func (v mapValue) TryIter() (Iterator, error) {
 	return Iterator{iterState: &mapValueIteratorState{keys: v.m.Keys()}, len: uint(len(v.m.Keys()))}, nil
 }
 func (v dynamicValue) TryIter() (Iterator, error) {
-	panic("not implemented yet")
+	switch v.dy.Kind() {
+	case ObjectKindPlain:
+		return Iterator{iterState: &emptyValueIteratorState{}}, nil
+	case ObjectKindSeq:
+		return Iterator{iterState: &dynSeqValueIteratorState{obj: v.dy.(SeqObject)}}, nil
+	case ObjectKindStruct:
+		obj := v.dy.(StructObject)
+		if optFields := obj.StaticFields(); optFields.IsSome() {
+			return Iterator{iterState: &stringsValueIteratorState{items: optFields.Unwrap()}}, nil
+		}
+		return Iterator{iterState: &stringsValueIteratorState{items: obj.Fields()}}, nil
+	default:
+		panic("unreachable")
+	}
 }
 
 func unsupportedConversion(kind valueType, target string) error {
@@ -647,7 +794,7 @@ type stringsValueIteratorState struct {
 }
 type dynSeqValueIteratorState struct {
 	idx uint
-	// obj Object
+	obj SeqObject
 }
 type mapValueIteratorState struct {
 	idx  uint
@@ -679,7 +826,11 @@ func (s *stringsValueIteratorState) advanceState() option.Option[Value] {
 	}
 	return option.None[Value]()
 }
-func (s *dynSeqValueIteratorState) advanceState() option.Option[Value] { panic("not implemented") }
+func (s *dynSeqValueIteratorState) advanceState() option.Option[Value] {
+	val := s.obj.GetItem(s.idx)
+	s.idx++
+	return val
+}
 func (s *mapValueIteratorState) advanceState() option.Option[Value] {
 	if s.idx < uint(len(s.keys)) {
 		key := s.keys[s.idx]
@@ -726,8 +877,17 @@ func (v stringValue) Len() option.Option[uint] {
 func (bytesValue) Len() option.Option[uint] { return option.None[uint]() }
 func (v SeqValue) Len() option.Option[uint] { return option.Some(uint(len(v.items))) }
 func (v mapValue) Len() option.Option[uint] { return option.Some(v.m.Len()) }
-func (dynamicValue) Len() option.Option[uint] {
-	panic("not implemented yet")
+func (v dynamicValue) Len() option.Option[uint] {
+	switch v.dy.Kind() {
+	case ObjectKindPlain:
+		return option.None[uint]()
+	case ObjectKindSeq:
+		return option.Some(v.dy.(SeqObject).ItemCount())
+	case ObjectKindStruct:
+		return option.Some(FieldCount(v.dy.(StructObject)))
+	default:
+		panic("unreachable")
+	}
 }
 
 func Equal(v Value, other Value) bool {
@@ -748,8 +908,8 @@ func Equal(v Value, other Value) bool {
 		switch c := coerce(v, other).(type) {
 		case f64CoerceResult:
 			return c.lhs == c.rhs
-		case i64CoerceResult:
-			return c.lhs == c.rhs
+		case i128CoerceResult:
+			return c.lhs.Cmp(&c.rhs) == 0
 		case strCoerceResult:
 			return c.lhs == c.rhs
 		default:
@@ -814,8 +974,8 @@ outer:
 		switch c := coerce(v, other).(type) {
 		case f64CoerceResult:
 			return f64TotalCmp(c.lhs, c.rhs)
-		case i64CoerceResult:
-			return cmp.Compare(c.lhs, c.rhs)
+		case i128CoerceResult:
+			return c.lhs.Cmp(&c.rhs)
 		case strCoerceResult:
 			rv = strings.Compare(c.lhs, c.rhs)
 		default:

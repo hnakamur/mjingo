@@ -3,7 +3,9 @@ package internal
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
@@ -88,7 +90,9 @@ func Slice(val, start, stop, step Value) (Value, error) {
 	case SeqValue:
 		maybeSeq = newSliceSeqObject(v.items)
 	case dynamicValue:
-		panic("not implemented")
+		if obj, ok := v.dy.(SeqObject); ok {
+			maybeSeq = obj
+		}
 	}
 
 	if maybeSeq != nil {
@@ -113,21 +117,20 @@ func Neg(val Value) (Value, error) {
 		return f64Value{f: -v.f}, nil
 	}
 
-	if val.typ() == valueTypeI128 || val.typ() == valueTypeU128 {
-		panic("not implemented")
+	x, err := val.TryToI128()
+	if err != nil {
+		return nil, NewError(InvalidOperation, "")
 	}
-
-	if x, err := val.TryToI64(); err != nil {
-		return nil, err
-	} else {
-		return i64Value{n: -x}, nil
-	}
+	x.Neg(&x)
+	return i128AsValue(&x), nil
 }
 
 func Add(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		return i64Value{n: c.lhs + c.rhs}, nil
+	case i128CoerceResult:
+		var n big.Int
+		i128WrappingAdd(&n, &c.lhs, &c.rhs)
+		return i128AsValue(&n), nil
 	case f64CoerceResult:
 		return f64Value{f: c.lhs + c.rhs}, nil
 	case strCoerceResult:
@@ -138,11 +141,13 @@ func Add(lhs, rhs Value) (Value, error) {
 
 func Sub(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		if c.lhs < c.rhs {
-			return nil, failedOp("-", lhs, rhs)
+	case i128CoerceResult:
+		var n big.Int
+		n.Sub(&c.lhs, &c.rhs)
+		if isI128(&n) {
+			return i128AsValue(&n), nil
 		}
-		return i64Value{n: c.lhs - c.rhs}, nil
+		return nil, failedOp("-", lhs, rhs)
 	case f64CoerceResult:
 		return f64Value{f: c.lhs - c.rhs}, nil
 	}
@@ -151,9 +156,13 @@ func Sub(lhs, rhs Value) (Value, error) {
 
 func Mul(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		// TODO: checked_mul
-		return i64Value{n: c.lhs * c.rhs}, nil
+	case i128CoerceResult:
+		var n big.Int
+		n.Mul(&c.lhs, &c.rhs)
+		if isI128(&n) {
+			return i128AsValue(&n), nil
+		}
+		return nil, failedOp("*", lhs, rhs)
 	case f64CoerceResult:
 		return f64Value{f: c.lhs * c.rhs}, nil
 	}
@@ -172,12 +181,17 @@ func Div(lhs, rhs Value) (Value, error) {
 
 func IntDiv(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		if c.rhs == 0 {
+	case i128CoerceResult:
+		var zero big.Int
+		if c.rhs.Cmp(&zero) == 0 {
 			return nil, failedOp("//", lhs, rhs)
 		}
-		// TODO: div_euclid
-		return i64Value{n: c.lhs / c.rhs}, nil
+		var div, mod big.Int
+		div.DivMod(&c.lhs, &c.rhs, &mod)
+		if isI128(&div) {
+			return i128AsValue(&div), nil
+		}
+		return nil, failedOp("//", lhs, rhs)
 	case f64CoerceResult:
 		// TODO: div_euclid
 		return f64Value{f: math.Floor(c.lhs / c.rhs)}, nil
@@ -187,14 +201,18 @@ func IntDiv(lhs, rhs Value) (Value, error) {
 
 func Rem(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		if c.rhs == 0 {
+	case i128CoerceResult:
+		var zero big.Int
+		if c.rhs.Cmp(&zero) == 0 {
 			return nil, failedOp("%", lhs, rhs)
 		}
-		// TODO: checked_rem_euclid
-		return i64Value{n: c.lhs % c.rhs}, nil
+		var div, mod big.Int
+		div.DivMod(&c.lhs, &c.rhs, &mod)
+		if isI128(&mod) {
+			return i128AsValue(&mod), nil
+		}
+		return nil, failedOp("%", lhs, rhs)
 	case f64CoerceResult:
-		// TODO: checked_rem_euclid
 		return f64Value{f: math.Remainder(c.lhs, c.rhs)}, nil
 	}
 	return nil, impossibleOp("%", lhs, rhs)
@@ -202,16 +220,17 @@ func Rem(lhs, rhs Value) (Value, error) {
 
 func Pow(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
-	case i64CoerceResult:
-		if c.rhs < 0 {
+	case i128CoerceResult:
+		var exp uint32
+		if !c.rhs.IsUint64() || c.rhs.Uint64() > math.MaxUint32 {
 			return nil, failedOp("**", lhs, rhs)
 		}
-		// TODO: checked_pow
-		acc := int64(1)
-		for i := int64(0); i < c.rhs; i++ {
-			acc *= c.lhs
+		exp = uint32(c.rhs.Uint64())
+		var n big.Int
+		if i128CheckedPow(&n, &c.lhs, exp) == nil {
+			return nil, failedOp("**", lhs, rhs)
 		}
-		return i64Value{n: acc}, nil
+		return i128AsValue(&n), nil
 	case f64CoerceResult:
 		return f64Value{f: math.Pow(c.lhs, c.rhs)}, nil
 	}
@@ -263,9 +282,9 @@ type coerceResult interface {
 	typ() coerceResultType
 }
 
-type i64CoerceResult struct {
-	lhs int64
-	rhs int64
+type i128CoerceResult struct {
+	lhs big.Int
+	rhs big.Int
 }
 
 type f64CoerceResult struct {
@@ -278,21 +297,15 @@ type strCoerceResult struct {
 	rhs string
 }
 
-func (i64CoerceResult) typ() coerceResultType { return coerceResultTypeI64 }
-func (f64CoerceResult) typ() coerceResultType { return coerceResultTypeF64 }
-func (strCoerceResult) typ() coerceResultType { return coerceResultTypeStr }
-
-/*
-i64CoerceResult
-f64CoerceResult
-strCoerceResult
-*/
+func (i128CoerceResult) typ() coerceResultType { return coerceResultTypeI128 }
+func (f64CoerceResult) typ() coerceResultType  { return coerceResultTypeF64 }
+func (strCoerceResult) typ() coerceResultType  { return coerceResultTypeStr }
 
 type coerceResultType int
 
 const (
 	// I64 here (for now) instead of I128 in MiniJinja
-	coerceResultTypeI64 coerceResultType = iota + 1
+	coerceResultTypeI128 coerceResultType = iota + 1
 	coerceResultTypeF64
 	coerceResultTypeStr
 )
@@ -302,18 +315,36 @@ func coerce(a, b Value) coerceResult {
 	case a.typ() == valueTypeU64 && b.typ() == valueTypeU64:
 		aVal := a.(u64Value).n
 		bVal := b.(u64Value).n
-		if aVal > math.MaxInt64 || bVal > math.MaxInt64 {
-			return nil
-		}
-		return i64CoerceResult{lhs: int64(aVal), rhs: int64(bVal)}
-	case a.typ() == valueTypeI64 && b.typ() == valueTypeI64:
-		aVal := a.(i64Value).n
-		bVal := b.(i64Value).n
-		return i64CoerceResult{lhs: aVal, rhs: bVal}
+		var rv i128CoerceResult
+		rv.lhs.SetUint64(aVal)
+		rv.rhs.SetUint64(bVal)
+		return rv
+	case a.typ() == valueTypeU128 && b.typ() == valueTypeU128:
+		aVal := a.(u128Value)
+		bVal := b.(u128Value)
+		var rv i128CoerceResult
+		castU128AsI128(&rv.lhs, &aVal.n)
+		castU128AsI128(&rv.rhs, &bVal.n)
+		return rv
 	case a.typ() == valueTypeString && b.typ() == valueTypeString:
 		aVal := a.(stringValue).str
 		bVal := b.(stringValue).str
 		return strCoerceResult{lhs: aVal, rhs: bVal}
+	case a.typ() == valueTypeI64 && b.typ() == valueTypeI64:
+		aVal := a.(i64Value).n
+		bVal := b.(i64Value).n
+		var rv i128CoerceResult
+		rv.lhs.SetInt64(aVal)
+		rv.rhs.SetInt64(bVal)
+		return rv
+	case a.typ() == valueTypeI128 && b.typ() == valueTypeI128:
+		aVal := a.(i128Value).n
+		bVal := b.(i128Value).n
+		return i128CoerceResult{lhs: aVal, rhs: bVal}
+	case a.typ() == valueTypeF64 && b.typ() == valueTypeF64:
+		aVal := a.(f64Value).f
+		bVal := b.(f64Value).f
+		return f64CoerceResult{lhs: aVal, rhs: bVal}
 	case a.typ() == valueTypeF64 || b.typ() == valueTypeF64:
 		var aVal, bVal float64
 		if af, ok := a.(f64Value); ok {
@@ -332,20 +363,111 @@ func coerce(a, b Value) coerceResult {
 			}
 		}
 		return f64CoerceResult{lhs: aVal, rhs: bVal}
-	case a.typ() == valueTypeI128 || a.typ() == valueTypeU128 || b.typ() == valueTypeI128 || b.typ() == valueTypeU128:
-		panic("not implemented")
 	default:
 		// everything else goes up to i64 (different from i128 in MiniJinja)
-		aVal, err := a.TryToI64()
+		aVal, err := a.TryToI128()
 		if err != nil {
 			return nil
 		}
-		bVal, err := b.TryToI64()
+		bVal, err := b.TryToI128()
 		if err != nil {
 			return nil
 		}
-		return i64CoerceResult{lhs: aVal, rhs: bVal}
+		return i128CoerceResult{lhs: aVal, rhs: bVal}
 	}
+}
+
+var i128Min, i128Max, twoPow128 big.Int
+
+func getI128Min() *big.Int {
+	return sync.OnceValue(func() *big.Int {
+		if _, ok := i128Min.SetString("-170141183460469231731687303715884105728", 10); !ok {
+			panic("set i128Min")
+		}
+		return &i128Min
+	})()
+}
+
+func getI128Max() *big.Int {
+	return sync.OnceValue(func() *big.Int {
+		if _, ok := i128Max.SetString("170141183460469231731687303715884105727", 10); !ok {
+			panic("set i128Max")
+		}
+		return &i128Max
+	})()
+}
+
+func getTwoPow128() *big.Int {
+	return sync.OnceValue(func() *big.Int {
+		if _, ok := twoPow128.SetString("340282366920938463463374607431768211456", 10); !ok {
+			panic("set twoPow128")
+		}
+		return &twoPow128
+	})()
+}
+
+func isI128(n *big.Int) bool {
+	return n.Cmp(getI128Min()) >= 0 && n.Cmp(getI128Max()) <= 0
+}
+
+func i128WrappingAdd(ret, lhs, rhs *big.Int) *big.Int {
+	ret.Add(lhs, rhs)
+	if ret.Cmp(getI128Min()) < 0 {
+		ret.Add(ret, getTwoPow128())
+		return ret
+	}
+	if ret.Cmp(getI128Max()) > 0 {
+		ret.Sub(ret, getTwoPow128())
+		return ret
+	}
+	return ret
+}
+
+func castU128AsI128(ret, input *big.Int) *big.Int {
+	ret.Set(input)
+	if input.Cmp(getI128Max()) > 0 {
+		ret.Sub(ret, getTwoPow128())
+	}
+	return ret
+}
+
+func i128AsValue(val *big.Int) Value {
+	if val.IsInt64() {
+		return i64Value{n: val.Int64()}
+	}
+	return i128Value{n: *val}
+}
+
+func i128CheckedMul(ret, lhs, rhs *big.Int) *big.Int {
+	ret.Mul(lhs, rhs)
+	if isI128(ret) {
+		return ret
+	}
+	return nil
+}
+
+func i128CheckedPow(ret, base *big.Int, exp uint32) *big.Int {
+	// ported from https://github.com/rust-lang/rust/blob/1.72.0/library/core/src/num/int_macros.rs#L875-L899
+	ret.SetUint64(1)
+	if exp == 0 {
+		return ret
+	}
+	base2 := &big.Int{}
+	base2.Set(base)
+	for exp > 1 {
+		if exp&1 == 1 {
+			ret = i128CheckedMul(ret, ret, base2)
+			if ret == nil {
+				return nil
+			}
+		}
+		exp /= 2
+		base2 = i128CheckedMul(base2, base2, base2)
+		if base2 == nil {
+			return nil
+		}
+	}
+	return i128CheckedMul(ret, ret, base2)
 }
 
 func failedOp(op string, lhs, rhs Value) error {

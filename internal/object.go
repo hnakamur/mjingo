@@ -53,3 +53,11 @@ type StructObject interface {
 	StaticFields() option.Option[[]string]
 	Fields() []string
 }
+
+func FieldCount(s StructObject) uint {
+	optFields := s.StaticFields()
+	if optFields.IsSome() {
+		return uint(len(optFields.Unwrap()))
+	}
+	return uint(len(s.Fields()))
+}
