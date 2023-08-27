@@ -19,6 +19,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["count"] = filterFuncFromFilterWithValArgUintErrRet(length)
 	// rv["dictsort"] = filterFuncFromWithValKwargsArgValErrRet(dictsort) TODO: implement
 	rv["items"] = filterFuncFromWithValArgValErrRet(items)
+	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
 
 	return rv
 }

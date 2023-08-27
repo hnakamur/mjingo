@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -92,6 +93,33 @@ func filterFuncFromFilterWithValArgUintErrRet(f func(val Value) (uint, error)) f
 			return nil, err
 		}
 		return ValueFromI64(int64(l)), nil
+	}
+}
+
+func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr option.Option[string]) (string, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		optStr := option.None[string]()
+		switch {
+		case len(values) <= 1:
+			tpl1, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl1.a
+		case len(values) >= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			optStr = option.Some(tpl2.b.String())
+		}
+		rv, err := f(val, optStr)
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromString(rv), nil
 	}
 }
 
@@ -303,4 +331,45 @@ func items(v Value) (Value, error) {
 		items = append(items, item)
 	}
 	return ValueFromSlice(items), nil
+}
+
+// Joins a sequence by a character
+func join(val Value, joiner option.Option[string]) (string, error) {
+	if val.IsUndefined() || val.IsNone() {
+		return "", nil
+	}
+
+	joinerStr := joiner.UnwrapOr("")
+	if optValStr := val.AsStr(); optValStr.IsSome() {
+		rest := optValStr.Unwrap()
+		var b strings.Builder
+		for len(rest) > 0 {
+			if b.Len() != 0 {
+				b.WriteString(joinerStr)
+			}
+			r, size := utf8.DecodeRuneInString(rest)
+			b.WriteRune(r)
+			rest = rest[size:]
+		}
+		return b.String(), nil
+	}
+	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+		valSeq := optValSeq.Unwrap()
+		var b strings.Builder
+		n := valSeq.ItemCount()
+		for i := uint(0); i < n; i++ {
+			if b.Len() != 0 {
+				b.WriteString(joinerStr)
+			}
+			item := valSeq.GetItem(i).Unwrap()
+			if optItemStr := item.AsStr(); optItemStr.IsSome() {
+				b.WriteString(optItemStr.Unwrap())
+			} else {
+				fmt.Fprintf(&b, "%s", item)
+			}
+		}
+		return b.String(), nil
+	}
+	return "", NewError(InvalidOperation,
+		fmt.Sprintf("cannot join value of type %s", val.Kind()))
 }
