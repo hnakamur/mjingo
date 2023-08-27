@@ -83,6 +83,7 @@ func writeWithHTMLEscaping(o *Output, val Value) error {
 		return writeString(o, val.String())
 	default:
 		if optStr := val.AsStr(); optStr.IsSome() {
+			// TODO: escape single quote with `&quot;` not `&#34;`
 			return writeString(o, html.EscapeString(optStr.Unwrap()))
 		}
 		return writeString(o, html.EscapeString(val.String()))

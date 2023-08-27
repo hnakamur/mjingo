@@ -532,11 +532,11 @@ func TestSingleTemplate(t *testing.T) {
 	t.Run("macro", func(t *testing.T) {
 		runTests(t, []testCase{{
 			name: "closure",
-			source: "{% set d = \"closure\" -%}\n" +
+			source: "{% autoescape 'none' %}{% set d = \"closure\" -%}\n" +
 				"{% macro example(a, b, c=\"default\") %}{{ [a, b, c, d] }}{% endmacro -%}\n" +
-				"{{ example(\"Hello\", \"World\") }}\n",
+				"{{ example(\"Hello\", \"World\") }}{% endautoescape %}\n",
 			context: internal.Undefined,
-			want:    "[Hello, World, default, closure]",
+			want:    `["Hello", "World", "default", "closure"]`,
 		}})
 	})
 	t.Run("filter", func(t *testing.T) {
@@ -595,6 +595,7 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "lastSeq", source: `{{ [1, 2, 3]|last }}`, context: internal.None, want: "3"},
 			{name: "minSeq", source: `{{ [1, 2, 3]|min }}`, context: internal.None, want: "1"},
 			{name: "maxSeq", source: `{{ [1, 2, 3]|max }}`, context: internal.None, want: "3"},
+			{name: "listStr", source: `{% autoescape 'none' %}{{ "あいう"|list }}{% endautoescape %}`, context: internal.None, want: `["あ", "い", "う"]`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

@@ -613,3 +613,11 @@ func maxFilter(state *State, val Value) (Value, error) {
 	}
 	return iter.max().UnwrapOr(Undefined), nil
 }
+
+func listFilter(state *State, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+	}
+	return ValueFromSlice(iter.collect()), nil
+}

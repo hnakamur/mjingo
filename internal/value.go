@@ -15,6 +15,7 @@ import (
 
 type Value interface {
 	String() string
+	DebugString() string
 
 	typ() valueType
 	Kind() ValueKind
@@ -226,7 +227,7 @@ func (v SeqValue) String() string {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(item.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("]")
 	return b.String()
@@ -245,12 +246,71 @@ func (v mapValue) String() string {
 		}
 		b.WriteString(e.Key.AsStr().Unwrap())
 		b.WriteString(": ")
-		b.WriteString(e.Value.String()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("}")
 	return b.String()
 }
 func (v dynamicValue) String() string { return fmt.Sprintf("%s", v.dy) }
+
+func (v undefinedValue) DebugString() string { return "Undefined" }
+func (v BoolValue) DebugString() string      { return strconv.FormatBool(v.B) }
+func (v u64Value) DebugString() string       { return strconv.FormatUint(v.n, 10) }
+func (v i64Value) DebugString() string       { return strconv.FormatInt(v.n, 10) }
+func (v f64Value) DebugString() string {
+	f := v.f
+	if math.IsNaN(f) {
+		return "NaN"
+	} else if math.IsInf(f, 1) {
+		return "inf"
+	} else if math.IsInf(f, -1) {
+		return "-inf"
+	} else {
+		s := strconv.FormatFloat(f, 'f', -1, 64)
+		if strings.ContainsRune(s, '.') {
+			return s
+		}
+		return s + ".0"
+	}
+}
+func (v noneValue) DebugString() string    { return "None" }
+func (v InvalidValue) DebugString() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
+func (v u128Value) DebugString() string    { return v.n.String() }
+func (v i128Value) DebugString() string    { return v.n.String() }
+func (v stringValue) DebugString() string  { return fmt.Sprintf("%q", v.str) } // TODO: equivalent impl with Rust's std::fmt::Debug
+func (v bytesValue) DebugString() string   { return string(v.b) }              // TODO: equivalent impl as String::from_utf8_lossy
+func (v SeqValue) DebugString() string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i, item := range v.items {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(item.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+	}
+	b.WriteString("]")
+	return b.String()
+}
+func (v mapValue) DebugString() string {
+	var b strings.Builder
+	b.WriteString("{")
+	first := true
+	l := v.m.Len()
+	for i := uint(0); i < l; i++ {
+		e, _ := v.m.EntryAt(i)
+		if first {
+			first = false
+		} else {
+			b.WriteString(", ")
+		}
+		b.WriteString(e.Key.AsStr().Unwrap())
+		b.WriteString(": ")
+		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+	}
+	b.WriteString("}")
+	return b.String()
+}
+func (v dynamicValue) DebugString() string { return fmt.Sprintf("%s", v.dy) }
 
 func (undefinedValue) typ() valueType { return valueTypeUndefined }
 func (BoolValue) typ() valueType      { return valueTypeBool }
@@ -805,6 +865,18 @@ func (i *Iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 		}
 	}
 	return rv
+}
+
+func (i *Iterator) collect() []Value {
+	items := make([]Value, 0, i.Len())
+	for {
+		optItem := i.Next()
+		if optItem.IsNone() {
+			break
+		}
+		items = append(items, optItem.Unwrap())
+	}
+	return items
 }
 
 type valueIteratorState interface {
