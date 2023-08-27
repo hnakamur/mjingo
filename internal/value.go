@@ -775,6 +775,38 @@ func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
 	return 0
 }
 
+func (i *Iterator) min() option.Option[Value] { return i.minBy(Cmp) }
+
+func (i *Iterator) minBy(compare func(a, b Value) int) option.Option[Value] {
+	rv := option.None[Value]()
+	for {
+		optItem := i.Next()
+		if optItem.IsNone() {
+			break
+		}
+		if rv.IsNone() || compare(optItem.Unwrap(), rv.Unwrap()) < 0 {
+			rv = optItem
+		}
+	}
+	return rv
+}
+
+func (i *Iterator) max() option.Option[Value] { return i.maxBy(Cmp) }
+
+func (i *Iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
+	rv := option.None[Value]()
+	for {
+		optItem := i.Next()
+		if optItem.IsNone() {
+			break
+		}
+		if rv.IsNone() || compare(optItem.Unwrap(), rv.Unwrap()) > 0 {
+			rv = optItem
+		}
+	}
+	return rv
+}
+
 type valueIteratorState interface {
 	advanceState() option.Option[Value]
 }
@@ -890,7 +922,7 @@ func (v dynamicValue) Len() option.Option[uint] {
 	}
 }
 
-func Equal(v Value, other Value) bool {
+func Equal(v, other Value) bool {
 	switch {
 	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
 		return true
@@ -954,7 +986,7 @@ func Equal(v Value, other Value) bool {
 //	0 if v equals other,
 //
 // +1 if v is greater than other.
-func Cmp(v Value, other Value) int {
+func Cmp(v, other Value) int {
 	var rv int
 outer:
 	switch {

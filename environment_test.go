@@ -593,6 +593,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "firstSeq", source: `{{ [1, 2, 3]|first }}`, context: internal.None, want: "1"},
 			{name: "lastStr", source: `{{ "あいう"|last }}`, context: internal.None, want: "う"},
 			{name: "lastSeq", source: `{{ [1, 2, 3]|last }}`, context: internal.None, want: "3"},
+			{name: "minSeq", source: `{{ [1, 2, 3]|min }}`, context: internal.None, want: "1"},
+			{name: "maxSeq", source: `{{ [1, 2, 3]|max }}`, context: internal.None, want: "3"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

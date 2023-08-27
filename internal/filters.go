@@ -506,7 +506,7 @@ func trim(s string, cutset option.Option[string]) string {
 	return strings.TrimSpace(s)
 }
 
-func default_(val Value, other option.Option[Value]) Value {
+func defaultFilter(val Value, other option.Option[Value]) Value {
 	if val.IsUndefined() {
 		return other.UnwrapOrElse(func() Value { return ValueFromString("") })
 	}
@@ -596,4 +596,20 @@ func last(val Value) (Value, error) {
 		return valSeq.GetItem(n - 1).UnwrapOr(Undefined), nil
 	}
 	return nil, NewError(InvalidOperation, "cannot get last item from value")
+}
+
+func minFilter(state *State, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+	}
+	return iter.min().UnwrapOr(Undefined), nil
+}
+
+func maxFilter(state *State, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+	}
+	return iter.max().UnwrapOr(Undefined), nil
 }

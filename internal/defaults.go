@@ -22,13 +22,15 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["reverse"] = filterFuncFromWithValArgValErrRet(reverse)
 	rv["trim"] = filterFuncFromFilterWithStrOptStrArgStrRet(trim)
 	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
-	rv["default"] = filterFuncFromFilterWithValOptValArgValRet(default_)
-	rv["d"] = filterFuncFromFilterWithValOptValArgValRet(default_)
+	rv["default"] = filterFuncFromFilterWithValOptValArgValRet(defaultFilter)
+	rv["d"] = filterFuncFromFilterWithValOptValArgValRet(defaultFilter)
 	rv["round"] = filterFuncFromFilterWithValOptI32ArgValErrRet(round)
 	rv["abs"] = filterFuncFromWithValArgValErrRet(abs)
 	rv["attr"] = filterFuncFromWithValValArgValErrRet(attr)
 	rv["first"] = filterFuncFromWithValArgValErrRet(first)
 	rv["last"] = filterFuncFromWithValArgValErrRet(last)
+	rv["min"] = filterFuncFromWithStateValArgValErrRet(minFilter)
+	rv["max"] = filterFuncFromWithStateValArgValErrRet(maxFilter)
 
 	return rv
 }
