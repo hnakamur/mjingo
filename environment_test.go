@@ -578,6 +578,9 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "reverseSeq", source: `{{ [1, 2, 3]|reverse }}`, context: internal.None, want: "[3, 2, 1]"},
 			{name: "trimWithCutset", source: `{{ "¡¡¡Hello, Gophers!!!"|trim("!¡") }}`, context: internal.None, want: "Hello, Gophers"},
 			{name: "trimNoCutset", source: `{{ " \tHello, Gophers\n "|trim }}`, context: internal.None, want: "Hello, Gophers"},
+			{name: "defaultNoArg", source: `{{ undefined|default }}`, context: internal.None, want: ""},
+			{name: "defaultStrArg", source: `{{ undefined|default("hello") }}`, context: internal.None, want: "hello"},
+			{name: "defaultIntArg", source: `{{ undefined|default(2) }}`, context: internal.None, want: "2"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

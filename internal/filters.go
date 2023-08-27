@@ -123,6 +123,29 @@ func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr opti
 	}
 }
 
+func filterFuncFromFilterWithValOptValArgValRet(f func(a Value, optB option.Option[Value]) Value) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var a Value
+		optB := option.None[Value]()
+		switch {
+		case len(values) <= 1:
+			tpl1, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			a = tpl1.a
+		case len(values) >= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			a = tpl2.a
+			optB = option.Some(tpl2.b)
+		}
+		return f(a, optB), nil
+	}
+}
+
 func filterFuncFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.Option[string]) string) func(*State, []Value) (Value, error) {
 	return func(state *State, values []Value) (Value, error) {
 		var val Value
@@ -443,4 +466,11 @@ func trim(s string, cutset option.Option[string]) string {
 		return strings.Trim(s, cutset.Unwrap())
 	}
 	return strings.TrimSpace(s)
+}
+
+func default_(val Value, other option.Option[Value]) Value {
+	if val.IsUndefined() {
+		return other.UnwrapOrElse(func() Value { return ValueFromString("") })
+	}
+	return val
 }
