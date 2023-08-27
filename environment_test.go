@@ -596,6 +596,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "minSeq", source: `{{ [1, 2, 3]|min }}`, context: internal.None, want: "1"},
 			{name: "maxSeq", source: `{{ [1, 2, 3]|max }}`, context: internal.None, want: "3"},
 			{name: "listStr", source: `{% autoescape 'none' %}{{ "あいう"|list }}{% endautoescape %}`, context: internal.None, want: `["あ", "い", "う"]`},
+			{name: "boolTrue", source: `{{ 1|bool }}`, context: internal.None, want: "true"},
+			{name: "boolFalse", source: `{{ 0|bool }}`, context: internal.None, want: "false"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

@@ -33,6 +33,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["max"] = filterFuncFromWithStateValArgValErrRet(maxFilter)
 	// rv["sort"] = filterFuncFromWithStateValKwargsArgValErrRet(sort) TODO: implement
 	rv["list"] = filterFuncFromWithStateValArgValErrRet(listFilter)
+	rv["bool"] = filterFuncFromFilterWithValArgBoolRet(boolFilter)
 
 	return rv
 }

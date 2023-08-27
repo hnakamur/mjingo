@@ -211,6 +211,16 @@ func filterFuncFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.O
 	}
 }
 
+func filterFuncFromFilterWithValArgBoolRet(f func(val Value) bool) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromBool(f(tpl.a)), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -620,4 +630,12 @@ func listFilter(state *State, val Value) (Value, error) {
 		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
 	}
 	return ValueFromSlice(iter.collect()), nil
+}
+
+// Converts the value into a boolean value.
+//
+// This behaves the same as the if statement does with regards to
+// handling of boolean values.
+func boolFilter(val Value) bool {
+	return val.IsTrue()
 }
