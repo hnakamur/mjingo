@@ -330,7 +330,7 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 			rv.Set(KeyRefFromValue(ValueFromString(pair.key)), v.val.Clone())
 		}
 	}
-	return option.Some(ValueFromKwargs(Kwargs{Values: *rv}))
+	return option.Some(ValueFromKwargs(NewKwargs(*rv)))
 }
 
 var _ = expression(varExpr{})

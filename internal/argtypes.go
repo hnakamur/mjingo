@@ -1,6 +1,11 @@
 package internal
 
-import "github.com/hnakamur/mjingo/internal/datast/option"
+import (
+	"fmt"
+
+	"github.com/hnakamur/mjingo/internal/datast/hashset"
+	"github.com/hnakamur/mjingo/internal/datast/option"
+)
 
 // type argsFromValuesFn[T any] func(state *virtualMachineState, args []value) (T, error)
 
@@ -83,5 +88,46 @@ type rest[T any] struct {
 
 type Kwargs struct {
 	Values IndexMap
-	Used   map[string]struct{}
+	Used   hashset.StrHashSet
+}
+
+func NewKwargs(m IndexMap) Kwargs {
+	return Kwargs{
+		Values: m,
+		Used:   *hashset.NewStrHashSet(),
+	}
+}
+
+// Get a single argument from the kwargs but don't mark it as used.
+func (a *Kwargs) peekValue(key string) option.Option[Value] {
+	val, ok := a.Values.Get(KeyRefFromString(key))
+	if ok {
+		return option.Some(val)
+	}
+	return option.None[Value]()
+}
+
+// Gets a single argument from the kwargs and marks it as used.
+func (a *Kwargs) getValue(key string) option.Option[Value] {
+	optVal := a.peekValue(key)
+	if optVal.IsSome() {
+		a.Used.Add(key)
+	}
+	return optVal
+}
+
+// Asserts that all kwargs were used.
+func (a *Kwargs) assertAllUsed() error {
+	for _, keyRf := range a.Values.Keys() {
+		if optKey := keyRf.AsStr(); optKey.IsSome() {
+			key := optKey.Unwrap()
+			if !a.Used.Contains(key) {
+				return NewError(TooManyArguments,
+					fmt.Sprintf("unknown keyword argument '%s'", key))
+			}
+		} else {
+			return NewError(InvalidOperation, "non string keys passed to kwargs")
+		}
+	}
+	return nil
 }

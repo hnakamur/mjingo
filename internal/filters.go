@@ -2,8 +2,10 @@ package internal
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -152,4 +154,99 @@ func length(val Value) (uint, error) {
 	}
 	return 0, NewError(InvalidOperation,
 		fmt.Sprintf("cannot calculate length of value of type %s", val.Kind()))
+}
+
+func compareValuesCaseInsensitive(a, b Value) int {
+	if optA, optB := a.AsStr(), b.AsStr(); optA.IsSome() && optB.IsSome() {
+		return strings.Compare(optA.Unwrap(), optB.Unwrap())
+	}
+	return Cmp(a, b)
+}
+
+// Dict sorting functionality.
+//
+// This filter works like `|items` but sorts the pairs by key first.
+//
+// The filter accepts a few keyword arguments:
+//
+// * `case_sensitive`: set to `true` to make the sorting of strings case sensitive.
+// * `by`: set to `"value"` to sort by value. Defaults to `"key"`.
+// * `reverse`: set to `true` to sort in reverse.
+func dictsort(v Value, kwargs Kwargs) (Value, error) {
+	if v.Kind() != ValueKindMap {
+		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
+	}
+	entries := make([]indexmap.Entry[Value, Value], 0, v.Len().UnwrapOr(0))
+	iter, err := v.TryIter()
+	if err != nil {
+		return nil, err
+	}
+	for {
+		optKey := iter.Next()
+		if optKey.IsNone() {
+			break
+		}
+		key := optKey.Unwrap()
+		val, err := getItem(v, key)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, indexmap.Entry[Value, Value]{Key: key, Value: val})
+	}
+
+	byVal := false
+	if optBy := kwargs.getValue("by"); optBy.IsSome() {
+		if by, ok := optBy.Unwrap().(stringValue); ok {
+			switch by.str {
+			case "key":
+				byVal = false
+			case "value":
+				byVal = true
+			default:
+				return nil, NewError(InvalidOperation,
+					fmt.Sprintf("invalid value '%s' for 'by' parameter", by.str))
+			}
+		}
+	}
+	getKeyOrVal := func(entry indexmap.Entry[Value, Value]) Value { return entry.Key }
+	if byVal {
+		getKeyOrVal = func(entry indexmap.Entry[Value, Value]) Value { return entry.Value }
+	}
+
+	caseSensitive := false
+	if optCaseSensitive := kwargs.getValue("case_sensitive"); optCaseSensitive.IsSome() {
+		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+			caseSensitive = true
+		}
+	}
+	sortFn := Cmp
+	if caseSensitive {
+		sortFn = compareValuesCaseInsensitive
+	}
+
+	reverse := false
+	if optReverse := kwargs.getValue("reverse"); optReverse.IsSome() {
+		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+			reverse = true
+		}
+	}
+
+	slices.SortFunc(entries, func(a, b indexmap.Entry[Value, Value]) int {
+		ret := sortFn(getKeyOrVal(a), getKeyOrVal(b))
+		if reverse {
+			return -ret
+		}
+		return ret
+	})
+
+	if err := kwargs.assertAllUsed(); err != nil {
+		return nil, err
+	}
+
+	items := make([]Value, 0, len(entries))
+	for _, entry := range entries {
+		item := ValueFromSlice([]Value{entry.Key, entry.Value})
+		items = append(items, item)
+	}
+	return ValueFromSlice(items), nil
 }

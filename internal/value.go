@@ -1106,3 +1106,10 @@ func noCallMethod(name string) (Value, error) {
 	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("object has no method named %s", name))
 }
+
+func getItem(val, key Value) (Value, error) {
+	if val.IsUndefined() {
+		return nil, NewError(UndefinedError, "")
+	}
+	return val.GetItemOpt(key).UnwrapOr(Undefined), nil
+}
