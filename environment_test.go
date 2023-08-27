@@ -576,6 +576,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "joinSeqWithJoiner", source: `{{ [1, 2, 3]|join(", ") }}`, context: internal.None, want: "1, 2, 3"},
 			{name: "reverseStr", source: `{{ "あいう"|reverse }}`, context: internal.None, want: "ういあ"},
 			{name: "reverseSeq", source: `{{ [1, 2, 3]|reverse }}`, context: internal.None, want: "[3, 2, 1]"},
+			{name: "trimWithCutset", source: `{{ "¡¡¡Hello, Gophers!!!"|trim("!¡") }}`, context: internal.None, want: "Hello, Gophers"},
+			{name: "trimNoCutset", source: `{{ " \tHello, Gophers\n "|trim }}`, context: internal.None, want: "Hello, Gophers"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

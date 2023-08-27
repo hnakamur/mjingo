@@ -123,6 +123,33 @@ func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr opti
 	}
 }
 
+func filterFuncFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.Option[string]) string) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		optStr := option.None[string]()
+		switch {
+		case len(values) <= 1:
+			tpl1, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl1.a
+		case len(values) >= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			optStr = option.Some(tpl2.b.String())
+		}
+		s, err := StringFromValue(option.Some(val))
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromString(f(s, optStr)), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -409,4 +436,11 @@ func reverse(val Value) (Value, error) {
 	}
 	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("cannot reverse value of type %s", val.Kind()))
+}
+
+func trim(s string, cutset option.Option[string]) string {
+	if cutset.IsSome() {
+		return strings.Trim(s, cutset.Unwrap())
+	}
+	return strings.TrimSpace(s)
 }

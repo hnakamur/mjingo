@@ -21,6 +21,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["items"] = filterFuncFromWithValArgValErrRet(items)
 	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
 	rv["reverse"] = filterFuncFromWithValArgValErrRet(reverse)
+	rv["trim"] = filterFuncFromFilterWithStrOptStrArgStrRet(trim)
 
 	return rv
 }
