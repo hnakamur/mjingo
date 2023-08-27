@@ -843,9 +843,12 @@ func (m *virtualMachine) unpackList(stack *Stack[Value], count uint) error {
 		return NewError(CannotUnpack,
 			fmt.Sprintf("sequence of wrong length (expected %d, got %d)", count, seq.ItemCount()))
 	}
-	for i := uint(0); i < count; i++ {
+	for i := count - 1; ; i-- {
 		item := seq.GetItem(i).Unwrap()
 		stack.Push(item)
+		if i == 0 {
+			break
+		}
 	}
 	return nil
 }

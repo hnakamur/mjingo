@@ -562,8 +562,14 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "title", source: `{{ "hello world"|title }}`, context: internal.None, want: "HELLO WORLD"},
 			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: internal.None, want: "Hello world"},
 			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: internal.None, want: "Goodbye World"},
-			{name: "count", source: `{{ ["foo", "bar"]|length }}`, context: internal.None, want: "2"},
-			{name: "count", source: `{{ "あいう"|length }}`, context: internal.None, want: "3"},
+			{name: "countSlice", source: `{{ ["foo", "bar"]|length }}`, context: internal.None, want: "2"},
+			{name: "countStr", source: `{{ "あいう"|length }}`, context: internal.None, want: "3"},
+			{
+				name:    "items",
+				source:  `{% for key, value in {'a': 1, 'b': 2}|items %}{%if not loop.first %}, {% endif %}{{ key }}: {{ value }}{% endfor %}`,
+				context: internal.None,
+				want:    "a: 1, b: 2",
+			},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

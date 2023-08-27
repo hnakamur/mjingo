@@ -35,6 +35,16 @@ func filterFuncFromWithStateValArgValErrRet(f func(*State, Value) (Value, error)
 	}
 }
 
+func filterFuncFromWithValArgValErrRet(f func(Value) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		return f(tpl.a)
+	}
+}
+
 func filterFuncFromFilterWithStrArgStrRet(f func(val string) string) func(*State, []Value) (Value, error) {
 	return func(state *State, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
@@ -189,7 +199,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 		key := optKey.Unwrap()
 		val, err := getItem(v, key)
 		if err != nil {
-			return nil, err
+			val = Undefined
 		}
 		entries = append(entries, indexmap.Entry[Value, Value]{Key: key, Value: val})
 	}
@@ -246,6 +256,50 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	items := make([]Value, 0, len(entries))
 	for _, entry := range entries {
 		item := ValueFromSlice([]Value{entry.Key, entry.Value})
+		items = append(items, item)
+	}
+	return ValueFromSlice(items), nil
+}
+
+// Returns a list of pairs (items) from a mapping.
+//
+// This can be used to iterate over keys and values of a mapping
+// at once.  Note that this will use the original order of the map
+// which is typically arbitrary unless the `preserve_order` feature
+// is used in which case the original order of the map is retained.
+// It's generally better to use `|dictsort` which sorts the map by
+// key before iterating.
+//
+// ```jinja
+// <dl>
+// {% for key, value in my_dict|items %}
+//
+//	<dt>{{ key }}
+//	<dd>{{ value }}
+//
+// {% endfor %}
+// </dl>
+// ```
+func items(v Value) (Value, error) {
+	if v.Kind() != ValueKindMap {
+		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
+	}
+	items := make([]Value, 0, v.Len().UnwrapOr(0))
+	iter, err := v.TryIter()
+	if err != nil {
+		return nil, err
+	}
+	for {
+		optKey := iter.Next()
+		if optKey.IsNone() {
+			break
+		}
+		key := optKey.Unwrap()
+		val, err := getItem(v, key)
+		if err != nil {
+			val = Undefined
+		}
+		item := ValueFromSlice([]Value{key, val})
 		items = append(items, item)
 	}
 	return ValueFromSlice(items), nil
