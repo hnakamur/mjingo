@@ -27,6 +27,8 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["round"] = filterFuncFromFilterWithValOptI32ArgValErrRet(round)
 	rv["abs"] = filterFuncFromWithValArgValErrRet(abs)
 	rv["attr"] = filterFuncFromWithValValArgValErrRet(attr)
+	rv["first"] = filterFuncFromWithValArgValErrRet(first)
+	rv["last"] = filterFuncFromWithValArgValErrRet(last)
 
 	return rv
 }

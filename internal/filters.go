@@ -557,3 +557,43 @@ func abs(val Value) (Value, error) {
 func attr(val, key Value) (Value, error) {
 	return getItem(val, key)
 }
+
+func first(val Value) (Value, error) {
+	if optValStr := val.AsStr(); optValStr.IsSome() {
+		rest := optValStr.Unwrap()
+		if rest == "" {
+			return Undefined, nil
+		}
+		var b strings.Builder
+		r, _ := utf8.DecodeRuneInString(rest)
+		b.WriteRune(r)
+		return ValueFromString(b.String()), nil
+	}
+	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+		valSeq := optValSeq.Unwrap()
+		return valSeq.GetItem(0).UnwrapOr(Undefined), nil
+	}
+	return nil, NewError(InvalidOperation, "cannot get first item from value")
+}
+
+func last(val Value) (Value, error) {
+	if optValStr := val.AsStr(); optValStr.IsSome() {
+		rest := optValStr.Unwrap()
+		if rest == "" {
+			return Undefined, nil
+		}
+		var b strings.Builder
+		r, _ := utf8.DecodeLastRuneInString(rest)
+		b.WriteRune(r)
+		return ValueFromString(b.String()), nil
+	}
+	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+		valSeq := optValSeq.Unwrap()
+		n := valSeq.ItemCount()
+		if n == 0 {
+			return Undefined, nil
+		}
+		return valSeq.GetItem(n - 1).UnwrapOr(Undefined), nil
+	}
+	return nil, NewError(InvalidOperation, "cannot get last item from value")
+}
