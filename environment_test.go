@@ -588,6 +588,7 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "absI64", source: `{{ -3|abs }}`, context: internal.None, want: "3"},
 			{name: "absI128", source: `{{ (-9223372036854775807 * 2)|abs }}`, context: internal.None, want: "18446744073709551614"},
 			{name: "absF64", source: `{{ -3.2|abs }}`, context: internal.None, want: "3.2"},
+			{name: "attr", source: `{{ {'a': 1, 'b': 2}|attr('b') }}`, context: internal.None, want: "2"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

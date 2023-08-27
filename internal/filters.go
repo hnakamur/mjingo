@@ -48,6 +48,15 @@ func filterFuncFromWithValArgValErrRet(f func(Value) (Value, error)) func(*State
 	}
 }
 
+func filterFuncFromWithValValArgValErrRet(f func(Value, Value) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		tpl, err := tuple2FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		return f(tpl.a, tpl.b)
+	}
+}
 func filterFuncFromFilterWithStrArgStrRet(f func(val string) string) func(*State, []Value) (Value, error) {
 	return func(state *State, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
@@ -534,4 +543,17 @@ func abs(val Value) (Value, error) {
 		// TODO: Verify MiniJinja error message is really intentional.
 		return nil, NewError(InvalidOperation, "cannot round value")
 	}
+}
+
+// Looks up an attribute.
+//
+// In MiniJinja this is the same as the `[]` operator.  In Jinja2 there is a
+// small difference which is why this filter is sometimes used in Jinja2
+// templates.  For compatibility it's provided here as well.
+//
+// ```jinja
+// {{ value['key'] == value|attr('key') }} -> true
+// ```
+func attr(val, key Value) (Value, error) {
+	return getItem(val, key)
 }
