@@ -373,3 +373,40 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 	return "", NewError(InvalidOperation,
 		fmt.Sprintf("cannot join value of type %s", val.Kind()))
 }
+
+// Reverses a list or string
+//
+// ```jinja
+// {% for user in users|reverse %}
+//
+//	<li>{{ user.name }}
+//
+// {% endfor %}
+// ```
+func reverse(val Value) (Value, error) {
+	if optValStr := val.AsStr(); optValStr.IsSome() {
+		rest := optValStr.Unwrap()
+		var b strings.Builder
+		for len(rest) > 0 {
+			r, size := utf8.DecodeLastRuneInString(rest)
+			b.WriteRune(r)
+			rest = rest[:len(rest)-size]
+		}
+		return ValueFromString(b.String()), nil
+	}
+	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+		valSeq := optValSeq.Unwrap()
+		n := valSeq.ItemCount()
+		items := make([]Value, 0, n)
+		for i := n - 1; ; i-- {
+			item := valSeq.GetItem(i).Unwrap()
+			items = append(items, item)
+			if i == 0 {
+				break
+			}
+		}
+		return ValueFromSlice(items), nil
+	}
+	return nil, NewError(InvalidOperation,
+		fmt.Sprintf("cannot reverse value of type %s", val.Kind()))
+}

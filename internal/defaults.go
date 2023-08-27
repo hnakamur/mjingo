@@ -20,6 +20,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	// rv["dictsort"] = filterFuncFromWithValKwargsArgValErrRet(dictsort) TODO: implement
 	rv["items"] = filterFuncFromWithValArgValErrRet(items)
 	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
+	rv["reverse"] = filterFuncFromWithValArgValErrRet(reverse)
 
 	return rv
 }
