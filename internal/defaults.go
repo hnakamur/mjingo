@@ -24,6 +24,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
 	rv["default"] = filterFuncFromFilterWithValOptValArgValRet(default_)
 	rv["d"] = filterFuncFromFilterWithValOptValArgValRet(default_)
+	rv["round"] = filterFuncFromFilterWithValOptI32ArgValErrRet(round)
 
 	return rv
 }

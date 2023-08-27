@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -120,6 +121,33 @@ func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr opti
 			return nil, err
 		}
 		return ValueFromString(rv), nil
+	}
+}
+
+func filterFuncFromFilterWithValOptI32ArgValErrRet(f func(val Value, optI32 option.Option[int32]) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		optI32 := option.None[int32]()
+		switch {
+		case len(values) <= 1:
+			tpl1, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl1.a
+		case len(values) >= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			n, err := tpl2.b.TryToI64()
+			if err != nil || n < math.MinInt32 || n > math.MaxInt32 {
+				return nil, unsupportedConversion(tpl2.b.typ(), "i32")
+			}
+			optI32 = option.Some(int32(n))
+		}
+		return f(val, optI32)
 	}
 }
 
@@ -473,4 +501,16 @@ func default_(val Value, other option.Option[Value]) Value {
 		return other.UnwrapOrElse(func() Value { return ValueFromString("") })
 	}
 	return val
+}
+
+func round(val Value, precision option.Option[int32]) (Value, error) {
+	switch v := val.(type) {
+	case i64Value, i128Value:
+		return val, nil
+	case f64Value:
+		x := math.Pow10(int(precision.UnwrapOr(0)))
+		return ValueFromF64(math.Round(x*v.f) / x), nil
+	default:
+		return nil, NewError(InvalidOperation, "cannot round value")
+	}
 }
