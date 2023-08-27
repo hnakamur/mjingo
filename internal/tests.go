@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"log"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -549,9 +548,7 @@ func isFalse(val Value) bool {
 }
 
 func isFilter(state *State, name string) bool {
-	optFilter := state.env.getFilter(name)
-	log.Printf("isFilter start name=%s, optFilter=%+v", name, optFilter)
-	return optFilter.IsSome()
+	return state.env.getFilter(name).IsSome()
 }
 
 func isTest(state *State, name string) bool {

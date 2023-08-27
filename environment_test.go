@@ -585,6 +585,9 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "defaultAliasWithVal", source: `{{ 3|d }}`, context: internal.None, want: "3"},
 			{name: "roundDefPrec", source: `{{ 42.5|round }}`, context: internal.None, want: "43.0"},
 			{name: "roundWithPrec", source: `{{ 42.45|round(1) }}`, context: internal.None, want: "42.5"},
+			{name: "absI64", source: `{{ -3|abs }}`, context: internal.None, want: "3"},
+			{name: "absI128", source: `{{ (-9223372036854775807 * 2)|abs }}`, context: internal.None, want: "18446744073709551614"},
+			{name: "absF64", source: `{{ -3.2|abs }}`, context: internal.None, want: "3.2"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

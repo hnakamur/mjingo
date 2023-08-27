@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -511,6 +512,26 @@ func round(val Value, precision option.Option[int32]) (Value, error) {
 		x := math.Pow10(int(precision.UnwrapOr(0)))
 		return ValueFromF64(math.Round(x*v.f) / x), nil
 	default:
+		return nil, NewError(InvalidOperation, "cannot round value")
+	}
+}
+
+func abs(val Value) (Value, error) {
+	switch v := val.(type) {
+	case i64Value:
+		n := v.n
+		if n < 0 {
+			n = -n
+		}
+		return i64Value{n: n}, nil
+	case i128Value:
+		var n big.Int
+		n.Abs(&v.n)
+		return i128Value{n: n}, nil
+	case f64Value:
+		return f64Value{f: math.Abs(v.f)}, nil
+	default:
+		// TODO: Verify MiniJinja error message is really intentional.
 		return nil, NewError(InvalidOperation, "cannot round value")
 	}
 }

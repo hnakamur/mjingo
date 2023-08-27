@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-
 )
 
 type lexerState int
