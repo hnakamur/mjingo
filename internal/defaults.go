@@ -23,6 +23,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["trim"] = filterFuncFromFilterWithStrOptStrArgStrRet(trim)
 	rv["join"] = filterFuncFromFilterWithValOptStrArgStrErrRet(join)
 	rv["default"] = filterFuncFromFilterWithValOptValArgValRet(default_)
+	rv["d"] = filterFuncFromFilterWithValOptValArgValRet(default_)
 
 	return rv
 }

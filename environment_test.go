@@ -581,6 +581,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "defaultNoArg", source: `{{ undefined|default }}`, context: internal.None, want: ""},
 			{name: "defaultStrArg", source: `{{ undefined|default("hello") }}`, context: internal.None, want: "hello"},
 			{name: "defaultIntArg", source: `{{ undefined|default(2) }}`, context: internal.None, want: "2"},
+			{name: "defaultAlias", source: `{{ undefined|d(2) }}`, context: internal.None, want: "2"},
+			{name: "defaultAliasWithVal", source: `{{ 3|d }}`, context: internal.None, want: "3"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
