@@ -598,6 +598,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "listStr", source: `{% autoescape 'none' %}{{ "あいう"|list }}{% endautoescape %}`, context: internal.None, want: `["あ", "い", "う"]`},
 			{name: "boolTrue", source: `{{ 1|bool }}`, context: internal.None, want: "true"},
 			{name: "boolFalse", source: `{{ 0|bool }}`, context: internal.None, want: "false"},
+			{name: "batchNoFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3) }}`, context: internal.None, want: "[[1, 2, 3], [4, 5]]"},
+			{name: "batchWithFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3, 0) }}`, context: internal.None, want: "[[1, 2, 3], [4, 5, 0]]"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

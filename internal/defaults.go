@@ -34,6 +34,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	// rv["sort"] = filterFuncFromWithStateValKwargsArgValErrRet(sort) TODO: implement
 	rv["list"] = filterFuncFromWithStateValArgValErrRet(listFilter)
 	rv["bool"] = filterFuncFromFilterWithValArgBoolRet(boolFilter)
+	rv["batch"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(batchFilter)
 
 	return rv
 }

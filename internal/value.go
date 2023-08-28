@@ -26,9 +26,9 @@ type Value interface {
 	GetAttrFast(key string) option.Option[Value]
 	GetItemOpt(key Value) option.Option[Value]
 	AsStr() option.Option[string]
-	// AsI128() option.Option[big.Int]
 	TryToI128() (big.Int, error)
 	TryToI64() (int64, error)
+	TryToUint() (uint, error)
 	AsF64() option.Option[float64]
 	AsSeq() option.Option[SeqObject]
 	Clone() Value
@@ -629,6 +629,61 @@ func (v bytesValue) TryToI64() (int64, error)   { return 0, unsupportedConversio
 func (v SeqValue) TryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
 func (v mapValue) TryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
 func (v dynamicValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+
+func (v undefinedValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v BoolValue) TryToUint() (uint, error) {
+	if v.B {
+		return 1, nil
+	}
+	return 0, nil
+}
+func (v u64Value) TryToUint() (uint, error) {
+	if v.n > math.MaxUint {
+		return 0, unsupportedConversion(v.typ(), "uint")
+	}
+	return uint(v.n), nil
+}
+func (v i64Value) TryToUint() (uint, error) {
+	if v.n < 0 {
+		return 0, unsupportedConversion(v.typ(), "uint")
+	}
+	return uint(v.n), nil
+}
+func (v f64Value) TryToUint() (uint, error) {
+	// MiniJinja uses int64 here, not uint.
+	// https://github.com/mitsuhiko/minijinja/blob/1.0.7/minijinja/src/value/argtypes.rs#L438-L439
+	// And it has comment "for the intention here see Key::from_borrowed_value"
+	// but "from_borrowed_value" does not exist.
+	if float64(int64(v.f)) == v.f && v.f >= 0 {
+		return uint(v.f), nil
+	}
+	return 0, unsupportedConversion(v.typ(), "uint")
+}
+func (v noneValue) TryToUint() (uint, error)    { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v InvalidValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v u128Value) TryToUint() (uint, error) {
+	if v.n.IsUint64() {
+		n := v.n.Uint64()
+		if n <= math.MaxUint {
+			return uint(n), nil
+		}
+	}
+	return 0, unsupportedConversion(v.typ(), "uint")
+}
+func (v i128Value) TryToUint() (uint, error) {
+	if v.n.IsUint64() {
+		n := v.n.Uint64()
+		if n <= math.MaxUint {
+			return uint(n), nil
+		}
+	}
+	return 0, unsupportedConversion(v.typ(), "uint")
+}
+func (v stringValue) TryToUint() (uint, error)  { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v bytesValue) TryToUint() (uint, error)   { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v SeqValue) TryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v mapValue) TryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v dynamicValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
 
 func (undefinedValue) AsF64() option.Option[float64] { return option.None[float64]() }
 func (v BoolValue) AsF64() option.Option[float64] {

@@ -221,6 +221,35 @@ func filterFuncFromFilterWithValArgBoolRet(f func(val Value) bool) func(*State, 
 	}
 }
 
+func filterFuncFromFilterWithStateValUintOptValArgValErrRet(f func(*State, Value, uint, option.Option[Value]) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val, countVal Value
+		fillWith := option.None[Value]()
+		switch {
+		case len(values) <= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			countVal = tpl2.b
+		case len(values) >= 3:
+			tpl3, err := tuple3FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl3.a
+			countVal = tpl3.b
+			fillWith = option.Some(tpl3.c)
+		}
+		count, err := countVal.TryToUint()
+		if err != nil {
+			return nil, err
+		}
+		return f(state, val, count, fillWith)
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -638,4 +667,61 @@ func listFilter(state *State, val Value) (Value, error) {
 // handling of boolean values.
 func boolFilter(val Value) bool {
 	return val.IsTrue()
+}
+
+// Batch items.
+//
+// This filter works pretty much like `slice` just the other way round. It
+// returns a list of lists with the given number of items. If you provide a
+// second parameter this is used to fill up missing items.
+//
+// ```jinja
+// <table>
+//
+//	{% for row in items|batch(3, '&nbsp;') %}
+//	<tr>
+//	{% for column in row %}
+//	  <td>{{ column }}</td>
+//	{% endfor %}
+//	</tr>
+//	{% endfor %}
+//
+// </table>
+// ```
+func batchFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+	if count == 0 {
+		return nil, NewError(InvalidOperation, "count cannot be 0")
+	}
+
+	rv := make([]Value, 0, val.Len().UnwrapOr(0)/count)
+	tmp := make([]Value, 0, count)
+
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		optItem := iter.Next()
+		if optItem.IsNone() {
+			break
+		}
+		item := optItem.Unwrap()
+		if uint(len(tmp)) == count {
+			rv = append(rv, ValueFromSlice(tmp))
+			tmp = make([]Value, 0, count)
+		}
+		tmp = append(tmp, item)
+	}
+
+	if len(tmp) != 0 {
+		if fillWith.IsSome() {
+			filler := fillWith.Unwrap()
+			for i := uint(0); i < count-uint(len(tmp)); i++ {
+				tmp = append(tmp, filler)
+			}
+		}
+		rv = append(rv, ValueFromSlice(tmp))
+	}
+
+	return ValueFromSlice(rv), nil
 }
