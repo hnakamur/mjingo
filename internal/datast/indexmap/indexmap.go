@@ -70,6 +70,9 @@ func (m *Map[K, V]) Delete(key K) (v V, ok bool) {
 	if ok {
 		v = m.values[i]
 		delete(m.indexes, key)
+		for j, key := range m.keys[i+1:] {
+			m.indexes[key] = i + uint(j)
+		}
 
 		clear(m.keys[i : i+1])
 		m.keys = append(m.keys[:i], m.keys[i+1:]...)
