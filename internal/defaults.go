@@ -37,6 +37,10 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["batch"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(batchFilter)
 	rv["slice"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(sliceFilter)
 	rv["indent"] = filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(indentFilter)
+	rv["select"] = filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(selectFilter)
+	rv["reject"] = filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(rejectFilter)
+	rv["selectattr"] = filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(selectAttrFilter)
+	rv["rejectattr"] = filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(rejectAttrFilter)
 
 	return rv
 }

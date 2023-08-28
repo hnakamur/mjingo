@@ -305,6 +305,80 @@ func filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(f func(string, uint
 	}
 }
 
+func filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(f func(*State, Value, option.Option[string], ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		optStr := option.None[string]()
+		var args []Value
+		switch {
+		case len(values) <= 1:
+			tpl1, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl1.a
+			args = values[1:]
+		case len(values) >= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			s, err := StringFromValue(option.Some(tpl2.b))
+			if err != nil {
+				return nil, err
+			}
+			optStr = option.Some(s)
+			args = values[2:]
+		}
+		rv, err := f(state, val, optStr, args...)
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromSlice(rv), nil
+	}
+}
+
+func filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*State, Value, string, option.Option[string], ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val, strVal Value
+		optStr := option.None[string]()
+		var args []Value
+		switch {
+		case len(values) <= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl2.a
+			strVal = tpl2.b
+			args = values[2:]
+		case len(values) >= 3:
+			tpl3, err := tuple3FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl3.a
+			strVal = tpl3.b
+			s, err := StringFromValue(option.Some(tpl3.c))
+			if err != nil {
+				return nil, err
+			}
+			optStr = option.Some(s)
+			args = values[3:]
+		}
+		s, err := StringFromValue(option.Some(strVal))
+		if err != nil {
+			return nil, err
+		}
+		rv, err := f(state, val, s, optStr, args...)
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromSlice(rv), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -874,4 +948,68 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 	rv := output.String()
 	stripTrailingNewline(&rv)
 	return rv
+}
+
+func selectOrReject(state *State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
+	var rv []Value
+	test := option.None[TestFunc]()
+	if testName.IsSome() {
+		test = state.env.getTest(testName.Unwrap())
+		if test.IsNone() {
+			return nil, NewError(UnknownTest, "")
+		}
+	}
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		optItem := iter.Next()
+		if optItem.IsNone() {
+			break
+		}
+		item := optItem.Unwrap()
+		var testVal Value
+		if attr.IsSome() {
+			testVal, err = valueGetAttr(item, attr.Unwrap())
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			testVal = item.Clone()
+		}
+		var passed bool
+		if test.IsSome() {
+			iter, _ := ValueFromSlice([]Value{testVal}).TryIter()
+			iter2, _ := ValueFromSlice(args).TryIter()
+			chainedIter := iter.Chain(iter2.Cloned())
+			testArgs := chainedIter.collect()
+			passed, err = test.Unwrap()(state, testArgs)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			passed = testVal.IsTrue()
+		}
+		if passed != invert {
+			rv = append(rv, item)
+		}
+	}
+	return rv, nil
+}
+
+func selectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+	return selectOrReject(state, false, val, option.None[string](), testName, args...)
+}
+
+func selectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+	return selectOrReject(state, false, val, option.Some(attr), testName, args...)
+}
+
+func rejectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+	return selectOrReject(state, true, val, option.None[string](), testName, args...)
+}
+
+func rejectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+	return selectOrReject(state, true, val, option.Some(attr), testName, args...)
 }

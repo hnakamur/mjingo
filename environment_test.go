@@ -605,6 +605,12 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "indentCase1", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2) }}`, context: internal.None, want: "line1\n    line2\n\n    line3"},
 			{name: "indentCase2", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, true) }}`, context: internal.None, want: "  line1\n    line2\n\n    line3"},
 			{name: "indentCase3", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, false, true) }}`, context: internal.None, want: "line1\n    line2\n  \n    line3"},
+			{name: "selectCase1", source: `{{ [1, 2, 3, 4, 5]|select("odd") }}`, context: internal.None, want: "[1, 3, 5]"},
+			{name: "rejectCase1", source: `{{ [1, 2, 3, 4, 5]|reject("odd") }}`, context: internal.None, want: "[2, 4]"},
+			{name: "selectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|selectattr("is_active") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "Paul", "is_active": true}]`},
+			{name: "selectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "Paul", "id": 2}]`},
+			{name: "rejectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|rejectattr("is_active") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "is_active": false}]`},
+			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "id": 1}]`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {

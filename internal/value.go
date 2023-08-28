@@ -244,7 +244,7 @@ func (v mapValue) String() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsStr().Unwrap())
+		b.WriteString(e.Key.AsValue().DebugString())
 		b.WriteString(": ")
 		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
@@ -303,7 +303,7 @@ func (v mapValue) DebugString() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsStr().Unwrap())
+		b.WriteString(e.Key.AsValue().DebugString())
 		b.WriteString(": ")
 		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
@@ -840,6 +840,24 @@ type Iterator struct {
 	len       uint
 }
 
+func (i Iterator) Chain(other Iterator) Iterator {
+	return Iterator{
+		iterState: &chainedValueIteratorState{
+			states: []valueIteratorState{i.iterState, other.iterState},
+		},
+		len: i.len + other.len,
+	}
+}
+
+func (i Iterator) Cloned() Iterator {
+	return Iterator{
+		iterState: &cloneValueIteratorState{
+			state: i.iterState,
+		},
+		len: i.len,
+	}
+}
+
 func (i *Iterator) Next() option.Option[Value] {
 	optVal := i.iterState.advanceState()
 	if optVal.IsSome() {
@@ -960,6 +978,31 @@ type mapValueIteratorState struct {
 	keys []KeyRef
 }
 
+type cloneValueIteratorState struct {
+	state valueIteratorState
+}
+
+func (s *cloneValueIteratorState) advanceState() option.Option[Value] {
+	return option.Map(s.state.advanceState(), func(val Value) Value { return val.Clone() })
+}
+
+type chainedValueIteratorState struct {
+	states []valueIteratorState
+}
+
+func (s *chainedValueIteratorState) advanceState() option.Option[Value] {
+	var rv option.Option[Value]
+	if len(s.states) > 0 {
+		rv = s.states[0].advanceState()
+		for rv.IsNone() && len(s.states) > 1 {
+			clear(s.states[len(s.states)-1:])
+			s.states = s.states[:len(s.states)-1]
+			rv = s.states[0].advanceState()
+		}
+	}
+	return rv
+}
+
 func (s *emptyValueIteratorState) advanceState() option.Option[Value] { return option.None[Value]() }
 func (s *charsValueIteratorState) advanceState() option.Option[Value] {
 	if s.offset < uint(len(s.s)) {
@@ -1005,6 +1048,8 @@ var _ = valueIteratorState((*seqValueIteratorState)(nil))
 var _ = valueIteratorState((*stringsValueIteratorState)(nil))
 var _ = valueIteratorState((*dynSeqValueIteratorState)(nil))
 var _ = valueIteratorState((*mapValueIteratorState)(nil))
+var _ = valueIteratorState((*cloneValueIteratorState)(nil))
+var _ = valueIteratorState((*chainedValueIteratorState)(nil))
 
 type valueIteratorStateType int
 
@@ -1285,4 +1330,24 @@ func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 		return false, NewError(MissingArgument, "")
 	}
 	return boolTryFromValue(v.Unwrap())
+}
+
+func valueGetAttr(val Value, key string) (Value, error) {
+	switch v := val.(type) {
+	case undefinedValue:
+		return nil, NewError(UndefinedError, "")
+	case mapValue:
+		// TODO: Use KeyRefFromString
+		// if v2, ok := v.m.Get(KeyRefFromString(key)); ok {
+		if v2, ok := v.m.Get(KeyRefFromValue(ValueFromString(key))); ok {
+			return v2.Clone(), nil
+		}
+	case dynamicValue:
+		if obj, ok := v.dy.(StructObject); ok {
+			if optField := obj.GetField(key); optField.IsSome() {
+				return optField.Unwrap(), nil
+			}
+		}
+	}
+	return Undefined, nil
 }
