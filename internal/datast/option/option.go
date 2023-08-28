@@ -75,10 +75,10 @@ func (o Option[T]) Compare(other Option[T], cmpData func(a, b T) int) int {
 		if o.valid {
 			return cmpData(o.data, other.data)
 		}
-	} else if o.valid {
-		return 1
-	} else if other.valid {
-		return -1
+		return 0
 	}
-	return 0
+	if o.valid {
+		return 1
+	}
+	return -1
 }
