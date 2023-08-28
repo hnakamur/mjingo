@@ -717,8 +717,64 @@ func batchFilter(state *State, val Value, count uint, fillWith option.Option[Val
 		if fillWith.IsSome() {
 			filler := fillWith.Unwrap()
 			for i := uint(0); i < count-uint(len(tmp)); i++ {
-				tmp = append(tmp, filler)
+				tmp = append(tmp, filler.Clone())
 			}
+		}
+		rv = append(rv, ValueFromSlice(tmp))
+	}
+
+	return ValueFromSlice(rv), nil
+}
+
+// Slice an iterable and return a list of lists containing
+// those items.
+//
+// Useful if you want to create a div containing three ul tags that
+// represent columns:
+//
+// ```jinja
+// <div class="columnwrapper">
+// {% for column in items|slice(3) %}
+//
+//	<ul class="column-{{ loop.index }}">
+//	{% for item in column %}
+//	  <li>{{ item }}</li>
+//	{% endfor %}
+//	</ul>
+//
+// {% endfor %}
+// </div>
+// ```
+//
+// If you pass it a second argument it’s used to fill missing values on the
+// last iteration.
+func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+	if count == 0 {
+		return nil, NewError(InvalidOperation, "count cannot be 0")
+	}
+
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, err
+	}
+	items := iter.collect()
+	l := uint(len(items))
+	itemsPerSlice := l / count
+	slicesWithExtra := l % count
+	offset := uint(0)
+	rv := make([]Value, 0, count)
+	for slice := uint(0); slice < count; slice++ {
+		start := offset + slice*itemsPerSlice
+		if slice < slicesWithExtra {
+			offset++
+		}
+		end := offset + (slice+1)*itemsPerSlice
+		tmp := items[start:end]
+		if fillWith.IsSome() && slice >= slicesWithExtra {
+			filler := fillWith.Unwrap()
+			tmp = append(tmp, filler.Clone())
+			rv = append(rv, ValueFromSlice(tmp))
+			continue
 		}
 		rv = append(rv, ValueFromSlice(tmp))
 	}

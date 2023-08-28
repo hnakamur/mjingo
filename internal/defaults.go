@@ -35,6 +35,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["list"] = filterFuncFromWithStateValArgValErrRet(listFilter)
 	rv["bool"] = filterFuncFromFilterWithValArgBoolRet(boolFilter)
 	rv["batch"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(batchFilter)
+	rv["slice"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(sliceFilter)
 
 	return rv
 }

@@ -600,6 +600,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "boolFalse", source: `{{ 0|bool }}`, context: internal.None, want: "false"},
 			{name: "batchNoFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3) }}`, context: internal.None, want: "[[1, 2, 3], [4, 5]]"},
 			{name: "batchWithFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3, 0) }}`, context: internal.None, want: "[[1, 2, 3], [4, 5, 0]]"},
+			{name: "sliceNoFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3) }}`, context: internal.None, want: "[[1, 2], [3, 4], [5]]"},
+			{name: "sliceWithFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3, 0) }}`, context: internal.None, want: "[[1, 2], [3, 4], [5, 0]]"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
