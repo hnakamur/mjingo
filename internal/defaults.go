@@ -36,6 +36,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["bool"] = filterFuncFromFilterWithValArgBoolRet(boolFilter)
 	rv["batch"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(batchFilter)
 	rv["slice"] = filterFuncFromFilterWithStateValUintOptValArgValErrRet(sliceFilter)
+	rv["indent"] = filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(indentFilter)
 
 	return rv
 }

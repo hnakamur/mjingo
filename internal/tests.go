@@ -258,16 +258,16 @@ func tuple3FromValues(state *State, values []Value) (tuple3[Value, Value, Value]
 	return tuple3[Value, Value, Value]{a: ao, b: bo, c: co}, nil
 }
 
-func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[BO], C argType[CO], D argType[DO]](state *State, values []Value) (tuple4[AO, BO, CO, DO], error) {
-	var zero tuple4[AO, BO, CO, DO]
-	var ao AO
-	var bo BO
-	var co CO
-	var do DO
-	var at argType[AO]
-	var bt argType[BO]
-	var ct argType[CO]
-	var dt argType[DO]
+func tuple4FromValues(state *State, values []Value) (tuple4[Value, Value, Value, Value], error) {
+	var zero tuple4[Value, Value, Value, Value]
+	var ao Value
+	var bo Value
+	var co Value
+	var do Value
+	var at valueArgType
+	var bt valueArgType
+	var ct valueArgType
+	var dt valueArgType
 	idx := uint(0)
 	restFirst := bt.isTrailing() && len(values) != 0
 	if restFirst {
@@ -307,23 +307,21 @@ func tuple4FromValues[AO any, BO any, CO any, DO any, A argType[AO], B argType[B
 	if idx < uint(len(values)) {
 		return zero, NewError(TooManyArguments, "")
 	}
-	return tuple4[AO, BO, CO, DO]{a: ao, b: bo, c: co, d: do}, nil
+	return tuple4[Value, Value, Value, Value]{a: ao, b: bo, c: co, d: do}, nil
 }
 
-func tuple5FromValues[AO any, BO any, CO any, DO any, EO any,
-	A argType[AO], B argType[BO], C argType[CO], D argType[DO],
-	E argType[EO]](state *State, values []Value) (tuple5[AO, BO, CO, DO, EO], error) {
-	var zero tuple5[AO, BO, CO, DO, EO]
-	var ao AO
-	var bo BO
-	var co CO
-	var do DO
-	var eo EO
-	var at argType[AO]
-	var bt argType[BO]
-	var ct argType[CO]
-	var dt argType[DO]
-	var et argType[EO]
+func tuple5FromValues(state *State, values []Value) (tuple5[Value, Value, Value, Value, Value], error) {
+	var zero tuple5[Value, Value, Value, Value, Value]
+	var ao Value
+	var bo Value
+	var co Value
+	var do Value
+	var eo Value
+	var at valueArgType
+	var bt valueArgType
+	var ct valueArgType
+	var dt valueArgType
+	var et valueArgType
 	idx := uint(0)
 	restFirst := bt.isTrailing() && len(values) != 0
 	if restFirst {
@@ -369,7 +367,7 @@ func tuple5FromValues[AO any, BO any, CO any, DO any, EO any,
 	if idx < uint(len(values)) {
 		return zero, NewError(TooManyArguments, "")
 	}
-	return tuple5[AO, BO, CO, DO, EO]{a: ao, b: bo, c: co, d: do, e: eo}, nil
+	return tuple5[Value, Value, Value, Value, Value]{a: ao, b: bo, c: co, d: do, e: eo}, nil
 }
 
 type testResult interface {

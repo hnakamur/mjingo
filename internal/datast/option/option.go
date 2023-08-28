@@ -42,6 +42,13 @@ func (o Option[T]) UnwrapOrElse(f func() T) T {
 	return f()
 }
 
+func Map[T any, E any](o Option[T], f func(v T) E) Option[E] {
+	if o.IsSome() {
+		return Some(f(o.Unwrap()))
+	}
+	return None[E]()
+}
+
 func MapOr[T any, E any](o Option[T], defaultVal E, f func(v T) E) E {
 	if o.IsSome() {
 		return f(o.Unwrap())

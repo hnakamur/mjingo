@@ -1272,3 +1272,17 @@ func getItem(val, key Value) (Value, error) {
 	}
 	return val.GetItemOpt(key).UnwrapOr(Undefined), nil
 }
+
+func boolTryFromValue(v Value) (bool, error) {
+	if boolVal, ok := v.(BoolValue); ok {
+		return boolVal.B, nil
+	}
+	return false, unsupportedConversion(v.typ(), "bool")
+}
+
+func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
+	if v.IsNone() {
+		return false, NewError(MissingArgument, "")
+	}
+	return boolTryFromValue(v.Unwrap())
+}

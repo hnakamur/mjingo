@@ -250,6 +250,61 @@ func filterFuncFromFilterWithStateValUintOptValArgValErrRet(f func(*State, Value
 	}
 }
 
+func filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(f func(string, uint, option.Option[bool], option.Option[bool]) string) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var strVal, uintVal Value
+		optBoolVal1 := option.None[Value]()
+		optBool2 := option.None[bool]()
+		switch {
+		case len(values) <= 2:
+			tpl2, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			strVal = tpl2.a
+			uintVal = tpl2.b
+		case len(values) == 3:
+			tpl3, err := tuple3FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			strVal = tpl3.a
+			uintVal = tpl3.b
+			optBoolVal1 = option.Some(tpl3.c)
+		case len(values) >= 4:
+			tpl4, err := tuple4FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			strVal = tpl4.a
+			uintVal = tpl4.b
+			optBoolVal1 = option.Some(tpl4.c)
+			b, err := boolTryFromValue(tpl4.d)
+			if err != nil {
+				return nil, err
+			}
+			optBool2 = option.Some(b)
+		}
+		s, err := StringFromValue(option.Some(strVal))
+		if err != nil {
+			return nil, err
+		}
+		n, err := uintVal.TryToUint()
+		if err != nil {
+			return nil, err
+		}
+		optBool1 := option.None[bool]()
+		if optBoolVal1.IsSome() {
+			b, err := boolTryFromValue(optBoolVal1.Unwrap())
+			if err != nil {
+				return nil, err
+			}
+			optBool1 = option.Some(b)
+		}
+		return ValueFromString(f(s, n, optBool1, optBool2)), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -780,4 +835,43 @@ func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Val
 	}
 
 	return ValueFromSlice(rv), nil
+}
+
+func indentFilter(val string, width uint, indentFirstLine, indentBlankLines option.Option[bool]) string {
+	stripTrailingNewline := func(s *string) {
+		if strings.HasSuffix(*s, "\n") {
+			*s = (*s)[:len(*s)-1]
+		}
+		if strings.HasSuffix(*s, "\r") {
+			*s = (*s)[:len(*s)-1]
+		}
+	}
+
+	v := val
+	stripTrailingNewline(&v)
+	indentWith := strings.Repeat(" ", int(width))
+	var output strings.Builder
+	lines := strings.Split(v, "\n")
+	i := 0
+	if !indentFirstLine.UnwrapOr(false) && i < len(lines) {
+		line := lines[i]
+		i++
+		output.WriteString(line)
+		output.WriteRune('\n')
+	}
+	for ; i < len(lines); i++ {
+		line := lines[i]
+		if len(line) == 0 {
+			if indentBlankLines.UnwrapOr(false) {
+				output.WriteString(indentWith)
+			}
+		} else {
+			output.WriteString(indentWith)
+			output.WriteString(line)
+		}
+		output.WriteRune('\n')
+	}
+	rv := output.String()
+	stripTrailingNewline(&rv)
+	return rv
 }

@@ -602,6 +602,9 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "batchWithFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3, 0) }}`, context: internal.None, want: "[[1, 2, 3], [4, 5, 0]]"},
 			{name: "sliceNoFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3) }}`, context: internal.None, want: "[[1, 2], [3, 4], [5]]"},
 			{name: "sliceWithFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3, 0) }}`, context: internal.None, want: "[[1, 2], [3, 4], [5, 0]]"},
+			{name: "indentCase1", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2) }}`, context: internal.None, want: "line1\n    line2\n\n    line3"},
+			{name: "indentCase2", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, true) }}`, context: internal.None, want: "  line1\n    line2\n\n    line3"},
+			{name: "indentCase3", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, false, true) }}`, context: internal.None, want: "line1\n    line2\n  \n    line3"},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
