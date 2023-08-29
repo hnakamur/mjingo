@@ -447,6 +447,21 @@ func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) 
 	}
 }
 
+func filterFuncFromFilterWithStateValValVarArgValSliceErrRet(f func(*State, Value, ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		if len(values) == 0 {
+			return nil, NewError(MissingArgument, "")
+		}
+		val := values[0]
+		args := values[1:]
+		rv, err := f(state, val, args...)
+		if err != nil {
+			return nil, err
+		}
+		return ValueFromSlice(rv), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -1166,4 +1181,114 @@ func uniqueFilter(values []Value) Value {
 		}
 	}
 	return ValueFromSlice(rv)
+}
+
+// Applies a filter to a sequence of objects or looks up an attribute.
+//
+// This is useful when dealing with lists of objects but you are really
+// only interested in a certain value of it.
+//
+// The basic usage is mapping on an attribute. Given a list of users
+// you can for instance quickly select the username and join on it:
+//
+// ```jinja
+// {{ users|map(attribute='username')|join(', ') }}
+// ```
+//
+// You can specify a `default` value to use if an object in the list does
+// not have the given attribute.
+//
+// ```jinja
+// {{ users|map(attribute="username", default="Anonymous")|join(", ") }}
+// ```
+//
+// Alternatively you can have `map` invoke a filter by passing the name of the
+// filter and the arguments afterwards. A good example would be applying a
+// text conversion filter on a sequence:
+//
+// ```jinja
+// Users on this page: {{ titles|map('lower')|join(', ') }}
+// ```
+func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
+	rv := make([]Value, 0, val.Len().UnwrapOr(0))
+	kwargs, err := KwargsTryFromValue(args[len(args)-1])
+	if err != nil {
+		kwargs = NewKwargs(*NewIndexMap())
+	} else {
+		args = args[:len(args)-1]
+	}
+
+	if optAttr := kwargs.getValue("attribute"); optAttr.IsSome() {
+		attrVal := optAttr.Unwrap()
+		if len(args) != 0 {
+			return nil, NewError(TooManyArguments, "")
+		}
+		defVal := kwargs.getValue("default").UnwrapOr(Undefined)
+		iter, err := state.undefinedBehavior().TryIter(val)
+		if err != nil {
+			return nil, err
+		}
+		for {
+			optItem := iter.Next()
+			if optItem.IsNone() {
+				break
+			}
+			item := optItem.Unwrap()
+			var subVal Value
+			if optAttrStr := attrVal.AsStr(); optAttrStr.IsSome() {
+				path := optAttrStr.Unwrap()
+				subVal, err = valueGetPath(item, path)
+			} else {
+				subVal, err = getItem(item, attrVal)
+			}
+			if err != nil {
+				if defVal.IsUndefined() {
+					return nil, err
+				}
+				subVal = defVal.Clone()
+			} else if subVal.IsUndefined() {
+				subVal = defVal.Clone()
+			}
+			rv = append(rv, subVal)
+		}
+		return rv, nil
+	}
+
+	// filter mapping
+	if len(args) == 0 {
+		return nil, NewError(InvalidOperation, "filter name is required")
+	}
+	filterNameVal := args[0]
+	optFilterName := filterNameVal.AsStr()
+	if optFilterName.IsNone() {
+		return nil, NewError(InvalidOperation, "filter name must be a string")
+	}
+	filterName := optFilterName.Unwrap()
+	optFilter := state.env.getFilter(filterName)
+	if optFilter.IsNone() {
+		return nil, NewError(UnknownFilter, "")
+	}
+	filter := optFilter.Unwrap()
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		optItem := iter.Next()
+		if optItem.IsNone() {
+			break
+		}
+		item := optItem.Unwrap()
+		iter2, _ := ValueFromSlice([]Value{item.Clone()}).TryIter()
+		iter3, _ := ValueFromSlice(args[1:]).TryIter()
+		iter4 := iter2.Chain(iter3.Cloned())
+		newArgs := iter4.collect()
+		rvItem, err := filter(state, newArgs)
+		if err != nil {
+			return nil, err
+		}
+		rv = append(rv, rvItem)
+	}
+
+	return rv, nil
 }

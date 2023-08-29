@@ -620,6 +620,8 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "rejectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|rejectattr("is_active") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "is_active": false}]`},
 			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "id": 1}]`},
 			{name: "unique", source: `{% autoescape 'none' %}{{ ['foo', 'bar', 'foobar', 'foobar']|unique }}{% endautoescape %}`, context: internal.None, want: `["foo", "bar", "foobar"]`},
+			{name: "mapCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|map(attribute="name")|join(', ') }}{% endautoescape %}`, context: internal.None, want: `John, Paul`},
+			{name: "mapCase2", source: `{% autoescape 'none' %}{{ [-1, -2, 3, 4, -5]|map("abs") }}{% endautoescape %}`, context: internal.None, want: `[1, 2, 3, 4, 5]`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
