@@ -41,6 +41,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["reject"] = filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(rejectFilter)
 	rv["selectattr"] = filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(selectAttrFilter)
 	rv["rejectattr"] = filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(rejectAttrFilter)
+	rv["unique"] = filterFuncFromFilterWithValSliceArgValRet(uniqueFilter)
 
 	return rv
 }

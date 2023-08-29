@@ -379,6 +379,20 @@ func filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*St
 	}
 }
 
+func filterFuncFromFilterWithValSliceArgValRet(f func([]Value) Value) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		tpl, err := tuple1FromValues(state, values)
+		if err != nil {
+			return nil, err
+		}
+		iter, err := state.undefinedBehavior().TryIter(tpl.a)
+		if err != nil {
+			return nil, err
+		}
+		return f(iter.collect()), nil
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -1012,4 +1026,28 @@ func rejectFilter(state *State, val Value, testName option.Option[string], args 
 
 func rejectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.Some(attr), testName, args...)
+}
+
+// Returns a list of unique items from the given iterable.
+//
+// ```jinja
+// {{ ['foo', 'bar', 'foobar', 'foobar']|unique|list }}
+//
+//	-> ['foo', 'bar', 'foobar']
+//
+// ```
+//
+// The unique items are yielded in the same order as their first occurrence
+// in the iterable passed to the filter.  The filter will not detect
+// duplicate objects or arrays, only primitives such as strings or numbers.
+func uniqueFilter(values []Value) Value {
+	var rv []Value
+	seen := make(map[Value]struct{})
+	for _, item := range values {
+		if _, ok := seen[item]; !ok {
+			rv = append(rv, item)
+			seen[item] = struct{}{}
+		}
+	}
+	return ValueFromSlice(rv)
 }

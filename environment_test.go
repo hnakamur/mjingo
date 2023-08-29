@@ -611,6 +611,7 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "selectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "Paul", "id": 2}]`},
 			{name: "rejectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|rejectattr("is_active") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "is_active": false}]`},
 			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: internal.None, want: `[{"name": "John", "id": 1}]`},
+			{name: "unique", source: `{% autoescape 'none' %}{{ ['foo', 'bar', 'foobar', 'foobar']|unique }}{% endautoescape %}`, context: internal.None, want: `["foo", "bar", "foobar"]`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
