@@ -40,6 +40,10 @@ func ValueFromI64(n int64) Value {
 	return i64Value{n: n}
 }
 
+func ValueFromU64(n uint64) Value {
+	return u64Value{n: n}
+}
+
 func ValueFromF64(f float64) Value {
 	return f64Value{f: f}
 }

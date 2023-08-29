@@ -568,6 +568,10 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "dictsortCase2", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value") }}{% endautoescape %}`, context: internal.None, want: `[["b", 1], ["c", 3], ["a", 4]]`},
 			{name: "dictsortCase3", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value", reverse=true) }}{% endautoescape %}`, context: internal.None, want: `[["a", 4], ["c", 3], ["b", 1]]`},
 			{name: "dictsortCase4", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort(case_sensitive=true) }}{% endautoescape %}`, context: internal.None, want: `[["B", 1], ["a", 4], ["c", 3]]`},
+			{name: "sortCase1", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort }}{% endautoescape %}`, context: internal.None, want: `["a", "B", "c"]`},
+			{name: "sortCase2", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(reverse=true) }}{% endautoescape %}`, context: internal.None, want: `["c", "B", "a"]`},
+			{name: "sortCase3", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(case_sensitive=true) }}{% endautoescape %}`, context: internal.None, want: `["B", "a", "c"]`},
+			{name: "sortCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|sort(attribute="id", reverse=true) }}{% endautoescape %}`, context: internal.None, want: `[{"name": "Paul", "id": 2}, {"name": "John", "id": 1}]`},
 			{
 				name:    "items",
 				source:  `{% for key, value in {'a': 1, 'b': 2}|items %}{%if not loop.first %}, {% endif %}{{ key }}: {{ value }}{% endfor %}`,

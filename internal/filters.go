@@ -420,6 +420,33 @@ func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error
 	}
 }
 
+func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		var kwargs Kwargs
+		switch {
+		case len(values) <= 1:
+			tpl, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl.a
+			kwargs = NewKwargs(*NewIndexMap())
+		case len(values) >= 2:
+			tpl, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl.a
+			kwargs, err = KwargsTryFromValue(tpl.b)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return f(state, val, kwargs)
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -582,6 +609,68 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	for _, entry := range entries {
 		item := ValueFromSlice([]Value{entry.Key, entry.Value})
 		items = append(items, item)
+	}
+	return ValueFromSlice(items), nil
+}
+
+func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
+	iter, err := state.undefinedBehavior().TryIter(val)
+	if err != nil {
+		return nil, NewError(InvalidOperation, "cannot convert value to list").WithSource(err)
+	}
+	items := iter.collect()
+	caseSensitive := false
+	if optCaseSensitive := kwargs.getValue("case_sensitive"); optCaseSensitive.IsSome() {
+		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+			caseSensitive = true
+		}
+	}
+	sortFn := Cmp
+	if !caseSensitive {
+		sortFn = compareValuesCaseInsensitive
+	}
+
+	var attr string
+	if optAttr := kwargs.getValue("attribute"); optAttr.IsSome() {
+		if strVal, ok := optAttr.Unwrap().(stringValue); ok {
+			attr = strVal.str
+		}
+	}
+	reverse := false
+	if optReverse := kwargs.getValue("reverse"); optReverse.IsSome() {
+		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+			reverse = true
+		}
+	}
+
+	if attr != "" {
+		slices.SortFunc(items, func(a, b Value) int {
+			aVal, err := valueGetPath(a, attr)
+			if err != nil {
+				return 0
+			}
+			bVal, err := valueGetPath(b, attr)
+			if err != nil {
+				return 0
+			}
+			ret := sortFn(aVal, bVal)
+			if reverse {
+				return -ret
+			}
+			return ret
+		})
+	} else {
+		slices.SortFunc(items, func(a, b Value) int {
+			ret := sortFn(a, b)
+			if reverse {
+				return -ret
+			}
+			return ret
+		})
+	}
+
+	if err := kwargs.assertAllUsed(); err != nil {
+		return nil, err
 	}
 	return ValueFromSlice(items), nil
 }

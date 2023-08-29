@@ -1351,3 +1351,26 @@ func valueGetAttr(val Value, key string) (Value, error) {
 	}
 	return Undefined, nil
 }
+
+func valueGetItemByIndex(val Value, idx uint) (Value, error) {
+	return getItem(val, ValueFromU64(uint64(idx)))
+}
+
+func valueGetPath(val Value, path string) (Value, error) {
+	rv := val.Clone()
+	for _, part := range strings.Split(path, ".") {
+		num, err := strconv.ParseUint(part, 10, 64)
+		if err != nil {
+			rv, err = valueGetAttr(val, part)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			rv, err = valueGetItemByIndex(val, uint(num))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return rv, nil
+}
