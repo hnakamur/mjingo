@@ -393,6 +393,33 @@ func filterFuncFromFilterWithValSliceArgValRet(f func([]Value) Value) func(*Stat
 	}
 }
 
+func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		var val Value
+		var kwargs Kwargs
+		switch {
+		case len(values) <= 1:
+			tpl, err := tuple1FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl.a
+			kwargs = NewKwargs(*NewIndexMap())
+		case len(values) >= 2:
+			tpl, err := tuple2FromValues(state, values)
+			if err != nil {
+				return nil, err
+			}
+			val = tpl.a
+			kwargs, err = KwargsTryFromValue(tpl.b)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return f(val, kwargs)
+	}
+}
+
 func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
@@ -466,7 +493,7 @@ func length(val Value) (uint, error) {
 
 func compareValuesCaseInsensitive(a, b Value) int {
 	if optA, optB := a.AsStr(), b.AsStr(); optA.IsSome() && optB.IsSome() {
-		return strings.Compare(optA.Unwrap(), optB.Unwrap())
+		return strings.Compare(strings.ToLower(optA.Unwrap()), strings.ToLower(optB.Unwrap()))
 	}
 	return Cmp(a, b)
 }
@@ -528,7 +555,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 		}
 	}
 	sortFn := Cmp
-	if caseSensitive {
+	if !caseSensitive {
 		sortFn = compareValuesCaseInsensitive
 	}
 

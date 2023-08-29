@@ -17,7 +17,7 @@ func getDefaultBuiltinFilters() map[string]FilterFunc {
 	rv["replace"] = filterFuncFromFilterWithStateStrStrStrArgStrRet(replace)
 	rv["length"] = filterFuncFromFilterWithValArgUintErrRet(length)
 	rv["count"] = filterFuncFromFilterWithValArgUintErrRet(length)
-	// rv["dictsort"] = filterFuncFromWithValKwargsArgValErrRet(dictsort) TODO: implement
+	rv["dictsort"] = filterFuncFromWithValKwargsArgValErrRet(dictsort)
 	rv["items"] = filterFuncFromWithValArgValErrRet(items)
 	rv["reverse"] = filterFuncFromWithValArgValErrRet(reverse)
 	rv["trim"] = filterFuncFromFilterWithStrOptStrArgStrRet(trim)

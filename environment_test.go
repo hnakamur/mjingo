@@ -564,6 +564,10 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: internal.None, want: "Goodbye World"},
 			{name: "countSlice", source: `{{ ["foo", "bar"]|length }}`, context: internal.None, want: "2"},
 			{name: "countStr", source: `{{ "あいう"|length }}`, context: internal.None, want: "3"},
+			{name: "dictsortCase1", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort }}{% endautoescape %}`, context: internal.None, want: `[["a", 4], ["B", 1], ["c", 3]]`},
+			{name: "dictsortCase2", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value") }}{% endautoescape %}`, context: internal.None, want: `[["b", 1], ["c", 3], ["a", 4]]`},
+			{name: "dictsortCase3", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value", reverse=true) }}{% endautoescape %}`, context: internal.None, want: `[["a", 4], ["c", 3], ["b", 1]]`},
+			{name: "dictsortCase4", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort(case_sensitive=true) }}{% endautoescape %}`, context: internal.None, want: `[["B", 1], ["a", 4], ["c", 3]]`},
 			{
 				name:    "items",
 				source:  `{% for key, value in {'a': 1, 'b': 2}|items %}{%if not loop.first %}, {% endif %}{{ key }}: {{ value }}{% endfor %}`,

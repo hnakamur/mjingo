@@ -98,9 +98,23 @@ func NewKwargs(m IndexMap) Kwargs {
 	}
 }
 
+func KwargsTryFromValue(val Value) (Kwargs, error) {
+	switch v := val.(type) {
+	case undefinedValue:
+		return NewKwargs(*NewIndexMap()), nil
+	case mapValue:
+		if v.mapTyp == mapTypeKwargs {
+			return NewKwargs(*v.m.Clone()), nil
+		}
+	}
+	return Kwargs{}, NewError(InvalidOperation, "")
+}
+
 // Get a single argument from the kwargs but don't mark it as used.
 func (a *Kwargs) peekValue(key string) option.Option[Value] {
-	val, ok := a.Values.Get(KeyRefFromString(key))
+	val, ok := a.Values.Get(KeyRefFromValue(ValueFromString(key)))
+	// TODO: Use KeyRefFromString
+	// val, ok := a.Values.Get(KeyRefFromString(key))
 	if ok {
 		return option.Some(val)
 	}
