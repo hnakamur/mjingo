@@ -1349,9 +1349,7 @@ func valueGetAttr(val Value, key string) (Value, error) {
 	case undefinedValue:
 		return nil, NewError(UndefinedError, "")
 	case mapValue:
-		// TODO: Use KeyRefFromString
-		// if v2, ok := v.m.Get(KeyRefFromString(key)); ok {
-		if v2, ok := v.m.Get(KeyRefFromValue(ValueFromString(key))); ok {
+		if v2, ok := v.m.Get(KeyRefFromString(key)); ok {
 			return v2.Clone(), nil
 		}
 	case dynamicValue:

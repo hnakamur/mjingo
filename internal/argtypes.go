@@ -116,9 +116,7 @@ func KwargsTryFromValue(val Value) (Kwargs, error) {
 
 // Get a single argument from the kwargs but don't mark it as used.
 func (a *Kwargs) peekValue(key string) option.Option[Value] {
-	val, ok := a.Values.Get(KeyRefFromValue(ValueFromString(key)))
-	// TODO: Use KeyRefFromString
-	// val, ok := a.Values.Get(KeyRefFromString(key))
+	val, ok := a.Values.Get(KeyRefFromString(key))
 	if ok {
 		return option.Some(val)
 	}

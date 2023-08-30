@@ -592,9 +592,7 @@ loop:
 			locals := state.ctx.currentLocals()
 			module := NewIndexMapWithCapacity(uint(len(*locals)))
 			for key, value := range *locals {
-				module.Set(KeyRefFromString(key), value.Clone())
-				// TODO: Use KeyRefFromValue instead of KeyRefFromString
-				// module.Set(KeyRefFromValue(ValueFromString(key)), value.Clone())
+				module.Set(KeyRefFromValue(ValueFromString(key)), value.Clone())
 			}
 			stack.Push(ValueFromIndexMap(module))
 		case BuildMacroInstruction:

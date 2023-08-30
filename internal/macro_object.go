@@ -75,9 +75,7 @@ func (m *Macro) Call(state *State, args []Value) (Value, error) {
 		// option.AndThen(kwargs)
 		caller = option.Some[Value](Undefined)
 		if kwargs != nil {
-			// TODO: change to this and IndexMap as well
-			// if v, ok := kwargs.Get(KeyRefFromString("caller")); ok {
-			if v, ok := kwargs.Get(KeyRefFromValue(ValueFromString("caller"))); ok {
+			if v, ok := kwargs.Get(KeyRefFromString("caller")); ok {
 				caller = option.Some(v)
 			}
 		}
