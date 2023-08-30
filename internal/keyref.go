@@ -13,6 +13,7 @@ type KeyRef interface {
 	AsI64() option.Option[int64]
 	AsValue() Value
 	Hash(h hash.Hash)
+	Equal(other any) bool
 }
 
 func KeyRefFromValue(val Value) KeyRef {
@@ -47,6 +48,26 @@ func (k StrKeyRef) AsValue() Value   { return ValueFromString(k.str) }
 func (k valueKeyRef) Hash(h hash.Hash) { keyRefHash(k, h) }
 func (k StrKeyRef) Hash(h hash.Hash)   { keyRefHash(k, h) }
 
+func (k valueKeyRef) Equal(other any) bool { return keyRefEqualAny(k, other) }
+func (k StrKeyRef) Equal(other any) bool   { return keyRefEqualAny(k, other) }
+
+func keyRefEqualAny(a KeyRef, b any) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if bb, ok := b.(KeyRef); ok {
+		return keyRefEqual(a, bb)
+	}
+	return false
+}
+
+func keyRefEqual(a, b KeyRef) bool {
+	if optAStr, optBStr := a.AsStr(), b.AsStr(); optAStr.IsSome() && optBStr.IsSome() {
+		return optAStr.Unwrap() == optBStr.Unwrap()
+	}
+	return Cmp(a.AsValue(), b.AsValue()) == 0
+}
+
 func keyRefHash(k KeyRef, h hash.Hash) {
 	if optStr := k.AsStr(); optStr.IsSome() {
 		io.WriteString(h, optStr.Unwrap())
@@ -61,10 +82,3 @@ const (
 	keyRefTypeValue keyRefType = iota
 	keyRefTypeStr
 )
-
-func KeyRefEqual(a, b KeyRef) bool {
-	if optAStr, optBStr := a.AsStr(), b.AsStr(); optAStr.IsSome() && optBStr.IsSome() {
-		return optAStr.Unwrap() == optBStr.Unwrap()
-	}
-	return Cmp(a.AsValue(), b.AsValue()) == 0
-}

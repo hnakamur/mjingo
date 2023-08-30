@@ -40,6 +40,7 @@ type Value interface {
 	Call(state *State, args []Value) (Value, error)
 	CallMethod(state *State, name string, args []Value) (Value, error)
 	Hash(h hash.Hash)
+	Equal(other any) bool
 }
 
 type valueType int
@@ -1164,6 +1165,20 @@ func Equal(v, other Value) bool {
 	return false
 }
 
+func valueEqualAny(v Value, other any) bool {
+	if v == nil && other == nil {
+		return true
+	}
+	if o, ok := other.(Value); ok {
+		return valueEqual(v, o)
+	}
+	return false
+}
+
+func valueEqual(v, other Value) bool {
+	return Cmp(v, other) == 0
+}
+
 // Cmp returns
 // -1 if v is less than other,
 //
@@ -1461,3 +1476,18 @@ func valueHash(val Value, h hash.Hash) {
 func f64Hash(f float64, h hash.Hash) {
 	binary.Write(h, binary.BigEndian, math.Float64bits(f))
 }
+
+func (v undefinedValue) Equal(other any) bool { return valueEqualAny(v, other) }
+func (v BoolValue) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v u64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v i64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v f64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v noneValue) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v InvalidValue) Equal(other any) bool   { return valueEqualAny(v, other) }
+func (v u128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v i128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v stringValue) Equal(other any) bool    { return valueEqualAny(v, other) }
+func (v bytesValue) Equal(other any) bool     { return valueEqualAny(v, other) }
+func (v SeqValue) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v mapValue) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v dynamicValue) Equal(other any) bool   { return valueEqualAny(v, other) }
