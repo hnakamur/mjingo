@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -540,6 +539,11 @@ func compareValuesCaseInsensitive(a, b Value) int {
 	return Cmp(a, b)
 }
 
+type keyAndValue struct {
+	Key   Value
+	Value Value
+}
+
 // Dict sorting functionality.
 //
 // This filter works like `|items` but sorts the pairs by key first.
@@ -553,7 +557,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	if v.Kind() != ValueKindMap {
 		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
-	entries := make([]indexmap.Entry[Value, Value], 0, v.Len().UnwrapOr(0))
+	entries := make([]keyAndValue, 0, v.Len().UnwrapOr(0))
 	iter, err := v.TryIter()
 	if err != nil {
 		return nil, err
@@ -568,7 +572,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 		if err != nil {
 			val = Undefined
 		}
-		entries = append(entries, indexmap.Entry[Value, Value]{Key: key, Value: val})
+		entries = append(entries, keyAndValue{Key: key, Value: val})
 	}
 
 	byVal := false
@@ -585,9 +589,9 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 			}
 		}
 	}
-	getKeyOrVal := func(entry indexmap.Entry[Value, Value]) Value { return entry.Key }
+	getKeyOrVal := func(entry keyAndValue) Value { return entry.Key }
 	if byVal {
-		getKeyOrVal = func(entry indexmap.Entry[Value, Value]) Value { return entry.Value }
+		getKeyOrVal = func(entry keyAndValue) Value { return entry.Value }
 	}
 
 	caseSensitive := false
@@ -608,7 +612,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 		}
 	}
 
-	slices.SortFunc(entries, func(a, b indexmap.Entry[Value, Value]) int {
+	slices.SortFunc(entries, func(a, b keyAndValue) int {
 		ret := sortFn(getKeyOrVal(a), getKeyOrVal(b))
 		if reverse {
 			return -ret
