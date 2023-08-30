@@ -93,13 +93,9 @@ func (o Option[T]) Compare(other Option[T], cmpData func(a, b T) int) int {
 	return -1
 }
 
-type hasher interface {
-	Hash(h hash.Hash)
-}
-
-func (o Option[T]) Hash(h hash.Hash, f func(data T, h hash.Hash)) {
+func (o Option[T]) Hash(h hash.Hash, hashData func(data T, h hash.Hash)) {
 	if o.IsSome() {
-		f(o.data, h)
+		hashData(o.data, h)
 	}
 	h.Write([]byte{0})
 }
