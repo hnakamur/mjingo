@@ -562,12 +562,8 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	for {
-		optKey := iter.Next()
-		if optKey.IsNone() {
-			break
-		}
-		key := optKey.Unwrap()
+	var key Value
+	for iter.Next().UnwrapTo(&key) {
 		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
@@ -722,12 +718,8 @@ func items(v Value) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	for {
-		optKey := iter.Next()
-		if optKey.IsNone() {
-			break
-		}
-		key := optKey.Unwrap()
+	var key Value
+	for iter.Next().UnwrapTo(&key) {
 		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
@@ -978,12 +970,8 @@ func batchFilter(state *State, val Value, count uint, fillWith option.Option[Val
 	if err != nil {
 		return nil, err
 	}
-	for {
-		optItem := iter.Next()
-		if optItem.IsNone() {
-			break
-		}
-		item := optItem.Unwrap()
+	var item Value
+	for iter.Next().UnwrapTo(&item) {
 		if uint(len(tmp)) == count {
 			rv = append(rv, ValueFromSlice(tmp))
 			tmp = make([]Value, 0, count)
@@ -1112,12 +1100,8 @@ func selectOrReject(state *State, invert bool, val Value, attr, testName option.
 	if err != nil {
 		return nil, err
 	}
-	for {
-		optItem := iter.Next()
-		if optItem.IsNone() {
-			break
-		}
-		item := optItem.Unwrap()
+	var item Value
+	for iter.Next().UnwrapTo(&item) {
 		var testVal Value
 		if attr.IsSome() {
 			testVal, err = valueGetAttr(item, attr.Unwrap())
@@ -1232,12 +1216,8 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		for {
-			optItem := iter.Next()
-			if optItem.IsNone() {
-				break
-			}
-			item := optItem.Unwrap()
+		var item Value
+		for iter.Next().UnwrapTo(&item) {
 			var subVal Value
 			if optAttrStr := attrVal.AsStr(); optAttrStr.IsSome() {
 				path := optAttrStr.Unwrap()
@@ -1277,12 +1257,8 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	for {
-		optItem := iter.Next()
-		if optItem.IsNone() {
-			break
-		}
-		item := optItem.Unwrap()
+	var item Value
+	for iter.Next().UnwrapTo(&item) {
 		iter2, _ := ValueFromSlice([]Value{item.Clone()}).TryIter()
 		iter3, _ := ValueFromSlice(args[1:]).TryIter()
 		iter4 := iter2.Chain(iter3.Cloned())
