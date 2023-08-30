@@ -1,5 +1,7 @@
 package option
 
+import "hash"
+
 type Option[T any] struct {
 	valid bool
 	data  T
@@ -26,6 +28,14 @@ func (o Option[T]) IsSome() bool {
 
 func (o Option[T]) IsNone() bool {
 	return !o.valid
+}
+
+func (o Option[T]) UnwrapTo(dest *T) bool {
+	if o.IsSome() {
+		*dest = o.Unwrap()
+		return true
+	}
+	return false
 }
 
 func (o Option[T]) UnwrapOr(defaultVal T) T {
@@ -81,4 +91,15 @@ func (o Option[T]) Compare(other Option[T], cmpData func(a, b T) int) int {
 		return 1
 	}
 	return -1
+}
+
+type hasher interface {
+	Hash(h hash.Hash)
+}
+
+func (o Option[T]) Hash(h hash.Hash, f func(data T, h hash.Hash)) {
+	if o.IsSome() {
+		f(o.data, h)
+	}
+	h.Write([]byte{0})
 }

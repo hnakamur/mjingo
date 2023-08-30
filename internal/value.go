@@ -3,7 +3,10 @@ package internal
 import (
 	"bytes"
 	"cmp"
+	"encoding/binary"
 	"fmt"
+	"hash"
+	"io"
 	"math"
 	"math/big"
 	"strconv"
@@ -36,6 +39,7 @@ type Value interface {
 	Len() option.Option[uint]
 	Call(state *State, args []Value) (Value, error)
 	CallMethod(state *State, name string, args []Value) (Value, error)
+	Hash(h hash.Hash)
 }
 
 type valueType int
@@ -840,6 +844,14 @@ type Iterator struct {
 	len       uint
 }
 
+func IteratorFromSeqObject(s SeqObject) *Iterator {
+	return &Iterator{iterState: &dynSeqValueIteratorState{obj: s}}
+}
+
+func IteratorFromStrings(items []string) *Iterator {
+	return &Iterator{iterState: &stringsValueIteratorState{items: items}}
+}
+
 func (i Iterator) Chain(other Iterator) Iterator {
 	return Iterator{
 		iterState: &chainedValueIteratorState{
@@ -1373,4 +1385,81 @@ func valueGetPath(val Value, path string) (Value, error) {
 		}
 	}
 	return rv, nil
+}
+
+func (v undefinedValue) Hash(h hash.Hash) { valueHash(v, h) }
+func (v BoolValue) Hash(h hash.Hash)      { valueHash(v, h) }
+func (v u64Value) Hash(h hash.Hash)       { valueHash(v, h) }
+func (v i64Value) Hash(h hash.Hash)       { valueHash(v, h) }
+func (v f64Value) Hash(h hash.Hash)       { valueHash(v, h) }
+func (v noneValue) Hash(h hash.Hash)      { valueHash(v, h) }
+func (v InvalidValue) Hash(h hash.Hash)   { valueHash(v, h) }
+func (v u128Value) Hash(h hash.Hash)      { valueHash(v, h) }
+func (v i128Value) Hash(h hash.Hash)      { valueHash(v, h) }
+func (v stringValue) Hash(h hash.Hash)    { valueHash(v, h) }
+func (v bytesValue) Hash(h hash.Hash)     { valueHash(v, h) }
+func (v SeqValue) Hash(h hash.Hash)       { valueHash(v, h) }
+func (v mapValue) Hash(h hash.Hash)       { valueHash(v, h) }
+func (v dynamicValue) Hash(h hash.Hash)   { valueHash(v, h) }
+
+func valueHash(val Value, h hash.Hash) {
+	switch v := val.(type) {
+	case noneValue, undefinedValue:
+		h.Write([]byte{0})
+	case stringValue:
+		io.WriteString(h, v.str)
+	case BoolValue:
+		b := byte(8)
+		if v.B {
+			b = byte(1)
+		}
+		h.Write([]byte{b})
+	case InvalidValue:
+		io.WriteString(h, v.Detail)
+	case bytesValue:
+		h.Write(v.b)
+	case SeqValue:
+		binary.Write(h, binary.BigEndian, uint64(len(v.items)))
+		for _, item := range v.items {
+			valueHash(item, h)
+		}
+	case mapValue:
+		l := v.m.Len()
+		for i := uint(0); i < l; i++ {
+			entry, _ := v.m.EntryAt(i)
+			keyRefHash(entry.Key, h)
+			valueHash(entry.Value, h)
+		}
+	case dynamicValue:
+		switch v.dy.Kind() {
+		case ObjectKindPlain:
+			h.Write([]byte{0})
+		case ObjectKindSeq:
+			var item Value
+			for iter := IteratorFromSeqObject(v.dy.(SeqObject)); iter.Next().UnwrapTo(&item); {
+				valueHash(item, h)
+			}
+		case ObjectKindStruct:
+			structObj := v.dy.(StructObject)
+			var fields []string
+			if !structObj.StaticFields().UnwrapTo(&fields) {
+				fields = structObj.Fields()
+			}
+			for _, field := range fields {
+				io.WriteString(h, field)
+				structObj.GetField(field).Hash(h, valueHash)
+			}
+		}
+	case u64Value, i64Value, f64Value, u128Value, i128Value:
+		n, err := val.Clone().TryToI64()
+		if err != nil {
+			val.AsF64().Hash(h, f64Hash)
+		} else {
+			binary.Write(h, binary.BigEndian, n)
+		}
+	}
+}
+
+func f64Hash(f float64, h hash.Hash) {
+	binary.Write(h, binary.BigEndian, math.Float64bits(f))
 }

@@ -1,12 +1,18 @@
 package internal
 
-import "github.com/hnakamur/mjingo/internal/datast/option"
+import (
+	"hash"
+	"io"
+
+	"github.com/hnakamur/mjingo/internal/datast/option"
+)
 
 type KeyRef interface {
 	typ() keyRefType
 	AsStr() option.Option[string]
 	AsI64() option.Option[int64]
 	AsValue() Value
+	Hash(h hash.Hash)
 }
 
 func KeyRefFromValue(val Value) KeyRef {
@@ -38,9 +44,27 @@ func (k StrKeyRef) AsI64() option.Option[int64] { return option.None[int64]() }
 func (k valueKeyRef) AsValue() Value { return k.val.Clone() }
 func (k StrKeyRef) AsValue() Value   { return ValueFromString(k.str) }
 
+func (k valueKeyRef) Hash(h hash.Hash) { keyRefHash(k, h) }
+func (k StrKeyRef) Hash(h hash.Hash)   { keyRefHash(k, h) }
+
+func keyRefHash(k KeyRef, h hash.Hash) {
+	if optStr := k.AsStr(); optStr.IsSome() {
+		io.WriteString(h, optStr.Unwrap())
+	} else {
+		valueHash(k.AsValue(), h)
+	}
+}
+
 type keyRefType uint
 
 const (
 	keyRefTypeValue keyRefType = iota
 	keyRefTypeStr
 )
+
+func KeyRefEqual(a, b KeyRef) bool {
+	if optAStr, optBStr := a.AsStr(), b.AsStr(); optAStr.IsSome() && optBStr.IsSome() {
+		return optAStr.Unwrap() == optBStr.Unwrap()
+	}
+	return Cmp(a.AsValue(), b.AsValue()) == 0
+}
