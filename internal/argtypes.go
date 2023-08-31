@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -40,8 +41,16 @@ func ValueFromI64(n int64) Value {
 	return i64Value{n: n}
 }
 
+func ValueFromI128(n big.Int) Value {
+	return i128Value{n: n}
+}
+
 func ValueFromU64(n uint64) Value {
 	return u64Value{n: n}
+}
+
+func ValueFromU128(n big.Int) Value {
+	return u128Value{n: n}
 }
 
 func ValueFromF64(f float64) Value {

@@ -377,7 +377,7 @@ func coerce(a, b Value) coerceResult {
 	}
 }
 
-var i128Min, i128Max, twoPow128 big.Int
+var i128Min, i128Max, u128Max, twoPow128 big.Int
 
 func getI128Min() *big.Int {
 	return sync.OnceValue(func() *big.Int {
@@ -397,6 +397,15 @@ func getI128Max() *big.Int {
 	})()
 }
 
+func getU128Max() *big.Int {
+	return sync.OnceValue(func() *big.Int {
+		if _, ok := u128Max.SetString("340282366920938463463374607431768211455", 10); !ok {
+			panic("set u128Max")
+		}
+		return &u128Max
+	})()
+}
+
 func getTwoPow128() *big.Int {
 	return sync.OnceValue(func() *big.Int {
 		if _, ok := twoPow128.SetString("340282366920938463463374607431768211456", 10); !ok {
@@ -408,6 +417,11 @@ func getTwoPow128() *big.Int {
 
 func isI128(n *big.Int) bool {
 	return n.Cmp(getI128Min()) >= 0 && n.Cmp(getI128Max()) <= 0
+}
+
+func isU128(n *big.Int) bool {
+	var zero big.Int
+	return n.Cmp(&zero) >= 0 && n.Cmp(getI128Max()) <= 0
 }
 
 func i128WrappingAdd(ret, lhs, rhs *big.Int) *big.Int {

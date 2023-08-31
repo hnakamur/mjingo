@@ -916,3 +916,53 @@ func TestMultiTemplates(t *testing.T) {
 		}})
 	})
 }
+
+func TestSingleTemplWithGoVal(t *testing.T) {
+	type testCase struct {
+		name    string
+		source  string
+		context any
+		want    string
+	}
+
+	runTests := func(t *testing.T, testCases []testCase) {
+		for i, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				env := NewEnvironment()
+				const templateName = "test.html"
+				err := env.AddTemplate(templateName, tc.source)
+				if err != nil {
+					t.Fatal(err)
+				}
+				tpl, err := env.GetTemplate(templateName)
+				if err != nil {
+					t.Fatal(err)
+				}
+				context, err := internal.ValueTryFromGoValue(tc.context)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := tpl.Render(context)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got != tc.want {
+					t.Errorf("result mismatch, i=%d, source=%s,\n got=%q,\nwant=%q", i, tc.source, got, tc.want)
+				}
+			})
+		}
+	}
+
+	t.Run("expression", func(t *testing.T) {
+		runTests(t, []testCase{
+			{
+				name:   "var",
+				source: "Hello {{ name }}",
+				context: map[string]interface{}{
+					"name": "World",
+				},
+				want: "Hello World",
+			},
+		})
+	})
+}
