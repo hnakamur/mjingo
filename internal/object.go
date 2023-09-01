@@ -61,3 +61,11 @@ func FieldCount(s StructObject) uint {
 	}
 	return uint(len(s.Fields()))
 }
+
+func StaticOrDynamicFields(s StructObject) []string {
+	optFields := s.StaticFields()
+	if optFields.IsSome() {
+		return optFields.Unwrap()
+	}
+	return s.Fields()
+}
