@@ -12,16 +12,14 @@ func TestValueFromGoValue(t *testing.T) {
 		B map[string]int
 	}
 	f := foo{A: "hello", B: map[string]int{"a": 1, "b": 2}}
-	v, err := ValueTryFromGoValue(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+	v := ValueFromGoValue(f)
 	log.Printf("v.typ=%s, kind=%s", v.typ(), v.Kind())
-	log.Printf("v=%+v", v)
+	log.Printf("v=%s", v)
 	dyVal := v.(dynamicValue)
 	log.Printf("dyVal.dy type=%T", dyVal.dy)
 	stObj := dyVal.dy.(StructObject)
 	log.Printf("a=%+v", stObj.GetField("A"))
+	log.Printf("b=%+v", stObj.GetField("B"))
 }
 
 func TestReflection(t *testing.T) {

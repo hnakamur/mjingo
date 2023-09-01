@@ -93,118 +93,97 @@ func serializeNone() (Value, error) {
 	return None, nil
 }
 
-func ValueTryFromGoValue(val any) (Value, error) {
-	log.Printf("ValueTryFromGoValue val=%+v %T", val, val)
+func ValueFromGoValue(val any) Value {
+	return valueFromGoValueHelper(val, 0)
+}
+
+const maxNestLevelForValueFromGoValue = 100
+
+func valueFromGoValueHelper(val any, level uint) Value {
+	log.Printf("ValueTryFromGoValue val=%+v %T, level=%d", val, val, level)
+	if level >= maxNestLevelForValueFromGoValue {
+		return InvalidValue{Detail: "nested level too deep"}
+	}
 	switch v := val.(type) {
 	case bool:
-		return serializeBool(v)
+		return mapErrToInvalidValue(serializeBool(v))
 	case uint8:
-		return serializeU8(v)
+		return mapErrToInvalidValue(serializeU8(v))
 	case uint16:
-		return serializeU16(v)
+		return mapErrToInvalidValue(serializeU16(v))
 	case uint32:
-		return serializeU32(v)
+		return mapErrToInvalidValue(serializeU32(v))
 	case uint64:
-		return serializeU64(v)
+		return mapErrToInvalidValue(serializeU64(v))
 	case uint:
-		return serializeUint(v)
+		return mapErrToInvalidValue(serializeUint(v))
 	case int8:
-		return serializeI8(v)
+		return mapErrToInvalidValue(serializeI8(v))
 	case int16:
-		return serializeI16(v)
+		return mapErrToInvalidValue(serializeI16(v))
 	case int32:
-		return serializeI32(v)
+		return mapErrToInvalidValue(serializeI32(v))
 	case int64:
-		return serializeI64(v)
+		return mapErrToInvalidValue(serializeI64(v))
 	case int:
-		return serializeInt(v)
+		return mapErrToInvalidValue(serializeInt(v))
 	case json.Number:
 		n, err := v.Int64()
 		if err != nil {
 			f, err := v.Float64()
 			if err != nil {
-				return nil, errors.New("invalid json.Number")
+				return mapErrToInvalidValue(nil, errors.New("invalid json.Number"))
 			}
-			return serializeF64(f)
+			return mapErrToInvalidValue(serializeF64(f))
 		}
-		return serializeI64(n)
+		return mapErrToInvalidValue(serializeI64(n))
 	case big.Int:
 		if isI128(&v) {
-			return serializeI128(v)
+			return mapErrToInvalidValue(serializeI128(v))
 		}
-		return serializeU128(v)
+		return mapErrToInvalidValue(serializeU128(v))
 	case float32:
-		return serializeF32(v)
+		return mapErrToInvalidValue(serializeF32(v))
 	case float64:
-		return serializeF64(v)
+		return mapErrToInvalidValue(serializeF64(v))
 	case string:
-		return serializeStr(v)
+		return mapErrToInvalidValue(serializeStr(v))
 	case nil:
-		return serializeNone()
-	case []any:
-		items := make([]Value, len(v))
-		for i := range v {
-			item, err := ValueTryFromGoValue(v[i])
-			if err != nil {
-				return nil, err
-			}
-			items[i] = item
-		}
-		return ValueFromSlice(items), nil
-	case map[any]any:
-		m := NewIndexMap()
-		for goKey, goVal := range v {
-			key, err := ValueTryFromGoValue(goKey)
-			if err != nil {
-				return nil, err
-			}
-			val2, err := ValueTryFromGoValue(goVal)
-			if err != nil {
-				return nil, err
-			}
-			m.Set(KeyRefFromValue(key), val2)
-		}
-		return ValueFromIndexMap(m), nil
-	case map[string]any:
-		m := NewIndexMap()
-		for goKey, goVal := range v {
-			key, err := ValueTryFromGoValue(goKey)
-			if err != nil {
-				return nil, err
-			}
-			val2, err := ValueTryFromGoValue(goVal)
-			if err != nil {
-				return nil, err
-			}
-			m.Set(KeyRefFromValue(key), val2)
-		}
-		return ValueFromIndexMap(m), nil
+		return mapErrToInvalidValue(serializeNone())
 	default:
 		ty := reflect.TypeOf(v)
 		k := ty.Kind()
 		switch k {
 		case reflect.Struct:
-			return ValueFromObject(StructObjectWithReflect(reflect.ValueOf(v))), nil
+			return ValueFromObject(structObjectWithReflect(reflect.ValueOf(v), level))
 		case reflect.Array, reflect.Slice:
-			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v))), nil
+			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), level))
 		case reflect.Map:
-			return valueTryFromGoMapReflect(reflect.ValueOf(v))
+			return valueFromGoMapReflect(reflect.ValueOf(v), level)
 		case reflect.Ptr:
-			return ValueTryFromGoValue(reflect.ValueOf(v).Elem().Interface())
+			return valueFromGoValueHelper(reflect.ValueOf(v).Elem().Interface(), level+1)
 		}
-		return nil, fmt.Errorf("unsupported type: %T, ty=%+v, kind=%s", val, ty, k)
+		return mapErrToInvalidValue(nil, fmt.Errorf("unsupported type: %T, ty=%+v, kind=%s", val, ty, k))
 	}
 }
 
+func mapErrToInvalidValue(val Value, err error) Value {
+	if err != nil {
+		return InvalidValue{Detail: err.Error()}
+	}
+	return val
+}
+
 type reflectStructObject struct {
-	val reflect.Value
+	val   reflect.Value
+	level uint
 }
 
 var _ = (Object)(reflectStructObject{})
 var _ = (StructObject)(reflectStructObject{})
 
-func StructObjectWithReflect(val reflect.Value) reflectStructObject {
-	return reflectStructObject{val: val}
+func structObjectWithReflect(val reflect.Value, level uint) reflectStructObject {
+	return reflectStructObject{val: val, level: level}
 }
 
 func (reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
@@ -216,10 +195,7 @@ func (o reflectStructObject) GetField(name string) option.Option[Value] {
 		return option.None[Value]()
 	}
 	fv := o.val.FieldByIndex(f.Index)
-	val, err := ValueTryFromGoValue(fv.Interface())
-	if err != nil {
-		val = InvalidValue{Detail: err.Error()}
-	}
+	val := valueFromGoValueHelper(fv.Interface(), o.level+1)
 	return option.Some(val)
 }
 
@@ -239,14 +215,15 @@ func (o reflectStructObject) StaticFields() option.Option[[]string] {
 func (o reflectStructObject) Fields() []string { return nil }
 
 type reflectSeqObject struct {
-	val reflect.Value
+	val   reflect.Value
+	level uint
 }
 
 var _ = (Object)(reflectSeqObject{})
 var _ = (SeqObject)(reflectSeqObject{})
 
-func sqeObjectFromGoReflectSeq(val reflect.Value) reflectStructObject {
-	return reflectStructObject{val: val}
+func sqeObjectFromGoReflectSeq(val reflect.Value, level uint) reflectSeqObject {
+	return reflectSeqObject{val: val, level: level}
 }
 
 func (reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
@@ -255,10 +232,7 @@ func (o reflectSeqObject) GetItem(idx uint) option.Option[Value] {
 	if idx >= o.ItemCount() {
 		return option.None[Value]()
 	}
-	val, err := ValueTryFromGoValue(o.val.Index(int(idx)))
-	if err != nil {
-		val = InvalidValue{Detail: err.Error()}
-	}
+	val := valueFromGoValueHelper(o.val.Index(int(idx)), o.level+1)
 	return option.Some(val)
 }
 
@@ -266,19 +240,13 @@ func (o reflectSeqObject) ItemCount() uint {
 	return uint(o.val.Len())
 }
 
-func valueTryFromGoMapReflect(val reflect.Value) (Value, error) {
+func valueFromGoMapReflect(val reflect.Value, level uint) Value {
 	m := NewIndexMap()
 	iter := val.MapRange()
 	for iter.Next() {
-		key, err := ValueTryFromGoValue(iter.Key())
-		if err != nil {
-			return nil, err
-		}
-		v, err := ValueTryFromGoValue(iter.Value())
-		if err != nil {
-			return nil, err
-		}
+		key := valueFromGoValueHelper(iter.Key(), level+1)
+		v := valueFromGoValueHelper(iter.Value(), level+1)
 		m.Set(KeyRefFromValue(key), v)
 	}
-	return ValueFromIndexMap(m), nil
+	return ValueFromIndexMap(m)
 }
