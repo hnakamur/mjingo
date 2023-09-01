@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
@@ -93,14 +93,29 @@ func serializeNone() (Value, error) {
 	return None, nil
 }
 
-func ValueFromGoValue(val any) Value {
-	return valueFromGoValueHelper(val, 0)
+type ValueFromGoValueOption func(*valueFromGoValueConfig)
+
+type valueFromGoValueConfig struct {
+	structTag string
+}
+
+func WithStructTag(tag string) ValueFromGoValueOption {
+	return func(cfg *valueFromGoValueConfig) {
+		cfg.structTag = tag
+	}
+}
+
+func ValueFromGoValue(val any, opts ...ValueFromGoValueOption) Value {
+	var config valueFromGoValueConfig
+	for _, opt := range opts {
+		opt(&config)
+	}
+	return valueFromGoValueHelper(val, &config, 0)
 }
 
 const maxNestLevelForValueFromGoValue = 100
 
-func valueFromGoValueHelper(val any, level uint) Value {
-	log.Printf("ValueTryFromGoValue val=%+v %T, level=%d", val, val, level)
+func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint) Value {
 	if level >= maxNestLevelForValueFromGoValue {
 		return InvalidValue{Detail: "nested level too deep"}
 	}
@@ -155,13 +170,13 @@ func valueFromGoValueHelper(val any, level uint) Value {
 		k := ty.Kind()
 		switch k {
 		case reflect.Struct:
-			return ValueFromObject(structObjectWithReflect(reflect.ValueOf(v), level))
+			return ValueFromObject(structObjectWithReflect(reflect.ValueOf(v), config, level))
 		case reflect.Array, reflect.Slice:
-			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), level))
+			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
 		case reflect.Map:
-			return valueFromGoMapReflect(reflect.ValueOf(v), level)
+			return valueFromGoMapReflect(reflect.ValueOf(v), config, level)
 		case reflect.Ptr:
-			return valueFromGoValueHelper(reflect.ValueOf(v).Elem().Interface(), level+1)
+			return valueFromGoValueHelper(reflect.ValueOf(v).Elem().Interface(), config, level+1)
 		}
 		return mapErrToInvalidValue(nil, fmt.Errorf("unsupported type: %T, ty=%+v, kind=%s", val, ty, k))
 	}
@@ -174,79 +189,103 @@ func mapErrToInvalidValue(val Value, err error) Value {
 	return val
 }
 
-type reflectStructObject struct {
-	val   reflect.Value
-	level uint
-}
-
-var _ = (Object)(reflectStructObject{})
-var _ = (StructObject)(reflectStructObject{})
-
-func structObjectWithReflect(val reflect.Value, level uint) reflectStructObject {
-	return reflectStructObject{val: val, level: level}
-}
-
-func (reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
-
-func (o reflectStructObject) GetField(name string) option.Option[Value] {
-	ty := o.val.Type()
-	f, ok := ty.FieldByName(name)
-	if !ok {
-		return option.None[Value]()
-	}
-	fv := o.val.FieldByIndex(f.Index)
-	val := valueFromGoValueHelper(fv.Interface(), o.level+1)
-	return option.Some(val)
-}
-
-func (o reflectStructObject) StaticFields() option.Option[[]string] {
-	ty := o.val.Type()
-	n := ty.NumField()
-	var fields []string
-	for i := 0; i < n; i++ {
-		f := ty.Field(i)
-		if f.IsExported() {
-			fields = append(fields, f.Name)
-		}
-	}
-	return option.Some(fields)
-}
-
-func (o reflectStructObject) Fields() []string { return nil }
-
-type reflectSeqObject struct {
-	val   reflect.Value
-	level uint
-}
-
-var _ = (Object)(reflectSeqObject{})
-var _ = (SeqObject)(reflectSeqObject{})
-
-func sqeObjectFromGoReflectSeq(val reflect.Value, level uint) reflectSeqObject {
-	return reflectSeqObject{val: val, level: level}
-}
-
-func (reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
-
-func (o reflectSeqObject) GetItem(idx uint) option.Option[Value] {
-	if idx >= o.ItemCount() {
-		return option.None[Value]()
-	}
-	val := valueFromGoValueHelper(o.val.Index(int(idx)), o.level+1)
-	return option.Some(val)
-}
-
-func (o reflectSeqObject) ItemCount() uint {
-	return uint(o.val.Len())
-}
-
-func valueFromGoMapReflect(val reflect.Value, level uint) Value {
+func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
 	m := NewIndexMap()
 	iter := val.MapRange()
 	for iter.Next() {
-		key := valueFromGoValueHelper(iter.Key(), level+1)
-		v := valueFromGoValueHelper(iter.Value(), level+1)
+		key := valueFromGoValueHelper(iter.Key().Interface(), config, level+1)
+		v := valueFromGoValueHelper(iter.Value().Interface(), config, level+1)
 		m.Set(KeyRefFromValue(key), v)
 	}
 	return ValueFromIndexMap(m)
+}
+
+type reflectStructObject struct {
+	val            reflect.Value
+	config         *valueFromGoValueConfig
+	level          uint
+	fieldNames     []string
+	nameToFieldIdx map[string]int
+}
+
+var _ = (Object)((*reflectStructObject)(nil))
+var _ = (StructObject)((*reflectStructObject)(nil))
+
+func structObjectWithReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectStructObject {
+	return &reflectStructObject{val: val, config: config, level: level}
+}
+
+func (*reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
+
+func (o *reflectStructObject) GetField(name string) option.Option[Value] {
+	o.collectFieldNames()
+	idx, ok := o.nameToFieldIdx[name]
+	if !ok {
+		return option.None[Value]()
+	}
+	fv := o.val.Field(idx)
+	val := valueFromGoValueHelper(fv.Interface(), o.config, o.level+1)
+	return option.Some(val)
+}
+
+func (o *reflectStructObject) StaticFields() option.Option[[]string] {
+	o.collectFieldNames()
+	return option.Some(o.fieldNames)
+}
+
+func (o *reflectStructObject) collectFieldNames() {
+	if o.nameToFieldIdx == nil {
+		o.nameToFieldIdx = make(map[string]int)
+		ty := o.val.Type()
+		n := ty.NumField()
+		for i := 0; i < n; i++ {
+			f := ty.Field(i)
+			if f.IsExported() {
+				name := o.keyNameForField(f)
+				o.fieldNames = append(o.fieldNames, name)
+				o.nameToFieldIdx[name] = i
+			}
+		}
+	}
+}
+
+func (o *reflectStructObject) keyNameForField(f reflect.StructField) string {
+	if o.config.structTag != "" {
+		if tagVal, ok := f.Tag.Lookup(o.config.structTag); ok {
+			nameInTag, _, _ := strings.Cut(tagVal, ",")
+			if nameInTag != "" {
+				return nameInTag
+			}
+		}
+	}
+	return f.Name
+}
+
+func (o *reflectStructObject) Fields() []string { return nil }
+
+type reflectSeqObject struct {
+	val    reflect.Value
+	config *valueFromGoValueConfig
+	level  uint
+}
+
+var _ = (Object)((*reflectSeqObject)(nil))
+var _ = (SeqObject)((*reflectSeqObject)(nil))
+
+func sqeObjectFromGoReflectSeq(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectSeqObject {
+	return &reflectSeqObject{val: val, config: config, level: level}
+}
+
+func (*reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
+
+func (o *reflectSeqObject) GetItem(idx uint) option.Option[Value] {
+	if idx >= o.ItemCount() {
+		return option.None[Value]()
+	}
+	val := valueFromGoValueHelper(o.val.Index(int(idx)).Interface(), o.config, o.level+1)
+	return option.Some(val)
+}
+
+func (o *reflectSeqObject) ItemCount() uint {
+	return uint(o.val.Len())
 }

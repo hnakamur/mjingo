@@ -938,10 +938,7 @@ func TestSingleTemplWithGoVal(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				context, err := internal.ValueTryFromGoValue(tc.context)
-				if err != nil {
-					t.Fatal(err)
-				}
+				context := internal.ValueFromGoValue(tc.context, internal.WithStructTag("json"))
 				got, err := tpl.Render(context)
 				if err != nil {
 					t.Fatal(err)
@@ -954,14 +951,47 @@ func TestSingleTemplWithGoVal(t *testing.T) {
 	}
 
 	t.Run("expression", func(t *testing.T) {
+		type user struct {
+			Name string `json:"name"`
+			ID   *int   `json:"id"`
+		}
+		type users struct {
+			Users []user `json:"users"`
+		}
+
+		intPtr := func(n int) *int {
+			return &n
+		}
+
 		runTests(t, []testCase{
 			{
 				name:   "var",
 				source: "Hello {{ name }}",
-				context: map[string]interface{}{
+				context: map[string]any{
 					"name": "World",
 				},
 				want: "Hello World",
+			},
+			{
+				name:   "loopIndex",
+				source: "{% for user in users %}{{ loop.index }} {{ user }}\n{% endfor %}",
+				context: struct {
+					Users []string `json:"users"`
+				}{
+					Users: []string{"John", "Paul", "George", "Ringo"},
+				},
+				want: "1 John\n2 Paul\n3 George\n4 Ringo\n",
+			},
+			{
+				name:   "selectattrCase2",
+				source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`,
+				context: users{
+					Users: []user{
+						{Name: "John", ID: intPtr(1)},
+						{Name: "Paul", ID: intPtr(2)},
+					},
+				},
+				want: `[{"name": "Paul", "id": 2}]`,
 			},
 		})
 	})
