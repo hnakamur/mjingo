@@ -92,5 +92,6 @@ func getDefaultBuiltinTests() map[string]TestFunc {
 func getDefaultGlobals() map[string]Value {
 	rv := make(map[string]Value)
 	rv["range"] = ValueFromFunc(funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(fnRange))
+	rv["dict"] = ValueFromFunc(funcFuncFromValArgValErrRet(dictFunc))
 	return rv
 }

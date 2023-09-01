@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"errors"
+
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -76,6 +78,21 @@ func funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper,
 	}
 }
 
+func funcFuncFromValArgValErrRet(f func(Value) (Value, error)) func(*State, []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
+		tpl1, err := tuple1FromValues(state, values)
+		if err != nil {
+			var err2 *Error
+			if errors.As(err, &err2) && err2.typ == MissingArgument {
+				tpl1.a = Undefined
+			} else {
+				return nil, err
+			}
+		}
+		return f(tpl1.a)
+	}
+}
+
 func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) {
 	var iUpper uint32
 	if upper.IsSome() {
@@ -103,4 +120,14 @@ func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) 
 		rv = append(rv, i)
 	}
 	return rv, nil
+}
+
+func dictFunc(val Value) (Value, error) {
+	switch v := val.(type) {
+	case undefinedValue:
+		return ValueFromIndexMap(NewIndexMap()), nil
+	case mapValue:
+		return ValueFromIndexMap(v.m), nil
+	}
+	return nil, NewError(InvalidOperation, "")
 }
