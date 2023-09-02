@@ -200,7 +200,7 @@ loop:
 		case LoadConstInstruction:
 			stack.Push(inst.Val)
 		case BuildMapInstruction:
-			m := NewIndexMapWithCapacity(inst.PairCount)
+			m := ValueMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stack.Pop()
 				key := stack.Pop()
@@ -208,7 +208,7 @@ loop:
 			}
 			stack.Push(ValueFromIndexMap(m))
 		case BuildKwargsInstruction:
-			m := NewIndexMapWithCapacity(inst.PairCount)
+			m := ValueMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stack.Pop()
 				key := stack.Pop()
@@ -590,7 +590,7 @@ loop:
 			}
 		case ExportLocalsInstruction:
 			locals := state.ctx.currentLocals()
-			module := NewIndexMapWithCapacity(uint(len(*locals)))
+			module := ValueMapWithCapacity(uint(len(*locals)))
 			for key, value := range *locals {
 				module.Set(KeyRefFromValue(ValueFromString(key)), value.Clone())
 			}

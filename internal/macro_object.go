@@ -32,7 +32,7 @@ func (m *Macro) String() string {
 func (m *Macro) Kind() ObjectKind { return ObjectKindStruct }
 
 func (m *Macro) Call(state *State, args []Value) (Value, error) {
-	var kwargs *IndexMap
+	var kwargs *ValueMap
 	if len(args) > 0 {
 		if mapVal, ok := args[len(args)-1].(mapValue); ok && mapVal.mapTyp == mapTypeKwargs {
 			kwargs = mapVal.m

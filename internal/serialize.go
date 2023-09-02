@@ -190,7 +190,7 @@ func mapErrToInvalidValue(val Value, err error) Value {
 }
 
 func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
-	m := NewIndexMap()
+	m := NewValueMap()
 	iter := val.MapRange()
 	for iter.Next() {
 		key := valueFromGoValueHelper(iter.Key().Interface(), config, level+1)

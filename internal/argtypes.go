@@ -61,7 +61,7 @@ func ValueFromSlice(values []Value) Value {
 	return seqValue{items: values}
 }
 
-func ValueFromIndexMap(m *IndexMap) Value {
+func ValueFromIndexMap(m *ValueMap) Value {
 	return mapValue{m: m, mapTyp: mapTypeNormal}
 }
 
@@ -100,11 +100,11 @@ type rest[T any] struct {
 }
 
 type Kwargs struct {
-	Values IndexMap
+	Values ValueMap
 	Used   hashset.StrHashSet
 }
 
-func NewKwargs(m IndexMap) Kwargs {
+func NewKwargs(m ValueMap) Kwargs {
 	return Kwargs{
 		Values: m,
 		Used:   *hashset.NewStrHashSet(),
@@ -114,7 +114,7 @@ func NewKwargs(m IndexMap) Kwargs {
 func KwargsTryFromValue(val Value) (Kwargs, error) {
 	switch v := val.(type) {
 	case undefinedValue:
-		return NewKwargs(*NewIndexMap()), nil
+		return NewKwargs(*NewValueMap()), nil
 	case mapValue:
 		if v.mapTyp == mapTypeKwargs {
 			return NewKwargs(*v.m.Clone()), nil

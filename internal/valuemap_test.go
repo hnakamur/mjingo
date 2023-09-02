@@ -4,9 +4,9 @@ import (
 	"testing"
 )
 
-func TestValueIndexMap(t *testing.T) {
+func TestValueMap(t *testing.T) {
 	t.Run("strKeyRef", func(t *testing.T) {
-		m := NewIndexMap()
+		m := NewValueMap()
 
 		m.Set(KeyRefFromString("foo"), Undefined)
 		{
@@ -92,7 +92,7 @@ func TestValueIndexMap(t *testing.T) {
 		}
 	})
 	t.Run("ValueKeyRef", func(t *testing.T) {
-		m := NewIndexMap()
+		m := NewValueMap()
 
 		m.Set(valueKeyRef{val: f64Value{f: 0.5}}, Undefined)
 		{
@@ -178,7 +178,7 @@ func TestValueIndexMap(t *testing.T) {
 		}
 	})
 	t.Run("mixOfStrAndValueKeyRef", func(t *testing.T) {
-		m := NewIndexMap()
+		m := NewValueMap()
 
 		m.Set(valueKeyRef{val: f64Value{f: 0.5}}, Undefined)
 		{

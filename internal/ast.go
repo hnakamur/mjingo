@@ -324,7 +324,7 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 		return option.None[Value]()
 	}
 
-	rv := NewIndexMapWithCapacity(uint(len(e.pairs)))
+	rv := ValueMapWithCapacity(uint(len(e.pairs)))
 	for _, pair := range e.pairs {
 		if v, ok := pair.arg.(constExpr); ok {
 			rv.Set(KeyRefFromValue(ValueFromString(pair.key)), v.val.Clone())
@@ -499,7 +499,7 @@ func (m mapExpr) asConst() option.Option[Value] {
 		}
 	}
 
-	rv := NewIndexMapWithCapacity(uint(len(m.keys)))
+	rv := ValueMapWithCapacity(uint(len(m.keys)))
 	for i, key := range m.keys {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {

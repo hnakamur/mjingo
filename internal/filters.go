@@ -403,7 +403,7 @@ func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error
 				return nil, err
 			}
 			val = tpl.a
-			kwargs = NewKwargs(*NewIndexMap())
+			kwargs = NewKwargs(*NewValueMap())
 		case len(values) >= 2:
 			tpl, err := tuple2FromValues(state, values)
 			if err != nil {
@@ -430,7 +430,7 @@ func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) 
 				return nil, err
 			}
 			val = tpl.a
-			kwargs = NewKwargs(*NewIndexMap())
+			kwargs = NewKwargs(*NewValueMap())
 		case len(values) >= 2:
 			tpl, err := tuple2FromValues(state, values)
 			if err != nil {
@@ -1201,7 +1201,7 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 	rv := make([]Value, 0, val.Len().UnwrapOr(0))
 	kwargs, err := KwargsTryFromValue(args[len(args)-1])
 	if err != nil {
-		kwargs = NewKwargs(*NewIndexMap())
+		kwargs = NewKwargs(*NewValueMap())
 	} else {
 		args = args[:len(args)-1]
 	}

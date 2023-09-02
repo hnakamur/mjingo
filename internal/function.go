@@ -125,7 +125,7 @@ func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) 
 func dictFunc(val Value) (Value, error) {
 	switch v := val.(type) {
 	case undefinedValue:
-		return ValueFromIndexMap(NewIndexMap()), nil
+		return ValueFromIndexMap(NewValueMap()), nil
 	case mapValue:
 		return ValueFromIndexMap(v.m), nil
 	}

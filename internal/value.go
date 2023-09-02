@@ -160,7 +160,7 @@ type stringValue struct {
 type bytesValue struct{ b []byte }
 type seqValue struct{ items []Value }
 type mapValue struct {
-	m      *IndexMap
+	m      *ValueMap
 	mapTyp mapType
 }
 type dynamicValue struct {
