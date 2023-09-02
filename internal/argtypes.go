@@ -29,10 +29,6 @@ func ValueFromSafeString(s string) Value {
 	return stringValue{str: s, strTyp: stringTypeSafe}
 }
 
-func ValueFromUnit(_ Unit) Value {
-	return None
-}
-
 func ValueFromBool(val bool) Value {
 	return boolValue{b: val}
 }
@@ -93,10 +89,6 @@ func StringTryFromValue(val Value) (string, error) {
 		return v.str, nil
 	}
 	return "", NewError(InvalidOperation, "value is not a string")
-}
-
-type rest[T any] struct {
-	args []T
 }
 
 type Kwargs struct {
