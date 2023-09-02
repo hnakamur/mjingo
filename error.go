@@ -26,7 +26,7 @@ const (
 	// A non primitive value was encountered where one was expected.
 	NonPrimitive ErrorType = 1
 	// A value is not valid for a key in a map.
-	NonKey ErrorType = 2
+	nonKey ErrorType = 2
 	// An invalid operation was attempted.
 	InvalidOperation ErrorType = 3
 	// The template has a syntax error
@@ -52,17 +52,17 @@ const (
 	// Not able to serialize this
 	BadSerialization ErrorType = 14
 	// Not able to deserialize this
-	CannotDeserialize ErrorType = 15
+	cannotDeserialize ErrorType = 15
 	// An error happened in an include.
 	BadInclude ErrorType = 16
 	// An error happened in a super block.
 	EvalBlock ErrorType = 17
-	// Unable to unpack a
+	// Unable to unpack a value.
 	CannotUnpack ErrorType = 18
 	// Failed writing output.
-	WriteFailure ErrorType = 19
+	writeFailure ErrorType = 19
 	// Engine ran out of fuel
-	OutOfFuel ErrorType = 20
+	outOfFuel ErrorType = 20
 	// Error creating aho-corasick delimiters
 	InvalidDelimiter ErrorType = 21
 	// An unknown block was called
@@ -73,7 +73,7 @@ func (k ErrorType) String() string {
 	switch k {
 	case NonPrimitive:
 		return "not a primitive"
-	case NonKey:
+	case nonKey:
 		return "not a key type"
 	case InvalidOperation:
 		return "invalid operation"
@@ -105,11 +105,11 @@ func (k ErrorType) String() string {
 		return "could not render block"
 	case CannotUnpack:
 		return "cannot unpack"
-	case WriteFailure:
+	case writeFailure:
 		return "failed to write output"
-	case CannotDeserialize:
+	case cannotDeserialize:
 		return "cannot deserialize"
-	case OutOfFuel:
+	case outOfFuel:
 		return "engine ran out of fuel"
 	case InvalidDelimiter:
 		return "invalid custom delimiters"
