@@ -17,30 +17,28 @@ import (
 )
 
 type Value interface {
-	String() string
-	DebugString() string
+	fmt.Stringer
+	debugString() string
 
 	typ() valueType
-	Kind() ValueKind
-	IsUndefined() bool
-	IsNone() bool
-	IsSafe() bool
-	IsTrue() bool
-	GetAttrFast(key string) option.Option[Value]
-	GetItemOpt(key Value) option.Option[Value]
-	AsStr() option.Option[string]
-	TryToI128() (big.Int, error)
-	TryToI64() (int64, error)
-	TryToUint() (uint, error)
-	AsF64() option.Option[float64]
-	AsSeq() option.Option[SeqObject]
-	Clone() Value
-	TryIter() (Iterator, error)
-	Len() option.Option[uint]
-	// Call(state *State, args []Value) (Value, error)
-	// CallMethod(state *State, name string, args []Value) (Value, error)
-	Hash(h hash.Hash)
-	Equal(other any) bool
+	kind() valueKind
+	isUndefined() bool
+	isNone() bool
+	isSafe() bool
+	isTrue() bool
+	getAttrFast(key string) option.Option[Value]
+	getItemOpt(key Value) option.Option[Value]
+	asStr() option.Option[string]
+	tryToI128() (big.Int, error)
+	tryToI64() (int64, error)
+	tryToUint() (uint, error)
+	asF64() option.Option[float64]
+	asSeq() option.Option[seqObject]
+	clone() Value
+	tryIter() (iterator, error)
+	len() option.Option[uint]
+	hash(h hash.Hash)
+	equal(other any) bool
 }
 
 type valueType int
@@ -62,29 +60,29 @@ const (
 	valueTypeDynamic
 )
 
-type ValueKind int
+type valueKind int
 
 const (
 	// The value is undefined
-	ValueKindUndefined ValueKind = iota + 1
+	valueKindUndefined valueKind = iota + 1
 	// The value is the none singleton ([`()`])
-	ValueKindNone
+	valueKindNone
 	// The value is a [`bool`]
-	ValueKindBool
+	valueKindBool
 	// The value is a number of a supported type.
-	ValueKindNumber
+	valueKindNumber
 	// The value is a string.
-	ValueKindString
+	valueKindString
 	// The value is a byte array.
-	ValueKindBytes
+	valueKindBytes
 	// The value is an array of other values.
-	ValueKindSeq
+	valueKindSeq
 	// The value is a key/value mapping.
-	ValueKindMap
+	valueKindMap
 )
 
-var Undefined = UndefinedValue{}
-var None = NoneValue{}
+var Undefined = undefinedValue{}
+var none = noneValue{}
 
 func (t valueType) String() string {
 	switch t {
@@ -121,89 +119,89 @@ func (t valueType) String() string {
 	}
 }
 
-func (k ValueKind) String() string {
+func (k valueKind) String() string {
 	switch k {
-	case ValueKindUndefined:
+	case valueKindUndefined:
 		return "undefined"
-	case ValueKindBool:
+	case valueKindBool:
 		return "bool"
-	case ValueKindNumber:
+	case valueKindNumber:
 		return "number"
-	case ValueKindNone:
+	case valueKindNone:
 		return "none"
-	case ValueKindString:
+	case valueKindString:
 		return "string"
-	case ValueKindBytes:
+	case valueKindBytes:
 		return "bytes"
-	case ValueKindSeq:
+	case valueKindSeq:
 		return "seq"
-	case ValueKindMap:
+	case valueKindMap:
 		return "map"
 	default:
 		panic(fmt.Sprintf("invalid valueKind: %d", k))
 	}
 }
 
-type UndefinedValue struct{}
-type BoolValue struct{ B bool }
-type U64Value struct{ N uint64 }
-type I64Value struct{ N int64 }
-type F64Value struct{ F float64 }
-type NoneValue struct{}
-type InvalidValue struct{ Detail string }
-type U128Value struct{ N big.Int }
-type I128Value struct{ N big.Int }
-type StringValue struct {
+type undefinedValue struct{}
+type boolValue struct{ B bool }
+type u64Value struct{ N uint64 }
+type i64Value struct{ N int64 }
+type f64Value struct{ F float64 }
+type noneValue struct{}
+type invalidValue struct{ Detail string }
+type u128Value struct{ N big.Int }
+type i128Value struct{ N big.Int }
+type stringValue struct {
 	Str  string
-	Type StringType
+	Type stringType
 }
-type BytesValue struct{ B []byte }
-type SeqValue struct{ Items []Value }
-type MapValue struct {
-	Map  *ValueMap
-	Type MapType
+type bytesValue struct{ B []byte }
+type seqValue struct{ Items []Value }
+type mapValue struct {
+	Map  *valueMap
+	Type mapType
 }
-type DynamicValue struct {
-	Dy Object
+type dynamicValue struct {
+	Dy object
 }
 
 // / The type of map
-type MapType uint
+type mapType uint
 
 const (
 	// A regular map
-	MapTypeNormal MapType = iota + 1
+	mapTypeNormal mapType = iota + 1
 	// A map representing keyword arguments
-	MapTypeKwargs
+	mapTypeKwargs
 )
 
-type StringType uint
+type stringType uint
 
 const (
-	StringTypeNormal StringType = iota
-	StringTypeSafe
+	stringTypeNormal stringType = iota
+	stringTypeSafe
 )
 
-var _ = Value(UndefinedValue{})
-var _ = Value(BoolValue{})
-var _ = Value(U64Value{})
-var _ = Value(I64Value{})
-var _ = Value(F64Value{})
-var _ = Value(NoneValue{})
-var _ = Value(InvalidValue{})
-var _ = Value(U128Value{})
-var _ = Value(I128Value{})
-var _ = Value(StringValue{})
-var _ = Value(BytesValue{})
-var _ = Value(SeqValue{})
-var _ = Value(MapValue{})
-var _ = Value(DynamicValue{})
+var _ = Value(undefinedValue{})
+var _ = Value(boolValue{})
+var _ = Value(u64Value{})
+var _ = Value(i64Value{})
+var _ = Value(f64Value{})
+var _ = Value(noneValue{})
+var _ = Value(invalidValue{})
+var _ = Value(u128Value{})
+var _ = Value(i128Value{})
+var _ = Value(stringValue{})
+var _ = Value(bytesValue{})
+var _ = Value(seqValue{})
+var _ = Value(mapValue{})
+var _ = Value(dynamicValue{})
 
-func (v UndefinedValue) String() string { return "" }
-func (v BoolValue) String() string      { return strconv.FormatBool(v.B) }
-func (v U64Value) String() string       { return strconv.FormatUint(v.N, 10) }
-func (v I64Value) String() string       { return strconv.FormatInt(v.N, 10) }
-func (v F64Value) String() string {
+func (v undefinedValue) String() string { return "" }
+func (v boolValue) String() string      { return strconv.FormatBool(v.B) }
+func (v u64Value) String() string       { return strconv.FormatUint(v.N, 10) }
+func (v i64Value) String() string       { return strconv.FormatInt(v.N, 10) }
+func (v f64Value) String() string {
 	f := v.F
 	if math.IsNaN(f) {
 		return "NaN"
@@ -219,25 +217,25 @@ func (v F64Value) String() string {
 		return s + ".0"
 	}
 }
-func (v NoneValue) String() string    { return "none" }
-func (v InvalidValue) String() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
-func (v U128Value) String() string    { return v.N.String() }
-func (v I128Value) String() string    { return v.N.String() }
-func (v StringValue) String() string  { return v.Str }
-func (v BytesValue) String() string   { return string(v.B) } // TODO: equivalent impl as String::from_utf8_lossy
-func (v SeqValue) String() string {
+func (v noneValue) String() string    { return "none" }
+func (v invalidValue) String() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
+func (v u128Value) String() string    { return v.N.String() }
+func (v i128Value) String() string    { return v.N.String() }
+func (v stringValue) String() string  { return v.Str }
+func (v bytesValue) String() string   { return string(v.B) } // TODO: equivalent impl as String::from_utf8_lossy
+func (v seqValue) String() string {
 	var b strings.Builder
 	b.WriteString("[")
 	for i, item := range v.Items {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(item.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("]")
 	return b.String()
 }
-func (v MapValue) String() string {
+func (v mapValue) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	first := true
@@ -249,20 +247,20 @@ func (v MapValue) String() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsValue().DebugString())
+		b.WriteString(e.Key.AsValue().debugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("}")
 	return b.String()
 }
-func (v DynamicValue) String() string { return fmt.Sprintf("%s", v.Dy) }
+func (v dynamicValue) String() string { return fmt.Sprintf("%s", v.Dy) }
 
-func (v UndefinedValue) DebugString() string { return "Undefined" }
-func (v BoolValue) DebugString() string      { return strconv.FormatBool(v.B) }
-func (v U64Value) DebugString() string       { return strconv.FormatUint(v.N, 10) }
-func (v I64Value) DebugString() string       { return strconv.FormatInt(v.N, 10) }
-func (v F64Value) DebugString() string {
+func (v undefinedValue) debugString() string { return "Undefined" }
+func (v boolValue) debugString() string      { return strconv.FormatBool(v.B) }
+func (v u64Value) debugString() string       { return strconv.FormatUint(v.N, 10) }
+func (v i64Value) debugString() string       { return strconv.FormatInt(v.N, 10) }
+func (v f64Value) debugString() string {
 	f := v.F
 	if math.IsNaN(f) {
 		return "NaN"
@@ -278,25 +276,25 @@ func (v F64Value) DebugString() string {
 		return s + ".0"
 	}
 }
-func (v NoneValue) DebugString() string    { return "None" }
-func (v InvalidValue) DebugString() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
-func (v U128Value) DebugString() string    { return v.N.String() }
-func (v I128Value) DebugString() string    { return v.N.String() }
-func (v StringValue) DebugString() string  { return fmt.Sprintf("%q", v.Str) } // TODO: equivalent impl with Rust's std::fmt::Debug
-func (v BytesValue) DebugString() string   { return string(v.B) }              // TODO: equivalent impl as String::from_utf8_lossy
-func (v SeqValue) DebugString() string {
+func (v noneValue) debugString() string    { return "None" }
+func (v invalidValue) debugString() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
+func (v u128Value) debugString() string    { return v.N.String() }
+func (v i128Value) debugString() string    { return v.N.String() }
+func (v stringValue) debugString() string  { return fmt.Sprintf("%q", v.Str) } // TODO: equivalent impl with Rust's std::fmt::Debug
+func (v bytesValue) debugString() string   { return string(v.B) }              // TODO: equivalent impl as String::from_utf8_lossy
+func (v seqValue) debugString() string {
 	var b strings.Builder
 	b.WriteString("[")
 	for i, item := range v.Items {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(item.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("]")
 	return b.String()
 }
-func (v MapValue) DebugString() string {
+func (v mapValue) debugString() string {
 	var b strings.Builder
 	b.WriteString("{")
 	first := true
@@ -308,191 +306,191 @@ func (v MapValue) DebugString() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsValue().DebugString())
+		b.WriteString(e.Key.AsValue().debugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.DebugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
 	}
 	b.WriteString("}")
 	return b.String()
 }
-func (v DynamicValue) DebugString() string { return fmt.Sprintf("%s", v.Dy) }
+func (v dynamicValue) debugString() string { return fmt.Sprintf("%s", v.Dy) }
 
-func (UndefinedValue) typ() valueType { return valueTypeUndefined }
-func (BoolValue) typ() valueType      { return valueTypeBool }
-func (U64Value) typ() valueType       { return valueTypeU64 }
-func (I64Value) typ() valueType       { return valueTypeI64 }
-func (F64Value) typ() valueType       { return valueTypeF64 }
-func (NoneValue) typ() valueType      { return valueTypeNone }
-func (InvalidValue) typ() valueType   { return valueTypeInvalid }
-func (U128Value) typ() valueType      { return valueTypeU128 }
-func (I128Value) typ() valueType      { return valueTypeI128 }
-func (StringValue) typ() valueType    { return valueTypeString }
-func (BytesValue) typ() valueType     { return valueTypeBytes }
-func (SeqValue) typ() valueType       { return valueTypeSeq }
-func (MapValue) typ() valueType       { return valueTypeMap }
-func (DynamicValue) typ() valueType   { return valueTypeDynamic }
+func (undefinedValue) typ() valueType { return valueTypeUndefined }
+func (boolValue) typ() valueType      { return valueTypeBool }
+func (u64Value) typ() valueType       { return valueTypeU64 }
+func (i64Value) typ() valueType       { return valueTypeI64 }
+func (f64Value) typ() valueType       { return valueTypeF64 }
+func (noneValue) typ() valueType      { return valueTypeNone }
+func (invalidValue) typ() valueType   { return valueTypeInvalid }
+func (u128Value) typ() valueType      { return valueTypeU128 }
+func (i128Value) typ() valueType      { return valueTypeI128 }
+func (stringValue) typ() valueType    { return valueTypeString }
+func (bytesValue) typ() valueType     { return valueTypeBytes }
+func (seqValue) typ() valueType       { return valueTypeSeq }
+func (mapValue) typ() valueType       { return valueTypeMap }
+func (dynamicValue) typ() valueType   { return valueTypeDynamic }
 
-func (UndefinedValue) Kind() ValueKind { return ValueKindUndefined }
-func (BoolValue) Kind() ValueKind      { return ValueKindBool }
-func (U64Value) Kind() ValueKind       { return ValueKindNumber }
-func (I64Value) Kind() ValueKind       { return ValueKindNumber }
-func (F64Value) Kind() ValueKind       { return ValueKindNumber }
-func (NoneValue) Kind() ValueKind      { return ValueKindNone }
-func (InvalidValue) Kind() ValueKind {
+func (undefinedValue) kind() valueKind { return valueKindUndefined }
+func (boolValue) kind() valueKind      { return valueKindBool }
+func (u64Value) kind() valueKind       { return valueKindNumber }
+func (i64Value) kind() valueKind       { return valueKindNumber }
+func (f64Value) kind() valueKind       { return valueKindNumber }
+func (noneValue) kind() valueKind      { return valueKindNone }
+func (invalidValue) kind() valueKind {
 	// XXX: invalid values report themselves as maps which is a lie
-	return ValueKindMap
+	return valueKindMap
 }
-func (U128Value) Kind() ValueKind   { return ValueKindNumber }
-func (I128Value) Kind() ValueKind   { return ValueKindNumber }
-func (StringValue) Kind() ValueKind { return ValueKindString }
-func (BytesValue) Kind() ValueKind  { return ValueKindBytes }
-func (SeqValue) Kind() ValueKind    { return ValueKindSeq }
-func (MapValue) Kind() ValueKind    { return ValueKindMap }
-func (v DynamicValue) Kind() ValueKind {
+func (u128Value) kind() valueKind   { return valueKindNumber }
+func (i128Value) kind() valueKind   { return valueKindNumber }
+func (stringValue) kind() valueKind { return valueKindString }
+func (bytesValue) kind() valueKind  { return valueKindBytes }
+func (seqValue) kind() valueKind    { return valueKindSeq }
+func (mapValue) kind() valueKind    { return valueKindMap }
+func (v dynamicValue) kind() valueKind {
 	switch v.Dy.Kind() {
-	case ObjectKindPlain:
+	case objectKindPlain:
 		// XXX: basic objects should probably not report as map
-		return ValueKindMap
-	case ObjectKindSeq:
-		return ValueKindSeq
-	case ObjectKindStruct:
-		return ValueKindMap
+		return valueKindMap
+	case objectKindSeq:
+		return valueKindSeq
+	case objectKindStruct:
+		return valueKindMap
 	default:
 		panic("unreachable")
 	}
 }
 
-func (UndefinedValue) IsUndefined() bool { return true }
-func (BoolValue) IsUndefined() bool      { return false }
-func (U64Value) IsUndefined() bool       { return false }
-func (I64Value) IsUndefined() bool       { return false }
-func (F64Value) IsUndefined() bool       { return false }
-func (NoneValue) IsUndefined() bool      { return false }
-func (InvalidValue) IsUndefined() bool   { return false }
-func (U128Value) IsUndefined() bool      { return false }
-func (I128Value) IsUndefined() bool      { return false }
-func (StringValue) IsUndefined() bool    { return false }
-func (BytesValue) IsUndefined() bool     { return false }
-func (SeqValue) IsUndefined() bool       { return false }
-func (MapValue) IsUndefined() bool       { return false }
-func (DynamicValue) IsUndefined() bool   { return false }
+func (undefinedValue) isUndefined() bool { return true }
+func (boolValue) isUndefined() bool      { return false }
+func (u64Value) isUndefined() bool       { return false }
+func (i64Value) isUndefined() bool       { return false }
+func (f64Value) isUndefined() bool       { return false }
+func (noneValue) isUndefined() bool      { return false }
+func (invalidValue) isUndefined() bool   { return false }
+func (u128Value) isUndefined() bool      { return false }
+func (i128Value) isUndefined() bool      { return false }
+func (stringValue) isUndefined() bool    { return false }
+func (bytesValue) isUndefined() bool     { return false }
+func (seqValue) isUndefined() bool       { return false }
+func (mapValue) isUndefined() bool       { return false }
+func (dynamicValue) isUndefined() bool   { return false }
 
-func (UndefinedValue) IsNone() bool { return false }
-func (BoolValue) IsNone() bool      { return false }
-func (U64Value) IsNone() bool       { return false }
-func (I64Value) IsNone() bool       { return false }
-func (F64Value) IsNone() bool       { return false }
-func (NoneValue) IsNone() bool      { return true }
-func (InvalidValue) IsNone() bool   { return false }
-func (U128Value) IsNone() bool      { return false }
-func (I128Value) IsNone() bool      { return false }
-func (StringValue) IsNone() bool    { return false }
-func (BytesValue) IsNone() bool     { return false }
-func (SeqValue) IsNone() bool       { return false }
-func (MapValue) IsNone() bool       { return false }
-func (DynamicValue) IsNone() bool   { return false }
+func (undefinedValue) isNone() bool { return false }
+func (boolValue) isNone() bool      { return false }
+func (u64Value) isNone() bool       { return false }
+func (i64Value) isNone() bool       { return false }
+func (f64Value) isNone() bool       { return false }
+func (noneValue) isNone() bool      { return true }
+func (invalidValue) isNone() bool   { return false }
+func (u128Value) isNone() bool      { return false }
+func (i128Value) isNone() bool      { return false }
+func (stringValue) isNone() bool    { return false }
+func (bytesValue) isNone() bool     { return false }
+func (seqValue) isNone() bool       { return false }
+func (mapValue) isNone() bool       { return false }
+func (dynamicValue) isNone() bool   { return false }
 
-func (UndefinedValue) IsSafe() bool { return false }
-func (BoolValue) IsSafe() bool      { return false }
-func (U64Value) IsSafe() bool       { return false }
-func (I64Value) IsSafe() bool       { return false }
-func (F64Value) IsSafe() bool       { return false }
-func (NoneValue) IsSafe() bool      { return false }
-func (InvalidValue) IsSafe() bool   { return false }
-func (U128Value) IsSafe() bool      { return false }
-func (I128Value) IsSafe() bool      { return false }
-func (v StringValue) IsSafe() bool  { return v.Type == StringTypeSafe }
-func (BytesValue) IsSafe() bool     { return false }
-func (SeqValue) IsSafe() bool       { return false }
-func (MapValue) IsSafe() bool       { return false }
-func (DynamicValue) IsSafe() bool   { return false }
+func (undefinedValue) isSafe() bool { return false }
+func (boolValue) isSafe() bool      { return false }
+func (u64Value) isSafe() bool       { return false }
+func (i64Value) isSafe() bool       { return false }
+func (f64Value) isSafe() bool       { return false }
+func (noneValue) isSafe() bool      { return false }
+func (invalidValue) isSafe() bool   { return false }
+func (u128Value) isSafe() bool      { return false }
+func (i128Value) isSafe() bool      { return false }
+func (v stringValue) isSafe() bool  { return v.Type == stringTypeSafe }
+func (bytesValue) isSafe() bool     { return false }
+func (seqValue) isSafe() bool       { return false }
+func (mapValue) isSafe() bool       { return false }
+func (dynamicValue) isSafe() bool   { return false }
 
-func (UndefinedValue) IsTrue() bool { return false }
-func (v BoolValue) IsTrue() bool    { return v.B }
-func (v U64Value) IsTrue() bool     { return v.N != 0 }
-func (v I64Value) IsTrue() bool     { return v.N != 0 }
-func (v F64Value) IsTrue() bool     { return v.F != 0.0 }
-func (NoneValue) IsTrue() bool      { return false }
-func (InvalidValue) IsTrue() bool   { return false }
-func (v U128Value) IsTrue() bool {
+func (undefinedValue) isTrue() bool { return false }
+func (v boolValue) isTrue() bool    { return v.B }
+func (v u64Value) isTrue() bool     { return v.N != 0 }
+func (v i64Value) isTrue() bool     { return v.N != 0 }
+func (v f64Value) isTrue() bool     { return v.F != 0.0 }
+func (noneValue) isTrue() bool      { return false }
+func (invalidValue) isTrue() bool   { return false }
+func (v u128Value) isTrue() bool {
 	var zero big.Int
 	return v.N.Cmp(&zero) != 0
 }
-func (v I128Value) IsTrue() bool {
+func (v i128Value) isTrue() bool {
 	var zero big.Int
 	return v.N.Cmp(&zero) != 0
 }
-func (v StringValue) IsTrue() bool { return len(v.Str) != 0 }
-func (v BytesValue) IsTrue() bool  { return len(v.B) != 0 }
-func (v SeqValue) IsTrue() bool    { return len(v.Items) != 0 }
-func (v MapValue) IsTrue() bool    { return v.Map.Len() != 0 }
-func (v DynamicValue) IsTrue() bool {
+func (v stringValue) isTrue() bool { return len(v.Str) != 0 }
+func (v bytesValue) isTrue() bool  { return len(v.B) != 0 }
+func (v seqValue) isTrue() bool    { return len(v.Items) != 0 }
+func (v mapValue) isTrue() bool    { return v.Map.Len() != 0 }
+func (v dynamicValue) isTrue() bool {
 	switch v.Dy.Kind() {
-	case ObjectKindPlain:
+	case objectKindPlain:
 		return true
-	case ObjectKindSeq:
-		return v.Dy.(SeqObject).ItemCount() != 0
-	case ObjectKindStruct:
-		return FieldCount(v.Dy.(StructObject)) != 0
+	case objectKindSeq:
+		return v.Dy.(seqObject).ItemCount() != 0
+	case objectKindStruct:
+		return fieldCount(v.Dy.(structObject)) != 0
 	default:
 		panic("unreachable")
 	}
 }
 
-func (UndefinedValue) GetAttrFast(_ string) option.Option[Value] { return option.None[Value]() }
-func (BoolValue) GetAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
-func (U64Value) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
-func (I64Value) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
-func (F64Value) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
-func (NoneValue) GetAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
-func (InvalidValue) GetAttrFast(_ string) option.Option[Value]   { return option.None[Value]() }
-func (U128Value) GetAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
-func (I128Value) GetAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
-func (StringValue) GetAttrFast(_ string) option.Option[Value]    { return option.None[Value]() }
-func (BytesValue) GetAttrFast(_ string) option.Option[Value]     { return option.None[Value]() }
-func (SeqValue) GetAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
-func (v MapValue) GetAttrFast(key string) option.Option[Value] {
-	if val, ok := v.Map.Get(KeyRefFromString(key)); ok {
+func (undefinedValue) getAttrFast(_ string) option.Option[Value] { return option.None[Value]() }
+func (boolValue) getAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
+func (u64Value) getAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
+func (i64Value) getAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
+func (f64Value) getAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
+func (noneValue) getAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
+func (invalidValue) getAttrFast(_ string) option.Option[Value]   { return option.None[Value]() }
+func (u128Value) getAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
+func (i128Value) getAttrFast(_ string) option.Option[Value]      { return option.None[Value]() }
+func (stringValue) getAttrFast(_ string) option.Option[Value]    { return option.None[Value]() }
+func (bytesValue) getAttrFast(_ string) option.Option[Value]     { return option.None[Value]() }
+func (seqValue) getAttrFast(_ string) option.Option[Value]       { return option.None[Value]() }
+func (v mapValue) getAttrFast(key string) option.Option[Value] {
+	if val, ok := v.Map.Get(keyRefFromString(key)); ok {
 		return option.Some(val)
 	}
 	return option.None[Value]()
 }
-func (v DynamicValue) GetAttrFast(key string) option.Option[Value] {
-	if s, ok := v.Dy.(StructObject); ok {
+func (v dynamicValue) getAttrFast(key string) option.Option[Value] {
+	if s, ok := v.Dy.(structObject); ok {
 		return s.GetField(key)
 	}
 	return option.None[Value]()
 }
 
-func (UndefinedValue) GetItemOpt(_ Value) option.Option[Value] { return option.None[Value]() }
-func (BoolValue) GetItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
-func (U64Value) GetItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
-func (I64Value) GetItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
-func (F64Value) GetItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
-func (NoneValue) GetItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
-func (InvalidValue) GetItemOpt(_ Value) option.Option[Value]   { return option.None[Value]() }
-func (U128Value) GetItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
-func (I128Value) GetItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
-func (StringValue) GetItemOpt(_ Value) option.Option[Value]    { return option.None[Value]() }
-func (BytesValue) GetItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
-func (v SeqValue) GetItemOpt(key Value) option.Option[Value] {
-	return getItemOptFromSeq(NewSliceSeqObject(v.Items), key)
+func (undefinedValue) getItemOpt(_ Value) option.Option[Value] { return option.None[Value]() }
+func (boolValue) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
+func (u64Value) getItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
+func (i64Value) getItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
+func (f64Value) getItemOpt(_ Value) option.Option[Value]       { return option.None[Value]() }
+func (noneValue) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
+func (invalidValue) getItemOpt(_ Value) option.Option[Value]   { return option.None[Value]() }
+func (u128Value) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
+func (i128Value) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
+func (stringValue) getItemOpt(_ Value) option.Option[Value]    { return option.None[Value]() }
+func (bytesValue) getItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
+func (v seqValue) getItemOpt(key Value) option.Option[Value] {
+	return getItemOptFromSeq(newSliceSeqObject(v.Items), key)
 }
-func (v MapValue) GetItemOpt(key Value) option.Option[Value] {
-	if v, ok := v.Map.Get(KeyRefFromValue(key)); ok {
+func (v mapValue) getItemOpt(key Value) option.Option[Value] {
+	if v, ok := v.Map.Get(keyRefFromValue(key)); ok {
 		return option.Some(v)
 	}
 	return option.None[Value]()
 }
-func (v DynamicValue) GetItemOpt(key Value) option.Option[Value] {
+func (v dynamicValue) getItemOpt(key Value) option.Option[Value] {
 	switch v.Dy.Kind() {
-	case ObjectKindPlain:
+	case objectKindPlain:
 		return option.None[Value]()
-	case ObjectKindSeq:
-		return getItemOptFromSeq(v.Dy.(SeqObject), key)
-	case ObjectKindStruct:
-		if optKey := key.AsStr(); optKey.IsSome() {
-			return v.Dy.(StructObject).GetField(optKey.Unwrap())
+	case objectKindSeq:
+		return getItemOptFromSeq(v.Dy.(seqObject), key)
+	case objectKindStruct:
+		if optKey := key.asStr(); optKey.IsSome() {
+			return v.Dy.(structObject).GetField(optKey.Unwrap())
 		}
 		return option.None[Value]()
 	default:
@@ -500,7 +498,7 @@ func (v DynamicValue) GetItemOpt(key Value) option.Option[Value] {
 	}
 }
 
-func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
+func getItemOptFromSeq(seq seqObject, key Value) option.Option[Value] {
 	keyRf := valueKeyRef{val: key}
 	if optIdx := keyRf.AsI64(); optIdx.IsSome() {
 		idx := optIdx.Unwrap()
@@ -522,42 +520,42 @@ func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
 	return option.None[Value]()
 }
 
-func (UndefinedValue) AsStr() option.Option[string] { return option.None[string]() }
-func (BoolValue) AsStr() option.Option[string]      { return option.None[string]() }
-func (U64Value) AsStr() option.Option[string]       { return option.None[string]() }
-func (I64Value) AsStr() option.Option[string]       { return option.None[string]() }
-func (F64Value) AsStr() option.Option[string]       { return option.None[string]() }
-func (NoneValue) AsStr() option.Option[string]      { return option.None[string]() }
-func (InvalidValue) AsStr() option.Option[string]   { return option.None[string]() }
-func (U128Value) AsStr() option.Option[string]      { return option.None[string]() }
-func (I128Value) AsStr() option.Option[string]      { return option.None[string]() }
-func (v StringValue) AsStr() option.Option[string]  { return option.Some(v.Str) }
-func (BytesValue) AsStr() option.Option[string]     { return option.None[string]() }
-func (SeqValue) AsStr() option.Option[string]       { return option.None[string]() }
-func (v MapValue) AsStr() option.Option[string]     { return option.None[string]() }
-func (DynamicValue) AsStr() option.Option[string]   { return option.None[string]() }
+func (undefinedValue) asStr() option.Option[string] { return option.None[string]() }
+func (boolValue) asStr() option.Option[string]      { return option.None[string]() }
+func (u64Value) asStr() option.Option[string]       { return option.None[string]() }
+func (i64Value) asStr() option.Option[string]       { return option.None[string]() }
+func (f64Value) asStr() option.Option[string]       { return option.None[string]() }
+func (noneValue) asStr() option.Option[string]      { return option.None[string]() }
+func (invalidValue) asStr() option.Option[string]   { return option.None[string]() }
+func (u128Value) asStr() option.Option[string]      { return option.None[string]() }
+func (i128Value) asStr() option.Option[string]      { return option.None[string]() }
+func (v stringValue) asStr() option.Option[string]  { return option.Some(v.Str) }
+func (bytesValue) asStr() option.Option[string]     { return option.None[string]() }
+func (seqValue) asStr() option.Option[string]       { return option.None[string]() }
+func (v mapValue) asStr() option.Option[string]     { return option.None[string]() }
+func (dynamicValue) asStr() option.Option[string]   { return option.None[string]() }
 
-func (v UndefinedValue) TryToI128() (big.Int, error) {
+func (v undefinedValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v BoolValue) TryToI128() (big.Int, error) {
+func (v boolValue) tryToI128() (big.Int, error) {
 	var n big.Int
 	if v.B {
 		n.SetUint64(1)
 	}
 	return n, nil
 }
-func (v U64Value) TryToI128() (big.Int, error) {
+func (v u64Value) tryToI128() (big.Int, error) {
 	var n big.Int
 	n.SetUint64(v.N)
 	return n, nil
 }
-func (v I64Value) TryToI128() (big.Int, error) {
+func (v i64Value) tryToI128() (big.Int, error) {
 	var n big.Int
 	n.SetInt64(v.N)
 	return n, nil
 }
-func (v F64Value) TryToI128() (big.Int, error) {
+func (v f64Value) tryToI128() (big.Int, error) {
 	if float64(int64(v.F)) == v.F {
 		var n big.Int
 		n.SetInt64(int64(v.F))
@@ -565,13 +563,13 @@ func (v F64Value) TryToI128() (big.Int, error) {
 	}
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v NoneValue) TryToI128() (big.Int, error) {
+func (v noneValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v InvalidValue) TryToI128() (big.Int, error) {
+func (v invalidValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v U128Value) TryToI128() (big.Int, error) {
+func (v u128Value) tryToI128() (big.Int, error) {
 	if v.N.Cmp(getI128Max()) > 0 {
 		return big.Int{}, unsupportedConversion(v.typ(), "i128")
 	}
@@ -579,82 +577,82 @@ func (v U128Value) TryToI128() (big.Int, error) {
 	n.Set(&v.N)
 	return n, nil
 }
-func (v I128Value) TryToI128() (big.Int, error) {
+func (v i128Value) tryToI128() (big.Int, error) {
 	var n big.Int
 	n.Set(&v.N)
 	return n, nil
 }
-func (v StringValue) TryToI128() (big.Int, error) {
+func (v stringValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v BytesValue) TryToI128() (big.Int, error) {
+func (v bytesValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v SeqValue) TryToI128() (big.Int, error) {
+func (v seqValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v MapValue) TryToI128() (big.Int, error) {
+func (v mapValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
-func (v DynamicValue) TryToI128() (big.Int, error) {
+func (v dynamicValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")
 }
 
-func (v UndefinedValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v BoolValue) TryToI64() (int64, error) {
+func (v undefinedValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v boolValue) tryToI64() (int64, error) {
 	if v.B {
 		return 1, nil
 	}
 	return 0, nil
 }
-func (v U64Value) TryToI64() (int64, error) { return int64(v.N), nil }
-func (v I64Value) TryToI64() (int64, error) { return v.N, nil }
-func (v F64Value) TryToI64() (int64, error) {
+func (v u64Value) tryToI64() (int64, error) { return int64(v.N), nil }
+func (v i64Value) tryToI64() (int64, error) { return v.N, nil }
+func (v f64Value) tryToI64() (int64, error) {
 	if float64(int64(v.F)) == v.F {
 		return int64(v.F), nil
 	}
 	return 0, unsupportedConversion(v.typ(), "i64")
 }
-func (v NoneValue) TryToI64() (int64, error)    { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v InvalidValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v U128Value) TryToI64() (int64, error) {
+func (v noneValue) tryToI64() (int64, error)    { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v invalidValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v u128Value) tryToI64() (int64, error) {
 	if v.N.IsInt64() {
 		return v.N.Int64(), nil
 	}
 	return 0, unsupportedConversion(v.typ(), "i64")
 }
-func (v I128Value) TryToI64() (int64, error) {
+func (v i128Value) tryToI64() (int64, error) {
 	if v.N.IsInt64() {
 		return v.N.Int64(), nil
 	}
 	return 0, unsupportedConversion(v.typ(), "i64")
 }
-func (v StringValue) TryToI64() (int64, error)  { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v BytesValue) TryToI64() (int64, error)   { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v SeqValue) TryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v MapValue) TryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
-func (v DynamicValue) TryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v stringValue) tryToI64() (int64, error)  { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v bytesValue) tryToI64() (int64, error)   { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v seqValue) tryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v mapValue) tryToI64() (int64, error)     { return 0, unsupportedConversion(v.typ(), "i64") }
+func (v dynamicValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
 
-func (v UndefinedValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v BoolValue) TryToUint() (uint, error) {
+func (v undefinedValue) tryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v boolValue) tryToUint() (uint, error) {
 	if v.B {
 		return 1, nil
 	}
 	return 0, nil
 }
-func (v U64Value) TryToUint() (uint, error) {
+func (v u64Value) tryToUint() (uint, error) {
 	if v.N > math.MaxUint {
 		return 0, unsupportedConversion(v.typ(), "uint")
 	}
 	return uint(v.N), nil
 }
-func (v I64Value) TryToUint() (uint, error) {
+func (v i64Value) tryToUint() (uint, error) {
 	if v.N < 0 {
 		return 0, unsupportedConversion(v.typ(), "uint")
 	}
 	return uint(v.N), nil
 }
-func (v F64Value) TryToUint() (uint, error) {
+func (v f64Value) tryToUint() (uint, error) {
 	// MiniJinja uses int64 here, not uint.
 	// https://github.com/mitsuhiko/minijinja/blob/1.0.7/minijinja/src/value/argtypes.rs#L438-L439
 	// And it has comment "for the intention here see Key::from_borrowed_value"
@@ -664,9 +662,9 @@ func (v F64Value) TryToUint() (uint, error) {
 	}
 	return 0, unsupportedConversion(v.typ(), "uint")
 }
-func (v NoneValue) TryToUint() (uint, error)    { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v InvalidValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v U128Value) TryToUint() (uint, error) {
+func (v noneValue) tryToUint() (uint, error)    { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v invalidValue) tryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v u128Value) tryToUint() (uint, error) {
 	if v.N.IsUint64() {
 		n := v.N.Uint64()
 		if n <= math.MaxUint {
@@ -675,7 +673,7 @@ func (v U128Value) TryToUint() (uint, error) {
 	}
 	return 0, unsupportedConversion(v.typ(), "uint")
 }
-func (v I128Value) TryToUint() (uint, error) {
+func (v i128Value) tryToUint() (uint, error) {
 	if v.N.IsUint64() {
 		n := v.N.Uint64()
 		if n <= math.MaxUint {
@@ -684,186 +682,186 @@ func (v I128Value) TryToUint() (uint, error) {
 	}
 	return 0, unsupportedConversion(v.typ(), "uint")
 }
-func (v StringValue) TryToUint() (uint, error)  { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v BytesValue) TryToUint() (uint, error)   { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v SeqValue) TryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v MapValue) TryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
-func (v DynamicValue) TryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v stringValue) tryToUint() (uint, error)  { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v bytesValue) tryToUint() (uint, error)   { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v seqValue) tryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v mapValue) tryToUint() (uint, error)     { return 0, unsupportedConversion(v.typ(), "uint") }
+func (v dynamicValue) tryToUint() (uint, error) { return 0, unsupportedConversion(v.typ(), "uint") }
 
-func (UndefinedValue) AsF64() option.Option[float64] { return option.None[float64]() }
-func (v BoolValue) AsF64() option.Option[float64] {
+func (undefinedValue) asF64() option.Option[float64] { return option.None[float64]() }
+func (v boolValue) asF64() option.Option[float64] {
 	var f float64
 	if v.B {
 		f = 1
 	}
 	return option.Some(f)
 }
-func (v U64Value) AsF64() option.Option[float64]   { return option.Some(float64(v.N)) }
-func (v I64Value) AsF64() option.Option[float64]   { return option.Some(float64(v.N)) }
-func (v F64Value) AsF64() option.Option[float64]   { return option.Some(v.F) }
-func (NoneValue) AsF64() option.Option[float64]    { return option.None[float64]() }
-func (InvalidValue) AsF64() option.Option[float64] { return option.None[float64]() }
-func (v U128Value) AsF64() option.Option[float64] {
+func (v u64Value) asF64() option.Option[float64]   { return option.Some(float64(v.N)) }
+func (v i64Value) asF64() option.Option[float64]   { return option.Some(float64(v.N)) }
+func (v f64Value) asF64() option.Option[float64]   { return option.Some(v.F) }
+func (noneValue) asF64() option.Option[float64]    { return option.None[float64]() }
+func (invalidValue) asF64() option.Option[float64] { return option.None[float64]() }
+func (v u128Value) asF64() option.Option[float64] {
 	f, _ := v.N.Float64()
 	return option.Some(f)
 }
-func (v I128Value) AsF64() option.Option[float64] {
+func (v i128Value) asF64() option.Option[float64] {
 	f, _ := v.N.Float64()
 	return option.Some(f)
 }
-func (StringValue) AsF64() option.Option[float64]  { return option.None[float64]() }
-func (BytesValue) AsF64() option.Option[float64]   { return option.None[float64]() }
-func (SeqValue) AsF64() option.Option[float64]     { return option.None[float64]() }
-func (MapValue) AsF64() option.Option[float64]     { return option.None[float64]() }
-func (DynamicValue) AsF64() option.Option[float64] { return option.None[float64]() }
+func (stringValue) asF64() option.Option[float64]  { return option.None[float64]() }
+func (bytesValue) asF64() option.Option[float64]   { return option.None[float64]() }
+func (seqValue) asF64() option.Option[float64]     { return option.None[float64]() }
+func (mapValue) asF64() option.Option[float64]     { return option.None[float64]() }
+func (dynamicValue) asF64() option.Option[float64] { return option.None[float64]() }
 
-func (UndefinedValue) AsSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
-func (BoolValue) AsSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
-func (U64Value) AsSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
-func (I64Value) AsSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
-func (F64Value) AsSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
-func (NoneValue) AsSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
-func (InvalidValue) AsSeq() option.Option[SeqObject]   { return option.None[SeqObject]() }
-func (U128Value) AsSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
-func (I128Value) AsSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
-func (StringValue) AsSeq() option.Option[SeqObject]    { return option.None[SeqObject]() }
-func (BytesValue) AsSeq() option.Option[SeqObject]     { return option.None[SeqObject]() }
-func (v SeqValue) AsSeq() option.Option[SeqObject] {
-	return option.Some(NewSliceSeqObject(v.Items))
+func (undefinedValue) asSeq() option.Option[seqObject] { return option.None[seqObject]() }
+func (boolValue) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
+func (u64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
+func (i64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
+func (f64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
+func (noneValue) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
+func (invalidValue) asSeq() option.Option[seqObject]   { return option.None[seqObject]() }
+func (u128Value) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
+func (i128Value) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
+func (stringValue) asSeq() option.Option[seqObject]    { return option.None[seqObject]() }
+func (bytesValue) asSeq() option.Option[seqObject]     { return option.None[seqObject]() }
+func (v seqValue) asSeq() option.Option[seqObject] {
+	return option.Some(newSliceSeqObject(v.Items))
 }
-func (MapValue) AsSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
-func (v DynamicValue) AsSeq() option.Option[SeqObject] {
-	if seq, ok := v.Dy.(SeqObject); ok {
+func (mapValue) asSeq() option.Option[seqObject] { return option.None[seqObject]() }
+func (v dynamicValue) asSeq() option.Option[seqObject] {
+	if seq, ok := v.Dy.(seqObject); ok {
 		return option.Some(seq)
 	}
-	return option.None[SeqObject]()
+	return option.None[seqObject]()
 }
 
-func (v UndefinedValue) Clone() Value { return v }
-func (v BoolValue) Clone() Value      { return v }
-func (v U64Value) Clone() Value       { return v }
-func (v I64Value) Clone() Value       { return v }
-func (v F64Value) Clone() Value       { return v }
-func (v NoneValue) Clone() Value      { return v }
-func (v InvalidValue) Clone() Value   { return v }
-func (v U128Value) Clone() Value {
+func (v undefinedValue) clone() Value { return v }
+func (v boolValue) clone() Value      { return v }
+func (v u64Value) clone() Value       { return v }
+func (v i64Value) clone() Value       { return v }
+func (v f64Value) clone() Value       { return v }
+func (v noneValue) clone() Value      { return v }
+func (v invalidValue) clone() Value   { return v }
+func (v u128Value) clone() Value {
 	c := v
 	c.N.Set(&v.N)
 	return c
 }
-func (v I128Value) Clone() Value {
+func (v i128Value) clone() Value {
 	c := v
 	c.N.Set(&v.N)
 	return c
 }
-func (v StringValue) Clone() Value { return v }
-func (v BytesValue) Clone() Value {
+func (v stringValue) clone() Value { return v }
+func (v bytesValue) clone() Value {
 	b := make([]byte, len(v.B))
 	copy(b, v.B)
-	return BytesValue{B: b}
+	return bytesValue{B: b}
 }
-func (v SeqValue) Clone() Value {
+func (v seqValue) clone() Value {
 	items := make([]Value, len(v.Items))
 	for i, item := range v.Items {
 		// Is shallow copy OK?
 		items[i] = item
 	}
-	return SeqValue{Items: items}
+	return seqValue{Items: items}
 }
-func (v MapValue) Clone() Value {
+func (v mapValue) clone() Value {
 	m := v.Map.Clone()
-	return MapValue{Map: m, Type: v.Type}
+	return mapValue{Map: m, Type: v.Type}
 }
-func (v DynamicValue) Clone() Value {
+func (v dynamicValue) clone() Value {
 	// TODO: implement real clone
 	return v
 }
 
-func (UndefinedValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &emptyValueIteratorState{}}, nil
+func (undefinedValue) tryIter() (iterator, error) {
+	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
-func (v BoolValue) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v boolValue) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v U64Value) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v u64Value) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v I64Value) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v i64Value) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v F64Value) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v f64Value) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (NoneValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &emptyValueIteratorState{}}, nil
+func (noneValue) tryIter() (iterator, error) {
+	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
-func (v InvalidValue) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v invalidValue) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v U128Value) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v u128Value) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v I128Value) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v i128Value) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v StringValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &charsValueIteratorState{s: v.Str}, len: uint(utf8.RuneCountInString(v.Str))}, nil
+func (v stringValue) tryIter() (iterator, error) {
+	return iterator{iterState: &charsValueIteratorState{s: v.Str}, len: uint(utf8.RuneCountInString(v.Str))}, nil
 }
-func (v BytesValue) TryIter() (Iterator, error) {
-	return Iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.Kind()))
+func (v bytesValue) tryIter() (iterator, error) {
+	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
-func (v SeqValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &seqValueIteratorState{items: v.Items}, len: uint(len(v.Items))}, nil
+func (v seqValue) tryIter() (iterator, error) {
+	return iterator{iterState: &seqValueIteratorState{items: v.Items}, len: uint(len(v.Items))}, nil
 }
-func (v MapValue) TryIter() (Iterator, error) {
-	return Iterator{iterState: &mapValueIteratorState{keys: v.Map.Keys()}, len: uint(len(v.Map.Keys()))}, nil
+func (v mapValue) tryIter() (iterator, error) {
+	return iterator{iterState: &mapValueIteratorState{keys: v.Map.Keys()}, len: uint(len(v.Map.Keys()))}, nil
 }
-func (v DynamicValue) TryIter() (Iterator, error) {
+func (v dynamicValue) tryIter() (iterator, error) {
 	switch v.Dy.Kind() {
-	case ObjectKindPlain:
-		return Iterator{iterState: &emptyValueIteratorState{}}, nil
-	case ObjectKindSeq:
-		seqObj := v.Dy.(SeqObject)
-		return Iterator{iterState: &dynSeqValueIteratorState{obj: seqObj}, len: seqObj.ItemCount()}, nil
-	case ObjectKindStruct:
-		obj := v.Dy.(StructObject)
+	case objectKindPlain:
+		return iterator{iterState: &emptyValueIteratorState{}}, nil
+	case objectKindSeq:
+		seqObj := v.Dy.(seqObject)
+		return iterator{iterState: &dynSeqValueIteratorState{obj: seqObj}, len: seqObj.ItemCount()}, nil
+	case objectKindStruct:
+		obj := v.Dy.(structObject)
 		if optFields := obj.StaticFields(); optFields.IsSome() {
-			return Iterator{iterState: &stringsValueIteratorState{items: optFields.Unwrap()}}, nil
+			return iterator{iterState: &stringsValueIteratorState{items: optFields.Unwrap()}}, nil
 		}
-		return Iterator{iterState: &stringsValueIteratorState{items: obj.Fields()}}, nil
+		return iterator{iterState: &stringsValueIteratorState{items: obj.Fields()}}, nil
 	default:
 		panic("unreachable")
 	}
 }
 
 func unsupportedConversion(kind valueType, target string) error {
-	return NewError(InvalidOperation,
+	return newError(InvalidOperation,
 		fmt.Sprintf("cannot convert %s to %s", kind, target))
 }
 
-func I32TryFromValue(val Value) (int32, error) {
-	n, err := val.TryToI64()
+func i32TryFromValue(val Value) (int32, error) {
+	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt32 || n > math.MaxInt32 {
 		return 0, unsupportedConversion(val.typ(), "i32")
 	}
 	return int32(n), nil
 }
 
-type Iterator struct {
+type iterator struct {
 	iterState valueIteratorState
 	len       uint
 }
 
-func IteratorFromSeqObject(s SeqObject) *Iterator {
-	return &Iterator{iterState: &dynSeqValueIteratorState{obj: s}}
+func iteratorFromSeqObject(s seqObject) *iterator {
+	return &iterator{iterState: &dynSeqValueIteratorState{obj: s}}
 }
 
-func IteratorFromStrings(items []string) *Iterator {
-	return &Iterator{iterState: &stringsValueIteratorState{items: items}}
+func iteratorFromStrings(items []string) *iterator {
+	return &iterator{iterState: &stringsValueIteratorState{items: items}}
 }
 
-func (i Iterator) Chain(other Iterator) Iterator {
-	return Iterator{
+func (i iterator) Chain(other iterator) iterator {
+	return iterator{
 		iterState: &chainedValueIteratorState{
 			states: []valueIteratorState{i.iterState, other.iterState},
 		},
@@ -871,8 +869,8 @@ func (i Iterator) Chain(other Iterator) Iterator {
 	}
 }
 
-func (i Iterator) Cloned() Iterator {
-	return Iterator{
+func (i iterator) Cloned() iterator {
+	return iterator{
 		iterState: &cloneValueIteratorState{
 			state: i.iterState,
 		},
@@ -880,7 +878,7 @@ func (i Iterator) Cloned() Iterator {
 	}
 }
 
-func (i *Iterator) Next() option.Option[Value] {
+func (i *iterator) Next() option.Option[Value] {
 	optVal := i.iterState.advanceState()
 	if optVal.IsSome() {
 		i.len--
@@ -888,13 +886,13 @@ func (i *Iterator) Next() option.Option[Value] {
 	return optVal
 }
 
-func (i *Iterator) Len() uint {
+func (i *iterator) Len() uint {
 	return i.len
 }
 
 // All returns if every element of the iterator matches a predicate.
 // An empty iterator returns true.
-func (i *Iterator) All(f func(Value) bool) bool {
+func (i *iterator) All(f func(Value) bool) bool {
 	var item Value
 	for i.Next().UnwrapTo(&item) {
 		if !f(item) {
@@ -904,7 +902,7 @@ func (i *Iterator) All(f func(Value) bool) bool {
 	return true
 }
 
-func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
+func (i *iterator) CompareBy(other *iterator, f func(a, b Value) int) int {
 	for {
 		optA := i.Next()
 		optB := other.Next()
@@ -927,9 +925,9 @@ func (i *Iterator) CompareBy(other *Iterator, f func(a, b Value) int) int {
 	return 0
 }
 
-func (i *Iterator) Min() option.Option[Value] { return i.minBy(Cmp) }
+func (i *iterator) Min() option.Option[Value] { return i.minBy(valueCmp) }
 
-func (i *Iterator) minBy(compare func(a, b Value) int) option.Option[Value] {
+func (i *iterator) minBy(compare func(a, b Value) int) option.Option[Value] {
 	rv := option.None[Value]()
 	for {
 		optItem := i.Next()
@@ -943,9 +941,9 @@ func (i *Iterator) minBy(compare func(a, b Value) int) option.Option[Value] {
 	return rv
 }
 
-func (i *Iterator) Max() option.Option[Value] { return i.maxBy(Cmp) }
+func (i *iterator) Max() option.Option[Value] { return i.maxBy(valueCmp) }
 
-func (i *Iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
+func (i *iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 	rv := option.None[Value]()
 	for {
 		optItem := i.Next()
@@ -959,7 +957,7 @@ func (i *Iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 	return rv
 }
 
-func (i *Iterator) Collect() []Value {
+func (i *iterator) Collect() []Value {
 	items := make([]Value, 0, i.Len())
 	var item Value
 	for i.Next().UnwrapTo(&item) {
@@ -987,11 +985,11 @@ type stringsValueIteratorState struct {
 }
 type dynSeqValueIteratorState struct {
 	idx uint
-	obj SeqObject
+	obj seqObject
 }
 type mapValueIteratorState struct {
 	idx  uint
-	keys []KeyRef
+	keys []keyRef
 }
 
 type cloneValueIteratorState struct {
@@ -999,7 +997,7 @@ type cloneValueIteratorState struct {
 }
 
 func (s *cloneValueIteratorState) advanceState() option.Option[Value] {
-	return option.Map(s.state.advanceState(), func(val Value) Value { return val.Clone() })
+	return option.Map(s.state.advanceState(), func(val Value) Value { return val.clone() })
 }
 
 type chainedValueIteratorState struct {
@@ -1024,7 +1022,7 @@ func (s *charsValueIteratorState) advanceState() option.Option[Value] {
 	if s.offset < uint(len(s.s)) {
 		r, size := utf8.DecodeRuneInString(s.s[s.offset:])
 		s.offset += uint(size)
-		return option.Some[Value](StringValue{Str: string(r)})
+		return option.Some[Value](stringValue{Str: string(r)})
 	}
 	return option.None[Value]()
 }
@@ -1032,7 +1030,7 @@ func (s *seqValueIteratorState) advanceState() option.Option[Value] {
 	if s.idx < uint(len(s.items)) {
 		item := s.items[s.idx]
 		s.idx++
-		return option.Some(item.Clone())
+		return option.Some(item.clone())
 	}
 	return option.None[Value]()
 }
@@ -1040,7 +1038,7 @@ func (s *stringsValueIteratorState) advanceState() option.Option[Value] {
 	if s.idx < uint(len(s.items)) {
 		item := s.items[s.idx]
 		s.idx++
-		return option.Some[Value](StringValue{Str: item})
+		return option.Some[Value](stringValue{Str: item})
 	}
 	return option.None[Value]()
 }
@@ -1078,51 +1076,51 @@ const (
 	valueIteratorStateTypeMap
 )
 
-func (v *SeqValue) Append(val Value) {
+func (v *seqValue) Append(val Value) {
 	v.Items = append(v.Items, val)
 }
 
-func (UndefinedValue) Len() option.Option[uint] { return option.None[uint]() }
-func (BoolValue) Len() option.Option[uint]      { return option.None[uint]() }
-func (U64Value) Len() option.Option[uint]       { return option.None[uint]() }
-func (I64Value) Len() option.Option[uint]       { return option.None[uint]() }
-func (F64Value) Len() option.Option[uint]       { return option.None[uint]() }
-func (NoneValue) Len() option.Option[uint]      { return option.None[uint]() }
-func (InvalidValue) Len() option.Option[uint]   { return option.None[uint]() }
-func (U128Value) Len() option.Option[uint]      { return option.None[uint]() }
-func (I128Value) Len() option.Option[uint]      { return option.None[uint]() }
-func (v StringValue) Len() option.Option[uint] {
+func (undefinedValue) len() option.Option[uint] { return option.None[uint]() }
+func (boolValue) len() option.Option[uint]      { return option.None[uint]() }
+func (u64Value) len() option.Option[uint]       { return option.None[uint]() }
+func (i64Value) len() option.Option[uint]       { return option.None[uint]() }
+func (f64Value) len() option.Option[uint]       { return option.None[uint]() }
+func (noneValue) len() option.Option[uint]      { return option.None[uint]() }
+func (invalidValue) len() option.Option[uint]   { return option.None[uint]() }
+func (u128Value) len() option.Option[uint]      { return option.None[uint]() }
+func (i128Value) len() option.Option[uint]      { return option.None[uint]() }
+func (v stringValue) len() option.Option[uint] {
 	return option.Some(uint(utf8.RuneCountInString(v.Str)))
 }
-func (BytesValue) Len() option.Option[uint] { return option.None[uint]() }
-func (v SeqValue) Len() option.Option[uint] { return option.Some(uint(len(v.Items))) }
-func (v MapValue) Len() option.Option[uint] { return option.Some(v.Map.Len()) }
-func (v DynamicValue) Len() option.Option[uint] {
+func (bytesValue) len() option.Option[uint] { return option.None[uint]() }
+func (v seqValue) len() option.Option[uint] { return option.Some(uint(len(v.Items))) }
+func (v mapValue) len() option.Option[uint] { return option.Some(v.Map.Len()) }
+func (v dynamicValue) len() option.Option[uint] {
 	switch v.Dy.Kind() {
-	case ObjectKindPlain:
+	case objectKindPlain:
 		return option.None[uint]()
-	case ObjectKindSeq:
-		return option.Some(v.Dy.(SeqObject).ItemCount())
-	case ObjectKindStruct:
-		return option.Some(FieldCount(v.Dy.(StructObject)))
+	case objectKindSeq:
+		return option.Some(v.Dy.(seqObject).ItemCount())
+	case objectKindStruct:
+		return option.Some(fieldCount(v.Dy.(structObject)))
 	default:
 		panic("unreachable")
 	}
 }
 
-func Equal(v, other Value) bool {
+func valueEqual(v, other Value) bool {
 	switch {
-	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
+	case v.kind() == valueKindNone && other.kind() == valueKindNone:
 		return true
-	case v.Kind() == ValueKindUndefined && other.Kind() == ValueKindUndefined:
+	case v.kind() == valueKindUndefined && other.kind() == valueKindUndefined:
 		return true
-	case v.Kind() == ValueKindString && other.Kind() == ValueKindString:
-		a := v.(StringValue).Str
-		b := other.(StringValue).Str
+	case v.kind() == valueKindString && other.kind() == valueKindString:
+		a := v.(stringValue).Str
+		b := other.(stringValue).Str
 		return a == b
-	case v.Kind() == ValueKindBytes && other.Kind() == ValueKindBytes:
-		a := v.(BytesValue).B
-		b := other.(BytesValue).B
+	case v.kind() == valueKindBytes && other.kind() == valueKindBytes:
+		a := v.(bytesValue).B
+		b := other.(bytesValue).B
 		return bytes.Equal(a, b)
 	default:
 		switch c := coerce(v, other).(type) {
@@ -1133,32 +1131,32 @@ func Equal(v, other Value) bool {
 		case strCoerceResult:
 			return c.lhs == c.rhs
 		default:
-			if optA, optB := v.AsSeq(), other.AsSeq(); optA.IsSome() && optB.IsSome() {
-				iterA, err := v.TryIter()
+			if optA, optB := v.asSeq(), other.asSeq(); optA.IsSome() && optB.IsSome() {
+				iterA, err := v.tryIter()
 				if err != nil {
 					return false
 				}
-				iterB, err := v.TryIter()
+				iterB, err := v.tryIter()
 				if err != nil {
 					return false
 				}
 				return iterA.All(func(itemA Value) bool {
 					itemB := iterB.Next().Unwrap()
-					return Equal(itemA, itemB)
+					return valueEqual(itemA, itemB)
 				})
-			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
-				if v.Len() != other.Len() {
+			} else if v.kind() == valueKindMap && other.kind() == valueKindMap {
+				if v.len() != other.len() {
 					return false
 				}
-				iterA, err := v.TryIter()
+				iterA, err := v.tryIter()
 				if err != nil {
 					return false
 				}
 				return iterA.All(func(key Value) bool {
-					optValA := v.GetItemOpt(key)
-					optValB := other.GetItemOpt(key)
+					optValA := v.getItemOpt(key)
+					optValB := other.getItemOpt(key)
 					if optValA.IsSome() && optValB.IsSome() {
-						return Equal(optValA.Unwrap(), optValB.Unwrap())
+						return valueEqual(optValA.Unwrap(), optValB.Unwrap())
 					}
 					return false
 				})
@@ -1178,31 +1176,27 @@ func valueEqualAny(v Value, other any) bool {
 	return false
 }
 
-func valueEqual(v, other Value) bool {
-	return Cmp(v, other) == 0
-}
-
-// Cmp returns
+// valueCmp returns
 // -1 if v is less than other,
 //
 //	0 if v equals other,
 //
 // +1 if v is greater than other.
-func Cmp(v, other Value) int {
+func valueCmp(v, other Value) int {
 	var rv int
 outer:
 	switch {
-	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
+	case v.kind() == valueKindNone && other.kind() == valueKindNone:
 		rv = 0
-	case v.Kind() == ValueKindUndefined && other.Kind() == ValueKindUndefined:
+	case v.kind() == valueKindUndefined && other.kind() == valueKindUndefined:
 		rv = 0
-	case v.Kind() == ValueKindString && other.Kind() == ValueKindString:
-		a := v.(StringValue).Str
-		b := other.(StringValue).Str
+	case v.kind() == valueKindString && other.kind() == valueKindString:
+		a := v.(stringValue).Str
+		b := other.(stringValue).Str
 		rv = strings.Compare(a, b)
-	case v.Kind() == ValueKindBytes && other.Kind() == ValueKindBytes:
-		a := v.(BytesValue).B
-		b := other.(BytesValue).B
+	case v.kind() == valueKindBytes && other.kind() == valueKindBytes:
+		a := v.(bytesValue).B
+		b := other.(bytesValue).B
 		rv = bytes.Compare(a, b)
 	default:
 		switch c := coerce(v, other).(type) {
@@ -1213,32 +1207,32 @@ outer:
 		case strCoerceResult:
 			rv = strings.Compare(c.lhs, c.rhs)
 		default:
-			if optA, optB := v.AsSeq(), other.AsSeq(); optA.IsSome() && optB.IsSome() {
-				iterA, err := v.TryIter()
+			if optA, optB := v.asSeq(), other.asSeq(); optA.IsSome() && optB.IsSome() {
+				iterA, err := v.tryIter()
 				if err != nil {
 					break outer
 				}
-				iterB, err := other.TryIter()
+				iterB, err := other.tryIter()
 				if err != nil {
 					break outer
 				}
-				return iterA.CompareBy(&iterB, Cmp)
-			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
-				iterA, err := v.TryIter()
+				return iterA.CompareBy(&iterB, valueCmp)
+			} else if v.kind() == valueKindMap && other.kind() == valueKindMap {
+				iterA, err := v.tryIter()
 				if err != nil {
 					break outer
 				}
-				iterB, err := other.TryIter()
+				iterB, err := other.tryIter()
 				if err != nil {
 					break outer
 				}
 				return iterA.CompareBy(&iterB, func(keyA, keyB Value) int {
-					if rv := Cmp(keyA, keyB); rv != 0 {
+					if rv := valueCmp(keyA, keyB); rv != 0 {
 						return 0
 					}
-					optValA := v.GetItemOpt(keyA)
-					optValB := other.GetItemOpt(keyB)
-					return optValA.Compare(optValB, Cmp)
+					optValA := v.getItemOpt(keyA)
+					optValB := other.getItemOpt(keyB)
+					return optValA.Compare(optValB, valueCmp)
 				})
 			}
 		}
@@ -1246,7 +1240,7 @@ outer:
 	if rv != 0 {
 		return rv
 	}
-	return cmp.Compare(v.Kind(), other.Kind())
+	return cmp.Compare(v.kind(), other.kind())
 }
 
 func f64TotalCmp(left, right float64) int {
@@ -1257,15 +1251,15 @@ func f64TotalCmp(left, right float64) int {
 	return cmp.Compare(leftInt, rightInt)
 }
 
-func GetItem(val, key Value) (Value, error) {
-	if val.IsUndefined() {
-		return nil, NewError(UndefinedError, "")
+func getItem(val, key Value) (Value, error) {
+	if val.isUndefined() {
+		return nil, newError(UndefinedError, "")
 	}
-	return val.GetItemOpt(key).UnwrapOr(Undefined), nil
+	return val.getItemOpt(key).UnwrapOr(Undefined), nil
 }
 
-func BoolTryFromValue(v Value) (bool, error) {
-	if boolVal, ok := v.(BoolValue); ok {
+func boolTryFromValue(v Value) (bool, error) {
+	if boolVal, ok := v.(boolValue); ok {
 		return boolVal.B, nil
 	}
 	return false, unsupportedConversion(v.typ(), "bool")
@@ -1273,21 +1267,21 @@ func BoolTryFromValue(v Value) (bool, error) {
 
 func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 	if v.IsNone() {
-		return false, NewError(MissingArgument, "")
+		return false, newError(MissingArgument, "")
 	}
-	return BoolTryFromValue(v.Unwrap())
+	return boolTryFromValue(v.Unwrap())
 }
 
-func GetAttr(val Value, key string) (Value, error) {
+func getAttr(val Value, key string) (Value, error) {
 	switch v := val.(type) {
-	case UndefinedValue:
-		return nil, NewError(UndefinedError, "")
-	case MapValue:
-		if v2, ok := v.Map.Get(KeyRefFromString(key)); ok {
-			return v2.Clone(), nil
+	case undefinedValue:
+		return nil, newError(UndefinedError, "")
+	case mapValue:
+		if v2, ok := v.Map.Get(keyRefFromString(key)); ok {
+			return v2.clone(), nil
 		}
-	case DynamicValue:
-		if obj, ok := v.Dy.(StructObject); ok {
+	case dynamicValue:
+		if obj, ok := v.Dy.(structObject); ok {
 			if optField := obj.GetField(key); optField.IsSome() {
 				return optField.Unwrap(), nil
 			}
@@ -1297,15 +1291,15 @@ func GetAttr(val Value, key string) (Value, error) {
 }
 
 func valueGetItemByIndex(val Value, idx uint) (Value, error) {
-	return GetItem(val, ValueFromU64(uint64(idx)))
+	return getItem(val, valueFromU64(uint64(idx)))
 }
 
-func GetPath(val Value, path string) (Value, error) {
-	rv := val.Clone()
+func getPath(val Value, path string) (Value, error) {
+	rv := val.clone()
 	for _, part := range strings.Split(path, ".") {
 		num, err := strconv.ParseUint(part, 10, 64)
 		if err != nil {
-			rv, err = GetAttr(val, part)
+			rv, err = getAttr(val, part)
 			if err != nil {
 				return nil, err
 			}
@@ -1319,60 +1313,60 @@ func GetPath(val Value, path string) (Value, error) {
 	return rv, nil
 }
 
-func (v UndefinedValue) Hash(h hash.Hash) { valueHash(v, h) }
-func (v BoolValue) Hash(h hash.Hash)      { valueHash(v, h) }
-func (v U64Value) Hash(h hash.Hash)       { valueHash(v, h) }
-func (v I64Value) Hash(h hash.Hash)       { valueHash(v, h) }
-func (v F64Value) Hash(h hash.Hash)       { valueHash(v, h) }
-func (v NoneValue) Hash(h hash.Hash)      { valueHash(v, h) }
-func (v InvalidValue) Hash(h hash.Hash)   { valueHash(v, h) }
-func (v U128Value) Hash(h hash.Hash)      { valueHash(v, h) }
-func (v I128Value) Hash(h hash.Hash)      { valueHash(v, h) }
-func (v StringValue) Hash(h hash.Hash)    { valueHash(v, h) }
-func (v BytesValue) Hash(h hash.Hash)     { valueHash(v, h) }
-func (v SeqValue) Hash(h hash.Hash)       { valueHash(v, h) }
-func (v MapValue) Hash(h hash.Hash)       { valueHash(v, h) }
-func (v DynamicValue) Hash(h hash.Hash)   { valueHash(v, h) }
+func (v undefinedValue) hash(h hash.Hash) { valueHash(v, h) }
+func (v boolValue) hash(h hash.Hash)      { valueHash(v, h) }
+func (v u64Value) hash(h hash.Hash)       { valueHash(v, h) }
+func (v i64Value) hash(h hash.Hash)       { valueHash(v, h) }
+func (v f64Value) hash(h hash.Hash)       { valueHash(v, h) }
+func (v noneValue) hash(h hash.Hash)      { valueHash(v, h) }
+func (v invalidValue) hash(h hash.Hash)   { valueHash(v, h) }
+func (v u128Value) hash(h hash.Hash)      { valueHash(v, h) }
+func (v i128Value) hash(h hash.Hash)      { valueHash(v, h) }
+func (v stringValue) hash(h hash.Hash)    { valueHash(v, h) }
+func (v bytesValue) hash(h hash.Hash)     { valueHash(v, h) }
+func (v seqValue) hash(h hash.Hash)       { valueHash(v, h) }
+func (v mapValue) hash(h hash.Hash)       { valueHash(v, h) }
+func (v dynamicValue) hash(h hash.Hash)   { valueHash(v, h) }
 
 func valueHash(val Value, h hash.Hash) {
 	switch v := val.(type) {
-	case NoneValue, UndefinedValue:
+	case noneValue, undefinedValue:
 		h.Write([]byte{0})
-	case StringValue:
+	case stringValue:
 		io.WriteString(h, v.Str)
-	case BoolValue:
+	case boolValue:
 		b := byte(8)
 		if v.B {
 			b = byte(1)
 		}
 		h.Write([]byte{b})
-	case InvalidValue:
+	case invalidValue:
 		io.WriteString(h, v.Detail)
-	case BytesValue:
+	case bytesValue:
 		h.Write(v.B)
-	case SeqValue:
+	case seqValue:
 		binary.Write(h, binary.BigEndian, uint64(len(v.Items)))
 		for _, item := range v.Items {
 			valueHash(item, h)
 		}
-	case MapValue:
+	case mapValue:
 		l := v.Map.Len()
 		for i := uint(0); i < l; i++ {
 			entry, _ := v.Map.EntryAt(i)
 			keyRefHash(entry.Key, h)
 			valueHash(entry.Value, h)
 		}
-	case DynamicValue:
+	case dynamicValue:
 		switch v.Dy.Kind() {
-		case ObjectKindPlain:
+		case objectKindPlain:
 			h.Write([]byte{0})
-		case ObjectKindSeq:
+		case objectKindSeq:
 			var item Value
-			for iter := IteratorFromSeqObject(v.Dy.(SeqObject)); iter.Next().UnwrapTo(&item); {
+			for iter := iteratorFromSeqObject(v.Dy.(seqObject)); iter.Next().UnwrapTo(&item); {
 				valueHash(item, h)
 			}
-		case ObjectKindStruct:
-			structObj := v.Dy.(StructObject)
+		case objectKindStruct:
+			structObj := v.Dy.(structObject)
 			var fields []string
 			if !structObj.StaticFields().UnwrapTo(&fields) {
 				fields = structObj.Fields()
@@ -1382,10 +1376,10 @@ func valueHash(val Value, h hash.Hash) {
 				structObj.GetField(field).Hash(h, valueHash)
 			}
 		}
-	case U64Value, I64Value, F64Value, U128Value, I128Value:
-		n, err := val.Clone().TryToI64()
+	case u64Value, i64Value, f64Value, u128Value, i128Value:
+		n, err := val.clone().tryToI64()
 		if err != nil {
-			val.AsF64().Hash(h, f64Hash)
+			val.asF64().Hash(h, f64Hash)
 		} else {
 			binary.Write(h, binary.BigEndian, n)
 		}
@@ -1396,17 +1390,17 @@ func f64Hash(f float64, h hash.Hash) {
 	binary.Write(h, binary.BigEndian, math.Float64bits(f))
 }
 
-func (v UndefinedValue) Equal(other any) bool { return valueEqualAny(v, other) }
-func (v BoolValue) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v U64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v I64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v F64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v NoneValue) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v InvalidValue) Equal(other any) bool   { return valueEqualAny(v, other) }
-func (v U128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v I128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v StringValue) Equal(other any) bool    { return valueEqualAny(v, other) }
-func (v BytesValue) Equal(other any) bool     { return valueEqualAny(v, other) }
-func (v SeqValue) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v MapValue) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v DynamicValue) Equal(other any) bool   { return valueEqualAny(v, other) }
+func (v undefinedValue) equal(other any) bool { return valueEqualAny(v, other) }
+func (v boolValue) equal(other any) bool      { return valueEqualAny(v, other) }
+func (v u64Value) equal(other any) bool       { return valueEqualAny(v, other) }
+func (v i64Value) equal(other any) bool       { return valueEqualAny(v, other) }
+func (v f64Value) equal(other any) bool       { return valueEqualAny(v, other) }
+func (v noneValue) equal(other any) bool      { return valueEqualAny(v, other) }
+func (v invalidValue) equal(other any) bool   { return valueEqualAny(v, other) }
+func (v u128Value) equal(other any) bool      { return valueEqualAny(v, other) }
+func (v i128Value) equal(other any) bool      { return valueEqualAny(v, other) }
+func (v stringValue) equal(other any) bool    { return valueEqualAny(v, other) }
+func (v bytesValue) equal(other any) bool     { return valueEqualAny(v, other) }
+func (v seqValue) equal(other any) bool       { return valueEqualAny(v, other) }
+func (v mapValue) equal(other any) bool       { return valueEqualAny(v, other) }
+func (v dynamicValue) equal(other any) bool   { return valueEqualAny(v, other) }

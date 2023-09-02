@@ -7,7 +7,7 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type LoopObject struct {
+type loopObject struct {
 	len              uint
 	idx              uint
 	depth            uint
@@ -15,34 +15,34 @@ type LoopObject struct {
 	lastChangedValue []Value
 }
 
-var _ = (Object)((*LoopObject)(nil))
-var _ = (CallMethoder)((*LoopObject)(nil))
-var _ = (StructObject)((*LoopObject)(nil))
+var _ = (object)((*loopObject)(nil))
+var _ = (callMethoder)((*loopObject)(nil))
+var _ = (structObject)((*loopObject)(nil))
 
-func (l *LoopObject) Kind() ObjectKind { return ObjectKindStruct }
+func (l *loopObject) Kind() objectKind { return objectKindStruct }
 
-func (l *LoopObject) CallMethod(state *State, name string, args []Value) (Value, error) {
+func (l *loopObject) CallMethod(state *vmState, name string, args []Value) (Value, error) {
 	switch name {
 	case "changed":
 		if slices.Equal(l.lastChangedValue, args) {
-			return ValueFromBool(false), nil
+			return valueFromBool(false), nil
 		}
 		l.lastChangedValue = make([]Value, len(args))
 		for i, arg := range args {
 			l.lastChangedValue[i] = arg
 		}
-		return ValueFromBool(true), nil
+		return valueFromBool(true), nil
 	case "cycle":
 		idx := l.idx % uint(len(args))
 		if idx < uint(len(args)) {
-			return args[idx].Clone(), nil
+			return args[idx].clone(), nil
 		}
 		return Undefined, nil
 	}
-	return nil, NewError(UnknownMethod, fmt.Sprintf("loop object has no method named %s", name))
+	return nil, newError(UnknownMethod, fmt.Sprintf("loop object has no method named %s", name))
 }
 
-func (*LoopObject) StaticFields() option.Option[[]string] {
+func (*loopObject) StaticFields() option.Option[[]string] {
 	return option.Some([]string{
 		"index0",
 		"index",
@@ -58,9 +58,9 @@ func (*LoopObject) StaticFields() option.Option[[]string] {
 	})
 }
 
-func (*LoopObject) Fields() []string { return nil }
+func (*loopObject) Fields() []string { return nil }
 
-func (l *LoopObject) GetField(name string) option.Option[Value] {
+func (l *loopObject) GetField(name string) option.Option[Value] {
 	idx := l.idx
 	// if we never iterated, then all attributes are undefined.
 	// this can happen in some rare circumstances where the engine
@@ -70,29 +70,29 @@ func (l *LoopObject) GetField(name string) option.Option[Value] {
 	}
 	switch name {
 	case "index0":
-		return option.Some[Value](ValueFromI64(int64(idx)))
+		return option.Some[Value](valueFromI64(int64(idx)))
 	case "index":
-		return option.Some[Value](ValueFromI64(int64(idx + 1)))
+		return option.Some[Value](valueFromI64(int64(idx + 1)))
 	case "len":
-		return option.Some[Value](ValueFromI64(int64(l.len)))
+		return option.Some[Value](valueFromI64(int64(l.len)))
 	case "revindex":
 		// TODO: saturating_sub
-		return option.Some[Value](ValueFromI64(int64(l.len - idx)))
+		return option.Some[Value](valueFromI64(int64(l.len - idx)))
 	case "revindex0":
 		// TODO: saturating_sub
-		return option.Some[Value](ValueFromI64(int64(l.len - idx - 1)))
+		return option.Some[Value](valueFromI64(int64(l.len - idx - 1)))
 	case "first":
-		return option.Some[Value](ValueFromBool(idx == 0))
+		return option.Some[Value](valueFromBool(idx == 0))
 	case "last":
-		return option.Some[Value](ValueFromBool(l.len == 0 || idx == l.len-1))
+		return option.Some[Value](valueFromBool(l.len == 0 || idx == l.len-1))
 	case "depth":
-		return option.Some[Value](ValueFromI64(int64(l.depth + 1)))
+		return option.Some[Value](valueFromI64(int64(l.depth + 1)))
 	case "depth0":
-		return option.Some[Value](ValueFromI64(int64(l.depth)))
+		return option.Some[Value](valueFromI64(int64(l.depth)))
 	case "previtem":
-		return option.Some[Value](l.valueTriple[0].UnwrapOr(Undefined).Clone())
+		return option.Some[Value](l.valueTriple[0].UnwrapOr(Undefined).clone())
 	case "nextitem":
-		return option.Some[Value](l.valueTriple[2].UnwrapOr(Undefined).Clone())
+		return option.Some[Value](l.valueTriple[2].UnwrapOr(Undefined).clone())
 	}
 	return option.None[Value]()
 }

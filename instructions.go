@@ -7,129 +7,129 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type CaptureMode uint8
+type captureMode uint8
 
 const (
-	CaptureModeCapture CaptureMode = iota + 1
-	CaptureModeDiscard
+	captureModeCapture captureMode = iota + 1
+	captureModeDiscard
 )
 
 const (
 	// This loop has the loop var.
-	LoopFlagWithLoopVar = 1
+	loopFlagWithLoopVar = 1
 
 	// This loop is recursive.
-	LoopFlagRecursive = 2
+	loopFlagRecursive = 2
 )
 
 // This macro uses the caller var.
-const MacroCaller = 2
+const macroCaller = 2
 
 // Go type to represent locals.
-type LocalID = uint8
+type localID = uint8
 
 // The maximum number of filters/tests that can be cached.
-const MaxLocals = 50
+const maxLocals = 50
 
-type Instructions struct {
-	instructions []Instruction
+type instructions struct {
+	instructions []instruction
 	lineInfos    []lineInfo
 	spanInfos    []spanInfo
 	name         string
 	source       string
 }
 
-func (i *Instructions) Instructions() []Instruction { return i.instructions }
+func (i *instructions) Instructions() []instruction { return i.instructions }
 
-func (i *Instructions) Name() string { return i.name }
+func (i *instructions) Name() string { return i.name }
 
-var emptyInstructions = Instructions{
+var emptyInstructions = instructions{
 	name: "<unknown>",
 }
 
-type Instruction interface {
+type instruction interface {
 	Typ() instType
 }
 
-type EmitRawInstruction struct{ Val string }
-type StoreLocalInstruction struct{ Name string }
-type LookupInstruction struct{ Name string }
-type GetAttrInstruction struct{ Name string }
-type GetItemInstruction struct{}
-type SliceInstruction struct{}
-type LoadConstInstruction struct{ Val Value }
-type BuildMapInstruction struct{ PairCount uint }
-type BuildKwargsInstruction struct{ PairCount uint }
-type BuildListInstruction struct{ Count uint }
-type UnpackListInstruction struct{ Count uint }
-type ListAppendInstruction struct{}
-type AddInstruction struct{}
-type SubInstruction struct{}
-type MulInstruction struct{}
-type DivInstruction struct{}
-type IntDivInstruction struct{}
-type RemInstruction struct{}
-type PowInstruction struct{}
-type NegInstruction struct{}
-type EqInstruction struct{}
-type NeInstruction struct{}
-type GtInstruction struct{}
-type GteInstruction struct{}
-type LtInstruction struct{}
-type LteInstruction struct{}
-type NotInstruction struct{}
-type StringConcatInstruction struct{}
-type InInstruction struct{}
-type ApplyFilterInstruction struct {
+type emitRawInstruction struct{ Val string }
+type storeLocalInstruction struct{ Name string }
+type lookupInstruction struct{ Name string }
+type getAttrInstruction struct{ Name string }
+type getItemInstruction struct{}
+type sliceInstruction struct{}
+type loadConstInstruction struct{ Val Value }
+type buildMapInstruction struct{ PairCount uint }
+type buildKwargsInstruction struct{ PairCount uint }
+type buildListInstruction struct{ Count uint }
+type unpackListInstruction struct{ Count uint }
+type listAppendInstruction struct{}
+type addInstruction struct{}
+type subInstruction struct{}
+type mulInstruction struct{}
+type divInstruction struct{}
+type intDivInstruction struct{}
+type remInstruction struct{}
+type powInstruction struct{}
+type negInstruction struct{}
+type eqInstruction struct{}
+type neInstruction struct{}
+type gtInstruction struct{}
+type gteInstruction struct{}
+type ltInstruction struct{}
+type lteInstruction struct{}
+type notInstruction struct{}
+type stringConcatInstruction struct{}
+type inInstruction struct{}
+type applyFilterInstruction struct {
 	Name     string
 	ArgCount uint
-	LocalID  LocalID
+	LocalID  localID
 }
-type PerformTestInstruction struct {
+type performTestInstruction struct {
 	Name     string
 	ArgCount uint
-	LocalID  LocalID
+	LocalID  localID
 }
-type EmitInstruction struct{}
-type PushLoopInstruction struct{ Flags uint8 }
-type PushWithInstruction struct{}
-type IterateInstruction struct{ JumpTarget uint }
-type PushDidNotIterateInstruction struct{}
-type PopFrameInstruction struct{}
-type JumpInstruction struct{ JumpTarget uint }
-type JumpIfFalseInstruction struct{ JumpTarget uint }
-type JumpIfFalseOrPopInstruction struct{ JumpTarget uint }
-type JumpIfTrueOrPopInstruction struct{ JumpTarget uint }
-type PushAutoEscapeInstruction struct{}
-type PopAutoEscapeInstruction struct{}
-type BeginCaptureInstruction struct{ Mode CaptureMode }
-type EndCaptureInstruction struct{}
-type CallFunctionInstruction struct {
-	Name     string
-	ArgCount uint
-}
-type CallMethodInstruction struct {
+type emitInstruction struct{}
+type pushLoopInstruction struct{ Flags uint8 }
+type pushWithInstruction struct{}
+type iterateInstruction struct{ JumpTarget uint }
+type pushDidNotIterateInstruction struct{}
+type popFrameInstruction struct{}
+type jumpInstruction struct{ JumpTarget uint }
+type jumpIfFalseInstruction struct{ JumpTarget uint }
+type jumpIfFalseOrPopInstruction struct{ JumpTarget uint }
+type jumpIfTrueOrPopInstruction struct{ JumpTarget uint }
+type pushAutoEscapeInstruction struct{}
+type popAutoEscapeInstruction struct{}
+type beginCaptureInstruction struct{ Mode captureMode }
+type endCaptureInstruction struct{}
+type callFunctionInstruction struct {
 	Name     string
 	ArgCount uint
 }
-type CallObjectInstruction struct{ ArgCount uint }
-type DupTopInstruction struct{}
-type DiscardTopInstruction struct{}
-type FastSuperInstruction struct{}
-type FastRecurseInstruction struct{}
-type CallBlockInstruction struct{ Name string }
-type LoadBlocksInstruction struct{}
-type IncludeInstruction struct{ IgnoreMissing bool }
-type ExportLocalsInstruction struct{}
-type BuildMacroInstruction struct {
+type callMethodInstruction struct {
+	Name     string
+	ArgCount uint
+}
+type callObjectInstruction struct{ ArgCount uint }
+type dupTopInstruction struct{}
+type discardTopInstruction struct{}
+type fastSuperInstruction struct{}
+type fastRecurseInstruction struct{}
+type callBlockInstruction struct{ Name string }
+type loadBlocksInstruction struct{}
+type includeInstruction struct{ IgnoreMissing bool }
+type exportLocalsInstruction struct{}
+type buildMacroInstruction struct {
 	Name   string
 	Offset uint
 	Flags  uint8
 }
-type ReturnInstruction struct{}
-type IsUndefinedInstruction struct{}
-type EncloseInstruction struct{ Name string }
-type GetClosureInstruction struct{}
+type returnInstruction struct{}
+type isUndefinedInstruction struct{}
+type encloseInstruction struct{ Name string }
+type getClosureInstruction struct{}
 
 type lineInfo struct {
 	firstInstruction uint32
@@ -138,132 +138,132 @@ type lineInfo struct {
 
 type spanInfo struct {
 	firstInstruction uint32
-	span             option.Option[Span]
+	span             option.Option[span]
 }
 
-var _ = Instruction(EmitRawInstruction{})
-var _ = Instruction(StoreLocalInstruction{})
-var _ = Instruction(LookupInstruction{})
-var _ = Instruction(GetAttrInstruction{})
-var _ = Instruction(GetItemInstruction{})
-var _ = Instruction(SliceInstruction{})
-var _ = Instruction(LoadConstInstruction{})
-var _ = Instruction(BuildMapInstruction{})
-var _ = Instruction(BuildKwargsInstruction{})
-var _ = Instruction(BuildListInstruction{})
-var _ = Instruction(UnpackListInstruction{})
-var _ = Instruction(ListAppendInstruction{})
-var _ = Instruction(AddInstruction{})
-var _ = Instruction(SubInstruction{})
-var _ = Instruction(MulInstruction{})
-var _ = Instruction(DivInstruction{})
-var _ = Instruction(IntDivInstruction{})
-var _ = Instruction(RemInstruction{})
-var _ = Instruction(PowInstruction{})
-var _ = Instruction(NegInstruction{})
-var _ = Instruction(EqInstruction{})
-var _ = Instruction(NeInstruction{})
-var _ = Instruction(GtInstruction{})
-var _ = Instruction(GteInstruction{})
-var _ = Instruction(LtInstruction{})
-var _ = Instruction(LteInstruction{})
-var _ = Instruction(NotInstruction{})
-var _ = Instruction(StringConcatInstruction{})
-var _ = Instruction(InInstruction{})
-var _ = Instruction(ApplyFilterInstruction{})
-var _ = Instruction(PerformTestInstruction{})
-var _ = Instruction(EmitInstruction{})
-var _ = Instruction(PushLoopInstruction{})
-var _ = Instruction(PushWithInstruction{})
-var _ = Instruction(IterateInstruction{})
-var _ = Instruction(PushDidNotIterateInstruction{})
-var _ = Instruction(PopFrameInstruction{})
-var _ = Instruction(JumpInstruction{})
-var _ = Instruction(JumpIfFalseInstruction{})
-var _ = Instruction(JumpIfFalseOrPopInstruction{})
-var _ = Instruction(JumpIfTrueOrPopInstruction{})
-var _ = Instruction(PushAutoEscapeInstruction{})
-var _ = Instruction(PopAutoEscapeInstruction{})
-var _ = Instruction(BeginCaptureInstruction{})
-var _ = Instruction(EndCaptureInstruction{})
-var _ = Instruction(CallFunctionInstruction{})
-var _ = Instruction(CallMethodInstruction{})
-var _ = Instruction(CallObjectInstruction{})
-var _ = Instruction(DupTopInstruction{})
-var _ = Instruction(DiscardTopInstruction{})
-var _ = Instruction(FastSuperInstruction{})
-var _ = Instruction(FastRecurseInstruction{})
-var _ = Instruction(CallBlockInstruction{})
-var _ = Instruction(LoadBlocksInstruction{})
-var _ = Instruction(IncludeInstruction{})
-var _ = Instruction(ExportLocalsInstruction{})
-var _ = Instruction(BuildMacroInstruction{})
-var _ = Instruction(ReturnInstruction{})
-var _ = Instruction(IsUndefinedInstruction{})
-var _ = Instruction(EncloseInstruction{})
-var _ = Instruction(GetClosureInstruction{})
+var _ = instruction(emitRawInstruction{})
+var _ = instruction(storeLocalInstruction{})
+var _ = instruction(lookupInstruction{})
+var _ = instruction(getAttrInstruction{})
+var _ = instruction(getItemInstruction{})
+var _ = instruction(sliceInstruction{})
+var _ = instruction(loadConstInstruction{})
+var _ = instruction(buildMapInstruction{})
+var _ = instruction(buildKwargsInstruction{})
+var _ = instruction(buildListInstruction{})
+var _ = instruction(unpackListInstruction{})
+var _ = instruction(listAppendInstruction{})
+var _ = instruction(addInstruction{})
+var _ = instruction(subInstruction{})
+var _ = instruction(mulInstruction{})
+var _ = instruction(divInstruction{})
+var _ = instruction(intDivInstruction{})
+var _ = instruction(remInstruction{})
+var _ = instruction(powInstruction{})
+var _ = instruction(negInstruction{})
+var _ = instruction(eqInstruction{})
+var _ = instruction(neInstruction{})
+var _ = instruction(gtInstruction{})
+var _ = instruction(gteInstruction{})
+var _ = instruction(ltInstruction{})
+var _ = instruction(lteInstruction{})
+var _ = instruction(notInstruction{})
+var _ = instruction(stringConcatInstruction{})
+var _ = instruction(inInstruction{})
+var _ = instruction(applyFilterInstruction{})
+var _ = instruction(performTestInstruction{})
+var _ = instruction(emitInstruction{})
+var _ = instruction(pushLoopInstruction{})
+var _ = instruction(pushWithInstruction{})
+var _ = instruction(iterateInstruction{})
+var _ = instruction(pushDidNotIterateInstruction{})
+var _ = instruction(popFrameInstruction{})
+var _ = instruction(jumpInstruction{})
+var _ = instruction(jumpIfFalseInstruction{})
+var _ = instruction(jumpIfFalseOrPopInstruction{})
+var _ = instruction(jumpIfTrueOrPopInstruction{})
+var _ = instruction(pushAutoEscapeInstruction{})
+var _ = instruction(popAutoEscapeInstruction{})
+var _ = instruction(beginCaptureInstruction{})
+var _ = instruction(endCaptureInstruction{})
+var _ = instruction(callFunctionInstruction{})
+var _ = instruction(callMethodInstruction{})
+var _ = instruction(callObjectInstruction{})
+var _ = instruction(dupTopInstruction{})
+var _ = instruction(discardTopInstruction{})
+var _ = instruction(fastSuperInstruction{})
+var _ = instruction(fastRecurseInstruction{})
+var _ = instruction(callBlockInstruction{})
+var _ = instruction(loadBlocksInstruction{})
+var _ = instruction(includeInstruction{})
+var _ = instruction(exportLocalsInstruction{})
+var _ = instruction(buildMacroInstruction{})
+var _ = instruction(returnInstruction{})
+var _ = instruction(isUndefinedInstruction{})
+var _ = instruction(encloseInstruction{})
+var _ = instruction(getClosureInstruction{})
 
-func (EmitRawInstruction) Typ() instType           { return instTypeEmitRaw }
-func (StoreLocalInstruction) Typ() instType        { return instTypeStoreLocal }
-func (LookupInstruction) Typ() instType            { return instTypeLookup }
-func (GetAttrInstruction) Typ() instType           { return instTypeGetAttr }
-func (GetItemInstruction) Typ() instType           { return instTypeGetItem }
-func (SliceInstruction) Typ() instType             { return instTypeSlice }
-func (LoadConstInstruction) Typ() instType         { return instTypeLoadConst }
-func (BuildMapInstruction) Typ() instType          { return instTypeBuildMap }
-func (BuildKwargsInstruction) Typ() instType       { return instTypeBuildKwargs }
-func (BuildListInstruction) Typ() instType         { return instTypeBuildList }
-func (UnpackListInstruction) Typ() instType        { return instTypeUnpackList }
-func (ListAppendInstruction) Typ() instType        { return instTypeListAppend }
-func (AddInstruction) Typ() instType               { return instTypeAdd }
-func (SubInstruction) Typ() instType               { return instTypeSub }
-func (MulInstruction) Typ() instType               { return instTypeMul }
-func (DivInstruction) Typ() instType               { return instTypeDiv }
-func (IntDivInstruction) Typ() instType            { return instTypeIntDiv }
-func (RemInstruction) Typ() instType               { return instTypeRem }
-func (PowInstruction) Typ() instType               { return instTypePow }
-func (NegInstruction) Typ() instType               { return instTypeNeg }
-func (EqInstruction) Typ() instType                { return instTypeEq }
-func (NeInstruction) Typ() instType                { return instTypeNe }
-func (GtInstruction) Typ() instType                { return instTypeGt }
-func (GteInstruction) Typ() instType               { return instTypeGte }
-func (LtInstruction) Typ() instType                { return instTypeLt }
-func (LteInstruction) Typ() instType               { return instTypeLte }
-func (NotInstruction) Typ() instType               { return instTypeNot }
-func (StringConcatInstruction) Typ() instType      { return instTypeStringConcat }
-func (InInstruction) Typ() instType                { return instTypeIn }
-func (ApplyFilterInstruction) Typ() instType       { return instTypeApplyFilter }
-func (PerformTestInstruction) Typ() instType       { return instTypePerformTest }
-func (EmitInstruction) Typ() instType              { return instTypeEmit }
-func (PushLoopInstruction) Typ() instType          { return instTypePushLoop }
-func (PushWithInstruction) Typ() instType          { return instTypePushWith }
-func (IterateInstruction) Typ() instType           { return instTypeIterate }
-func (PushDidNotIterateInstruction) Typ() instType { return instTypePushDidNotIterate }
-func (PopFrameInstruction) Typ() instType          { return instTypePopFrame }
-func (JumpInstruction) Typ() instType              { return instTypeJump }
-func (JumpIfFalseInstruction) Typ() instType       { return instTypeJumpIfFalse }
-func (JumpIfFalseOrPopInstruction) Typ() instType  { return instTypeJumpIfFalseOrPop }
-func (JumpIfTrueOrPopInstruction) Typ() instType   { return instTypeJumpIfTrueOrPop }
-func (PushAutoEscapeInstruction) Typ() instType    { return instTypePushAutoEscape }
-func (PopAutoEscapeInstruction) Typ() instType     { return instTypePopAutoEscape }
-func (BeginCaptureInstruction) Typ() instType      { return instTypeBeginCapture }
-func (EndCaptureInstruction) Typ() instType        { return instTypeEndCapture }
-func (CallFunctionInstruction) Typ() instType      { return instTypeCallFunction }
-func (CallMethodInstruction) Typ() instType        { return instTypeCallMethod }
-func (CallObjectInstruction) Typ() instType        { return instTypeCallObject }
-func (DupTopInstruction) Typ() instType            { return instTypeDupTop }
-func (DiscardTopInstruction) Typ() instType        { return instTypeDiscardTop }
-func (FastSuperInstruction) Typ() instType         { return instTypeFastSuper }
-func (FastRecurseInstruction) Typ() instType       { return instTypeFastRecurse }
-func (CallBlockInstruction) Typ() instType         { return instTypeCallBlock }
-func (LoadBlocksInstruction) Typ() instType        { return instTypeLoadBlocks }
-func (IncludeInstruction) Typ() instType           { return instTypeInclude }
-func (ExportLocalsInstruction) Typ() instType      { return instTypeExportLocals }
-func (BuildMacroInstruction) Typ() instType        { return instTypeBuildMacro }
-func (ReturnInstruction) Typ() instType            { return instTypeReturn }
-func (IsUndefinedInstruction) Typ() instType       { return instTypeIsUndefined }
-func (EncloseInstruction) Typ() instType           { return instTypeEnclose }
-func (GetClosureInstruction) Typ() instType        { return instTypeGetClosure }
+func (emitRawInstruction) Typ() instType           { return instTypeEmitRaw }
+func (storeLocalInstruction) Typ() instType        { return instTypeStoreLocal }
+func (lookupInstruction) Typ() instType            { return instTypeLookup }
+func (getAttrInstruction) Typ() instType           { return instTypeGetAttr }
+func (getItemInstruction) Typ() instType           { return instTypeGetItem }
+func (sliceInstruction) Typ() instType             { return instTypeSlice }
+func (loadConstInstruction) Typ() instType         { return instTypeLoadConst }
+func (buildMapInstruction) Typ() instType          { return instTypeBuildMap }
+func (buildKwargsInstruction) Typ() instType       { return instTypeBuildKwargs }
+func (buildListInstruction) Typ() instType         { return instTypeBuildList }
+func (unpackListInstruction) Typ() instType        { return instTypeUnpackList }
+func (listAppendInstruction) Typ() instType        { return instTypeListAppend }
+func (addInstruction) Typ() instType               { return instTypeAdd }
+func (subInstruction) Typ() instType               { return instTypeSub }
+func (mulInstruction) Typ() instType               { return instTypeMul }
+func (divInstruction) Typ() instType               { return instTypeDiv }
+func (intDivInstruction) Typ() instType            { return instTypeIntDiv }
+func (remInstruction) Typ() instType               { return instTypeRem }
+func (powInstruction) Typ() instType               { return instTypePow }
+func (negInstruction) Typ() instType               { return instTypeNeg }
+func (eqInstruction) Typ() instType                { return instTypeEq }
+func (neInstruction) Typ() instType                { return instTypeNe }
+func (gtInstruction) Typ() instType                { return instTypeGt }
+func (gteInstruction) Typ() instType               { return instTypeGte }
+func (ltInstruction) Typ() instType                { return instTypeLt }
+func (lteInstruction) Typ() instType               { return instTypeLte }
+func (notInstruction) Typ() instType               { return instTypeNot }
+func (stringConcatInstruction) Typ() instType      { return instTypeStringConcat }
+func (inInstruction) Typ() instType                { return instTypeIn }
+func (applyFilterInstruction) Typ() instType       { return instTypeApplyFilter }
+func (performTestInstruction) Typ() instType       { return instTypePerformTest }
+func (emitInstruction) Typ() instType              { return instTypeEmit }
+func (pushLoopInstruction) Typ() instType          { return instTypePushLoop }
+func (pushWithInstruction) Typ() instType          { return instTypePushWith }
+func (iterateInstruction) Typ() instType           { return instTypeIterate }
+func (pushDidNotIterateInstruction) Typ() instType { return instTypePushDidNotIterate }
+func (popFrameInstruction) Typ() instType          { return instTypePopFrame }
+func (jumpInstruction) Typ() instType              { return instTypeJump }
+func (jumpIfFalseInstruction) Typ() instType       { return instTypeJumpIfFalse }
+func (jumpIfFalseOrPopInstruction) Typ() instType  { return instTypeJumpIfFalseOrPop }
+func (jumpIfTrueOrPopInstruction) Typ() instType   { return instTypeJumpIfTrueOrPop }
+func (pushAutoEscapeInstruction) Typ() instType    { return instTypePushAutoEscape }
+func (popAutoEscapeInstruction) Typ() instType     { return instTypePopAutoEscape }
+func (beginCaptureInstruction) Typ() instType      { return instTypeBeginCapture }
+func (endCaptureInstruction) Typ() instType        { return instTypeEndCapture }
+func (callFunctionInstruction) Typ() instType      { return instTypeCallFunction }
+func (callMethodInstruction) Typ() instType        { return instTypeCallMethod }
+func (callObjectInstruction) Typ() instType        { return instTypeCallObject }
+func (dupTopInstruction) Typ() instType            { return instTypeDupTop }
+func (discardTopInstruction) Typ() instType        { return instTypeDiscardTop }
+func (fastSuperInstruction) Typ() instType         { return instTypeFastSuper }
+func (fastRecurseInstruction) Typ() instType       { return instTypeFastRecurse }
+func (callBlockInstruction) Typ() instType         { return instTypeCallBlock }
+func (loadBlocksInstruction) Typ() instType        { return instTypeLoadBlocks }
+func (includeInstruction) Typ() instType           { return instTypeInclude }
+func (exportLocalsInstruction) Typ() instType      { return instTypeExportLocals }
+func (buildMacroInstruction) Typ() instType        { return instTypeBuildMacro }
+func (returnInstruction) Typ() instType            { return instTypeReturn }
+func (isUndefinedInstruction) Typ() instType       { return instTypeIsUndefined }
+func (encloseInstruction) Typ() instType           { return instTypeEnclose }
+func (getClosureInstruction) Typ() instType        { return instTypeGetClosure }
 
 type instType uint
 
@@ -590,9 +590,9 @@ func (k instType) String() string {
 	}
 }
 
-func newInstructions(name, source string) Instructions {
-	return Instructions{
-		instructions: make([]Instruction, 0, 128),
+func newInstructions(name, source string) instructions {
+	return instructions{
+		instructions: make([]instruction, 0, 128),
 		lineInfos:    make([]lineInfo, 0, 128),
 		spanInfos:    make([]spanInfo, 0, 128),
 		name:         name,
@@ -600,13 +600,13 @@ func newInstructions(name, source string) Instructions {
 	}
 }
 
-func (i *Instructions) add(instr Instruction) uint {
+func (i *instructions) add(instr instruction) uint {
 	rv := len(i.instructions)
 	i.instructions = append(i.instructions, instr)
 	return uint(rv)
 }
 
-func (i *Instructions) addLineRecord(instr uint, line uint32) {
+func (i *instructions) addLineRecord(instr uint, line uint32) {
 	sameLoc := false
 	if len(i.lineInfos) > 0 {
 		lastLoc := i.lineInfos[len(i.lineInfos)-1]
@@ -617,13 +617,13 @@ func (i *Instructions) addLineRecord(instr uint, line uint32) {
 	}
 }
 
-func (i *Instructions) addWithLine(instr Instruction, line uint32) uint {
+func (i *instructions) addWithLine(instr instruction, line uint32) uint {
 	rv := i.add(instr)
 	i.addLineRecord(rv, line)
 	return rv
 }
 
-func (i *Instructions) addWithSpan(instr Instruction, spn Span) uint {
+func (i *instructions) addWithSpan(instr instruction, spn span) uint {
 	rv := i.add(instr)
 
 	sameLoc := false
@@ -640,7 +640,7 @@ func (i *Instructions) addWithSpan(instr Instruction, spn Span) uint {
 	return rv
 }
 
-func (i *Instructions) GetLine(idx uint) option.Option[uint] {
+func (i *instructions) GetLine(idx uint) option.Option[uint] {
 	n, found := slices.BinarySearchFunc(i.lineInfos,
 		lineInfo{firstInstruction: uint32(idx)},
 		func(a, b lineInfo) int {
@@ -655,7 +655,7 @@ func (i *Instructions) GetLine(idx uint) option.Option[uint] {
 	return option.None[uint]()
 }
 
-func (i *Instructions) GetSpan(idx uint) option.Option[Span] {
+func (i *instructions) GetSpan(idx uint) option.Option[span] {
 	n, found := slices.BinarySearchFunc(i.spanInfos,
 		spanInfo{firstInstruction: uint32(idx)},
 		func(a, b spanInfo) int {
@@ -667,5 +667,5 @@ func (i *Instructions) GetSpan(idx uint) option.Option[Span] {
 	if n != 0 {
 		return i.spanInfos[n-1].span
 	}
-	return option.None[Span]()
+	return option.None[span]()
 }

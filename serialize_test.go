@@ -12,11 +12,11 @@ func TestValueFromGoValue(t *testing.T) {
 	}
 	f := foo{A: "hello", B: map[string]int{"a": 1, "b": 2}}
 	v := ValueFromGoValue(f, WithStructTag("json"))
-	log.Printf("v.typ=%s, kind=%s", v.typ(), v.Kind())
+	log.Printf("v.typ=%s, kind=%s", v.typ(), v.kind())
 	log.Printf("v=%s", v)
-	dyVal := v.(DynamicValue)
+	dyVal := v.(dynamicValue)
 	log.Printf("dyVal.dy type=%T", dyVal.Dy)
-	stObj := dyVal.Dy.(StructObject)
+	stObj := dyVal.Dy.(structObject)
 	log.Printf("a=%+v", stObj.GetField("a"))
 	log.Printf("b=%+v", stObj.GetField("B"))
 }
@@ -30,10 +30,10 @@ func TestValueFromGoValueLoop(t *testing.T) {
 	f := foo{a: "hello", b: map[string]int{"a": 1, "b": 2}}
 	f.Self = &f
 	v := ValueFromGoValue(f, WithStructTag("json"))
-	dyVal := v.(DynamicValue)
-	stObj := dyVal.Dy.(StructObject)
+	dyVal := v.(dynamicValue)
+	stObj := dyVal.Dy.(structObject)
 	selfVal := stObj.GetField("Self")
 	log.Printf("self=%+v", selfVal)
-	selfVal2 := selfVal.Unwrap().(DynamicValue).Dy.(StructObject).GetField("Self")
+	selfVal2 := selfVal.Unwrap().(dynamicValue).Dy.(structObject).GetField("Self")
 	log.Printf("self2=%+v", selfVal2)
 }

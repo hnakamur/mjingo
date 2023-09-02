@@ -22,8 +22,8 @@ type loopState struct {
 	// first item is the target jump instruction, the second argument
 	// tells us if we need to end capturing.
 	currentRecursionJump option.Option[recursionJump]
-	iterator             Iterator
-	object               LoopObject
+	iterator             iterator
+	object               loopObject
 }
 
 type recursionJump struct {
@@ -41,7 +41,7 @@ type frame struct {
 	// duplicated into the closure.  Macros declared on that level, then share
 	// the closure object to enclose the parent values.  This emulates the
 	// behavior of closures in Jinja2.
-	closure option.Option[Closure]
+	closure option.Option[closureObject]
 }
 
 func newContext(f frame) *context {
@@ -53,7 +53,7 @@ func newContext(f frame) *context {
 func (c *context) store(key string, val Value) {
 	top := &c.stack[len(c.stack)-1]
 	if top.closure.IsSome() {
-		(&top.closure).AsPtr().store(key, val.Clone())
+		(&top.closure).AsPtr().store(key, val.clone())
 	}
 	top.locals[key] = val
 }
@@ -65,7 +65,7 @@ func (c *context) enclose(env *Environment, key string) {
 	})
 }
 
-func (c *context) closure() Closure {
+func (c *context) closure() closureObject {
 	top := &c.stack[len(c.stack)-1]
 	if top.closure.IsNone() {
 		top.closure = option.Some(newClosure())
@@ -73,14 +73,14 @@ func (c *context) closure() Closure {
 	return top.closure.Unwrap()
 }
 
-func (c *context) takeClosure() option.Option[Closure] {
+func (c *context) takeClosure() option.Option[closureObject] {
 	top := &c.stack[len(c.stack)-1]
 	rv := top.closure
-	top.closure = option.None[Closure]()
+	top.closure = option.None[closureObject]()
 	return rv
 }
 
-func (c *context) resetClosure(closure option.Option[Closure]) {
+func (c *context) resetClosure(closure option.Option[closureObject]) {
 	top := &c.stack[len(c.stack)-1]
 	top.closure = closure
 }
@@ -98,13 +98,13 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 		if frame.currentLoop.IsSome() {
 			l := frame.currentLoop.AsPtr()
 			if l.withLoopVar && key == "loop" {
-				return option.Some(ValueFromObject(&l.object))
+				return option.Some(valueFromObject(&l.object))
 			}
 		}
 
 		// perform a fast lookup.  This one will not produce errors if the
 		// context is undefined or of the wrong type.
-		if rv := frame.ctx.GetAttrFast(key); rv.IsSome() {
+		if rv := frame.ctx.getAttrFast(key); rv.IsSome() {
 			return rv
 		}
 	}
@@ -156,7 +156,7 @@ func (c *context) decrDepth(delta uint) {
 
 func (c *context) checkDepth() error {
 	if c.depth() > contextStackMaxRecursion {
-		return NewError(InvalidOperation, "recursion limit exceeded")
+		return newError(InvalidOperation, "recursion limit exceeded")
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func newFrame(ctx Value) *frame {
 		locals:      make(map[string]Value),
 		ctx:         ctx,
 		currentLoop: option.None[loopState](),
-		closure:     option.None[Closure](),
+		closure:     option.None[closureObject](),
 	}
 }
 

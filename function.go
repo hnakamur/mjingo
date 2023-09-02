@@ -6,25 +6,25 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type FuncFunc = func(*State, []Value) (Value, error)
+type boxedFunc = func(*vmState, []Value) (Value, error)
 
-type FuncObject struct{ f FuncFunc }
+type funcObject struct{ f boxedFunc }
 
-func ValueFromFunc(f FuncFunc) Value {
-	return ValueFromObject(FuncObject{f: f})
+func valueFromFunc(f boxedFunc) Value {
+	return valueFromObject(funcObject{f: f})
 }
 
-var _ = (Object)(FuncObject{})
-var _ = (Caller)(FuncObject{})
+var _ = (object)(funcObject{})
+var _ = (caller)(funcObject{})
 
-func (FuncObject) Kind() ObjectKind { return ObjectKindPlain }
+func (funcObject) Kind() objectKind { return objectKindPlain }
 
-func (f FuncObject) Call(state *State, args []Value) (Value, error) {
+func (f funcObject) Call(state *vmState, args []Value) (Value, error) {
 	return f.f(state, args)
 }
 
-func funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper, step option.Option[uint32]) ([]uint32, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper, step option.Option[uint32]) ([]uint32, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var a, b, c Value
 		switch {
 		case len(values) <= 1:
@@ -49,14 +49,14 @@ func funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper,
 			b = tpl3.b
 			c = tpl3.c
 		}
-		l, err := a.TryToI64()
+		l, err := a.tryToI64()
 		if err != nil {
 			return nil, err
 		}
 		lower := uint32(l)
 		upper := option.None[uint32]()
 		if b != nil {
-			u, err := b.TryToI64()
+			u, err := b.tryToI64()
 			if err != nil {
 				return nil, err
 			}
@@ -64,7 +64,7 @@ func funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper,
 		}
 		step := option.None[uint32]()
 		if c != nil {
-			s, err := c.TryToI64()
+			s, err := c.tryToI64()
 			if err != nil {
 				return nil, err
 			}
@@ -76,14 +76,14 @@ func funcFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(f func(lower uint32, upper,
 		}
 		rv := make([]Value, 0, len(rng))
 		for _, r := range rng {
-			rv = append(rv, ValueFromI64(int64(r)))
+			rv = append(rv, valueFromI64(int64(r)))
 		}
-		return ValueFromSlice(rv), nil
+		return valueFromSlice(rv), nil
 	}
 }
 
-func funcFuncFromValArgValErrRet(f func(Value) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFuncFromValArgValErrRet(f func(Value) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl1, err := tuple1FromValues(state, values)
 		if err != nil {
 			var err2 *Error
@@ -97,7 +97,7 @@ func funcFuncFromValArgValErrRet(f func(Value) (Value, error)) func(*State, []Va
 	}
 }
 
-func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) {
+func rangeFunc(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) {
 	var iUpper uint32
 	if upper.IsSome() {
 		iUpper = upper.Unwrap()
@@ -110,13 +110,13 @@ func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) 
 	if step.IsSome() {
 		iStep = step.Unwrap()
 		if iStep == 0 {
-			return nil, NewError(InvalidOperation, "cannot create range with step of 0")
+			return nil, newError(InvalidOperation, "cannot create range with step of 0")
 		}
 	}
 
 	n := (iUpper - lower) / iStep
 	if n > 10000 {
-		return nil, NewError(InvalidOperation, "range has too many elements")
+		return nil, newError(InvalidOperation, "range has too many elements")
 	}
 
 	rv := make([]uint32, 0, n)
@@ -128,10 +128,10 @@ func fnRange(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) 
 
 func dictFunc(val Value) (Value, error) {
 	switch v := val.(type) {
-	case UndefinedValue:
-		return ValueFromIndexMap(NewValueMap()), nil
-	case MapValue:
-		return ValueFromIndexMap(v.Map), nil
+	case undefinedValue:
+		return valueFromIndexMap(newValueMap()), nil
+	case mapValue:
+		return valueFromIndexMap(v.Map), nil
 	}
-	return nil, NewError(InvalidOperation, "")
+	return nil, newError(InvalidOperation, "")
 }

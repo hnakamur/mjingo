@@ -12,9 +12,9 @@ import (
 type tokenStream struct {
 	iter     *tokenizeIterator
 	curToken token
-	curSpan  *Span
+	curSpan  *span
 	curErr   error
-	lastSpan Span
+	lastSpan span
 }
 
 func newTokenStream(source string, inExpr bool, syntax *SyntaxConfig) *tokenStream {
@@ -29,7 +29,7 @@ func newTokenStream(source string, inExpr bool, syntax *SyntaxConfig) *tokenStre
 	}
 }
 
-func (s *tokenStream) next() (token, *Span, error) {
+func (s *tokenStream) next() (token, *span, error) {
 	tkn, spn, err := s.current()
 	s.curToken, s.curSpan, s.curErr = s.iter.Next()
 	if spn != nil {
@@ -38,22 +38,22 @@ func (s *tokenStream) next() (token, *Span, error) {
 	return tkn, spn, err
 }
 
-func (s *tokenStream) current() (token, *Span, error) {
+func (s *tokenStream) current() (token, *span, error) {
 	return s.curToken, s.curSpan, s.curErr
 }
 
-func (s *tokenStream) expandSpan(span Span) Span {
-	return Span{
-		StartLine:   span.StartLine,
-		StartCol:    span.StartCol,
-		StartOffset: span.StartOffset,
+func (s *tokenStream) expandSpan(spn span) span {
+	return span{
+		StartLine:   spn.StartLine,
+		StartCol:    spn.StartCol,
+		StartOffset: spn.StartOffset,
 		EndLine:     s.lastSpan.EndLine,
 		EndCol:      s.lastSpan.EndCol,
 		EndOffset:   s.lastSpan.EndOffset,
 	}
 }
 
-func (s *tokenStream) currentSpan() Span {
+func (s *tokenStream) currentSpan() span {
 	if s.curSpan != nil {
 		return *s.curSpan
 	}
@@ -87,7 +87,7 @@ loop:
 				return nil, err
 			}
 			var tkIdent token
-			var spn Span
+			var spn span
 			if tkIdent, spn, err = p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
 				return nil, err
 			}
@@ -119,7 +119,7 @@ loop:
 					negated = true
 				}
 				var name string
-				var spn Span
+				var spn span
 				if tk, sp, err := p.expectToken(isTokenOfType[identToken], "`(`"); err != nil {
 					return nil, err
 				} else {
@@ -161,7 +161,7 @@ loop:
 
 func (p *parser) parseArgs() ([]expression, error) {
 	args := []expression{}
-	firstSpan := option.None[Span]()
+	firstSpan := option.None[span]()
 	kwargs := []kwargExpr{}
 
 	if _, _, err := p.expectToken(isTokenOfType[parenOpenToken], "`(`"); err != nil {
@@ -230,7 +230,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 	return args, nil
 }
 
-func (p *parser) parsePostfix(exp expression, spn Span) (expression, error) {
+func (p *parser) parsePostfix(exp expression, spn span) (expression, error) {
 loop:
 	for {
 		nextSpan := p.stream.currentSpan()
@@ -360,20 +360,20 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	case identToken:
 		switch tkn.ident {
 		case "true", "True":
-			return makeConst(ValueFromBool(true), *spn), nil
+			return makeConst(valueFromBool(true), *spn), nil
 		case "false", "False":
-			return makeConst(ValueFromBool(false), *spn), nil
+			return makeConst(valueFromBool(false), *spn), nil
 		case "none", "None":
-			return makeConst(None, *spn), nil
+			return makeConst(none, *spn), nil
 		default:
 			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
 	case stringToken:
-		return makeConst(ValueFromString(tkn.s), *spn), nil
+		return makeConst(valueFromString(tkn.s), *spn), nil
 	case intToken:
-		return makeConst(ValueFromI64(tkn.n), *spn), nil
+		return makeConst(valueFromI64(tkn.n), *spn), nil
 	case floatToken:
-		return makeConst(ValueFromF64(tkn.f), *spn), nil
+		return makeConst(valueFromF64(tkn.f), *spn), nil
 	case parenOpenToken:
 		return p.parseTupleOrExpression(*spn)
 	case bracketOpenToken:
@@ -385,7 +385,7 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	}
 }
 
-func (p *parser) parseListExpr(spn Span) (expression, error) {
+func (p *parser) parseListExpr(spn span) (expression, error) {
 	var items []expression
 	for {
 		if matched, err := p.skipToken(isTokenOfType[bracketCloseToken]); err != nil {
@@ -412,7 +412,7 @@ func (p *parser) parseListExpr(spn Span) (expression, error) {
 	return listExpr{items: items, span: p.stream.expandSpan(spn)}, nil
 }
 
-func (p *parser) parseMapExpr(spn Span) (expression, error) {
+func (p *parser) parseMapExpr(spn span) (expression, error) {
 	var keys, values []expression
 	for {
 		if matched, err := p.skipToken(isTokenOfType[braceCloseToken]); err != nil {
@@ -447,7 +447,7 @@ func (p *parser) parseMapExpr(spn Span) (expression, error) {
 	return mapExpr{keys: keys, values: values, span: p.stream.expandSpan(spn)}, nil
 }
 
-func (p *parser) parseTupleOrExpression(spn Span) (expression, error) {
+func (p *parser) parseTupleOrExpression(spn span) (expression, error) {
 	// MiniJinja does not really have tuples, but it treats the tuple
 	// syntax the same as lists.
 	if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
@@ -726,18 +726,18 @@ func (p *parser) parseExprNoIf() (expression, error) {
 	return p.parseOr()
 }
 
-func (p *parser) expectToken(f func(tkn token) bool, expected string) (token, Span, error) {
+func (p *parser) expectToken(f func(tkn token) bool, expected string) (token, span, error) {
 	tkn, spn, err := p.stream.next()
 	if err != nil {
-		return nil, Span{}, err
+		return nil, span{}, err
 	}
 	if tkn == nil {
-		return nil, Span{}, unexpectedEOF(expected)
+		return nil, span{}, unexpectedEOF(expected)
 	}
 	if f(tkn) {
 		return tkn, *spn, nil
 	}
-	return nil, Span{}, unexpected(tkn, expected)
+	return nil, span{}, unexpected(tkn, expected)
 }
 
 func (p *parser) matchesToken(f func(tkn token) bool) (bool, error) {
@@ -783,7 +783,7 @@ func (p *parser) withRecursionGuardStmt(f func() (statement, error)) (statement,
 }
 
 func unexpected(unexpected any, expected string) error {
-	return NewError(SyntaxError,
+	return newError(SyntaxError,
 		fmt.Sprintf("unexpected %v, expected %s", unexpected, expected))
 }
 
@@ -791,12 +791,12 @@ func unexpectedEOF(expected string) error {
 	return unexpected("end of input", expected)
 }
 
-func makeConst(v Value, spn Span) expression {
+func makeConst(v Value, spn span) expression {
 	return constExpr{val: v, span: spn}
 }
 
 func syntaxError(msg string) error {
-	return NewError(SyntaxError, msg)
+	return newError(SyntaxError, msg)
 }
 
 func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]expression) error {
@@ -1105,7 +1105,7 @@ var reservedNames = []string{"true", "True", "false", "False", "none", "None", "
 
 func (p *parser) parseAssignName() (expression, error) {
 	var id string
-	var spn Span
+	var spn span
 	if tkn, sp, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
 		return nil, err
 	} else {
@@ -1476,7 +1476,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 			}
 		}
 		var name string
-		var spn Span
+		var spn span
 		if tkn, s, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
 			return nil, err
 		} else {
@@ -1651,10 +1651,10 @@ func (p *parser) parse() (statement, error) {
 }
 
 func parse(source, filename string) (statement, error) {
-	return ParseWithSyntax(source, filename, DefaultSyntaxConfig)
+	return parseWithSyntax(source, filename, DefaultSyntaxConfig)
 }
 
-func ParseWithSyntax(source, filename string, syntax SyntaxConfig) (statement, error) {
+func parseWithSyntax(source, filename string, syntax SyntaxConfig) (statement, error) {
 	// we want to chop off a single newline at the end.  This means that a template
 	// by default does not end in a newline which is a useful property to allow
 	// inline templates to work.  If someone wants a trailing newline the expectation

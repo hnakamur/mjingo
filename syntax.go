@@ -19,9 +19,9 @@ var DefaultSyntax = Syntax{
 }
 
 type SyntaxConfig struct {
-	syntax Syntax
+	Syntax Syntax
 }
 
 var DefaultSyntaxConfig = SyntaxConfig{
-	syntax: DefaultSyntax,
+	Syntax: DefaultSyntax,
 }

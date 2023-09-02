@@ -6,41 +6,41 @@ import (
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
 )
 
-type State struct {
+type vmState struct {
 	env             *Environment
 	ctx             context
 	currentBlock    option.Option[string]
 	autoEscape      AutoEscape
-	instructions    Instructions
+	instructions    instructions
 	blocks          map[string]*blockStack
 	loadedTemplates hashset.StrHashSet
-	macros          stackpkg.Stack[tuple2[Instructions, uint]]
+	macros          stackpkg.Stack[tuple2[instructions, uint]]
 }
 
 type locals = map[string]Value
 
 type blockStack struct {
-	instrs []Instructions
+	instrs []instructions
 	depth  uint
 }
 
-func (s *State) name() string {
+func (s *vmState) name() string {
 	return s.instructions.Name()
 }
 
-func (s *State) undefinedBehavior() UndefinedBehavior {
+func (s *vmState) undefinedBehavior() UndefinedBehavior {
 	return s.env.undefinedBehavior
 }
 
-func (s *State) lookup(name string) option.Option[Value] {
+func (s *vmState) lookup(name string) option.Option[Value] {
 	return s.ctx.load(s.env, name)
 }
 
-func newBlockStack(instrs Instructions) *blockStack {
-	return &blockStack{instrs: []Instructions{instrs}, depth: 0}
+func newBlockStack(instrs instructions) *blockStack {
+	return &blockStack{instrs: []instructions{instrs}, depth: 0}
 }
 
-func (b *blockStack) instructions() Instructions {
+func (b *blockStack) instructions() instructions {
 	return b.instrs[b.depth]
 }
 
@@ -58,6 +58,6 @@ func (b *blockStack) pop() {
 	}
 }
 
-func (b *blockStack) appendInstructions(instrs Instructions) {
+func (b *blockStack) appendInstructions(instrs instructions) {
 	b.instrs = append(b.instrs, instrs)
 }

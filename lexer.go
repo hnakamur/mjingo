@@ -39,8 +39,8 @@ func (s *tokenizerState) loc() loc {
 	}
 }
 
-func (s *tokenizerState) span(startLoc loc) *Span {
-	return &Span{
+func (s *tokenizerState) span(startLoc loc) *span {
+	return &span{
 		StartLine:   startLoc.line,
 		StartCol:    startLoc.col,
 		StartOffset: startLoc.offset,
@@ -65,7 +65,7 @@ func (s *tokenizerState) advance(bytes uint) string {
 	return skipped
 }
 
-func (s *tokenizerState) eatNumber() (token, *Span, error) {
+func (s *tokenizerState) eatNumber() (token, *span, error) {
 	type numberState int
 	const (
 		numberStateIntger numberState = iota
@@ -123,7 +123,7 @@ loop:
 	return intToken{n: iVal}, s.span(oldLoc), nil
 }
 
-func (s *tokenizerState) eatIdentifier() (token, *Span, error) {
+func (s *tokenizerState) eatIdentifier() (token, *span, error) {
 	identLen := lexIndentifier(s.rest)
 	if identLen == 0 {
 		return nil, nil, s.syntaxError("unexpected character")
@@ -158,7 +158,7 @@ func isASCIIAlphaNumeric(r rune) bool {
 	return 'A' <= r && r <= 'Z' || 'a' <= r && r <= 'z' || '0' <= r && r <= '9'
 }
 
-func (s *tokenizerState) eatString(delim rune) (token, *Span, error) {
+func (s *tokenizerState) eatString(delim rune) (token, *span, error) {
 	oldLoc := s.loc()
 	escaped := false
 	hasEscapes := false
@@ -209,7 +209,7 @@ func isASCIIWhitespace(r rune) bool {
 
 func (s *tokenizerState) syntaxError(msg string) error {
 	s.failed = true
-	return NewError(SyntaxError, msg)
+	return newError(SyntaxError, msg)
 }
 
 type tokenizeIterator struct {
@@ -245,7 +245,7 @@ func (s *lexerStateStack) peek() lexerState {
 	return s.stack[len(s.stack)-1]
 }
 
-func Tokenize(input string, inExpr bool, syntaxConfig *SyntaxConfig) *tokenizeIterator {
+func tokenize(input string, inExpr bool, syntaxConfig *SyntaxConfig) *tokenizeIterator {
 	if syntaxConfig == nil {
 		syntaxConfig = &DefaultSyntaxConfig
 	}
@@ -273,14 +273,14 @@ func newTokenizeIterator(input string, inExpr bool, syntaxConfig *SyntaxConfig) 
 		inExpr:                inExpr,
 		syntaxConfig:          syntaxConfig,
 		trimLeadingWhitespace: false,
-		variableEnd:           syntaxConfig.syntax.VariableEnd,
-		blockStart:            syntaxConfig.syntax.BlockStart,
-		blockEnd:              syntaxConfig.syntax.BlockEnd,
-		commentEnd:            syntaxConfig.syntax.CommentEnd,
+		variableEnd:           syntaxConfig.Syntax.VariableEnd,
+		blockStart:            syntaxConfig.Syntax.BlockStart,
+		blockEnd:              syntaxConfig.Syntax.BlockEnd,
+		commentEnd:            syntaxConfig.Syntax.CommentEnd,
 	}
 }
 
-func (i *tokenizeIterator) Next() (token, *Span, error) {
+func (i *tokenizeIterator) Next() (token, *span, error) {
 	for i.state.rest != "" && !i.state.failed {
 		oldLoc := i.state.loc()
 		if i.state.stack.empty() {
@@ -355,7 +355,7 @@ func (i *tokenizeIterator) Next() (token, *Span, error) {
 			oldLoc = i.state.loc()
 
 			var lead string
-			var spn *Span
+			var spn *span
 			start, hyphen, found := findStartMarker(i.state.rest, i.syntaxConfig)
 			if found {
 				if hyphen {

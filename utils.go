@@ -2,34 +2,34 @@ package mjingo
 
 // Controls the autoescaping behavior.
 type AutoEscape interface {
-	typ() AutoEscapeType
-	IsNone() bool
+	typ() autoEscapeType
+	isNone() bool
 }
 
 type AutoEscapeNone struct{}
 type AutoEscapeHTML struct{}
 type AutoEscapeJSON struct{}
-type AutoEscapeCustom struct{ Name string }
+type AutoEscapeCustom struct{ name string }
 
-func (AutoEscapeNone) typ() AutoEscapeType   { return autoEscapeTypeNone }
-func (AutoEscapeHTML) typ() AutoEscapeType   { return autoEscapeTypeHTML }
-func (AutoEscapeJSON) typ() AutoEscapeType   { return autoEscapeTypeJSON }
-func (AutoEscapeCustom) typ() AutoEscapeType { return autoEscapeTypeCustom }
+func (AutoEscapeNone) typ() autoEscapeType   { return autoEscapeTypeNone }
+func (AutoEscapeHTML) typ() autoEscapeType   { return autoEscapeTypeHTML }
+func (AutoEscapeJSON) typ() autoEscapeType   { return autoEscapeTypeJSON }
+func (AutoEscapeCustom) typ() autoEscapeType { return autoEscapeTypeCustom }
 
-func (AutoEscapeNone) IsNone() bool   { return true }
-func (AutoEscapeHTML) IsNone() bool   { return false }
-func (AutoEscapeJSON) IsNone() bool   { return false }
-func (AutoEscapeCustom) IsNone() bool { return false }
+func (AutoEscapeNone) isNone() bool   { return true }
+func (AutoEscapeHTML) isNone() bool   { return false }
+func (AutoEscapeJSON) isNone() bool   { return false }
+func (AutoEscapeCustom) isNone() bool { return false }
 
 var _ = (AutoEscape)(AutoEscapeNone{})
 var _ = (AutoEscape)(AutoEscapeHTML{})
 var _ = (AutoEscape)(AutoEscapeJSON{})
 var _ = (AutoEscape)(AutoEscapeCustom{})
 
-type AutoEscapeType uint
+type autoEscapeType uint
 
 const (
-	autoEscapeTypeNone AutoEscapeType = iota
+	autoEscapeTypeNone autoEscapeType = iota
 	autoEscapeTypeHTML
 	autoEscapeTypeJSON
 	autoEscapeTypeCustom
@@ -62,12 +62,12 @@ const (
 	UndefinedBehaviorDefault = UndefinedBehaviorLenient
 )
 
-func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (Value, error) {
+func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (Value, error) {
 	switch {
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
 		return Undefined, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
-		return nil, NewError(UndefinedError, "")
+		return nil, newError(UndefinedError, "")
 	default:
 		panic("unreachable")
 	}
@@ -78,21 +78,21 @@ func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (Value, erro
 // If the Value is undefined, then iteration fails if the behavior is set to strict,
 // otherwise it succeeds with an empty iteration.  This is also internally used in the
 // engine to convert values to lists.
-func (b UndefinedBehavior) TryIter(val Value) (Iterator, error) {
-	if err := b.AssertIterable(val); err != nil {
-		return Iterator{}, err
+func (b UndefinedBehavior) tryIter(val Value) (iterator, error) {
+	if err := b.assertIterable(val); err != nil {
+		return iterator{}, err
 	}
-	iter, err := val.TryIter()
+	iter, err := val.tryIter()
 	if err != nil {
-		return Iterator{}, err
+		return iterator{}, err
 	}
 	return iter, nil
 }
 
 // Are we strict on iteration?
-func (b UndefinedBehavior) AssertIterable(val Value) error {
-	if b == UndefinedBehaviorStrict && val.IsUndefined() {
-		return NewError(UndefinedError, "")
+func (b UndefinedBehavior) assertIterable(val Value) error {
+	if b == UndefinedBehaviorStrict && val.isUndefined() {
+		return newError(UndefinedError, "")
 	}
 	return nil
 }

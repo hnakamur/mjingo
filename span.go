@@ -2,7 +2,7 @@ package mjingo
 
 import "fmt"
 
-type Span struct {
+type span struct {
 	StartLine   uint32
 	StartCol    uint32
 	StartOffset uint32
@@ -11,6 +11,6 @@ type Span struct {
 	EndOffset   uint32
 }
 
-func (s *Span) String() string {
+func (s *span) String() string {
 	return fmt.Sprintf(" @ %d:%d-%d:%d", s.StartLine, s.StartCol, s.EndLine, s.EndCol)
 }

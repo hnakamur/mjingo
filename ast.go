@@ -11,15 +11,15 @@ type statement interface {
 
 type templateStmt struct {
 	children []statement
-	span     Span
+	span     span
 }
 type emitExprStmt struct {
 	expr expression
-	span Span
+	span span
 }
 type emitRawStmt struct {
 	raw  string
-	span Span
+	span span
 }
 type forLoopStmt struct {
 	target     expression
@@ -28,79 +28,79 @@ type forLoopStmt struct {
 	recursive  bool
 	body       []statement
 	elseBody   []statement
-	span       Span
+	span       span
 }
 type ifCondStmt struct {
 	expr      expression
 	trueBody  []statement
 	falseBody []statement
-	span      Span
+	span      span
 }
 type withBlockStmt struct {
 	assignments []assignment
 	body        []statement
-	span        Span
+	span        span
 }
 type setStmt struct {
 	target expression
 	expr   expression
-	span   Span
+	span   span
 }
 type setBlockStmt struct {
 	target expression
 	filter option.Option[expression]
 	body   []statement
-	span   Span
+	span   span
 }
 type autoEscapeStmt struct {
 	enabled expression
 	body    []statement
-	span    Span
+	span    span
 }
 type filterBlockStmt struct {
 	filter expression
 	body   []statement
-	span   Span
+	span   span
 }
 type blockStmt struct {
 	name string
 	body []statement
-	span Span
+	span span
 }
 type importStmt struct {
 	expr expression
 	name expression
-	span Span
+	span span
 }
 type fromImportStmt struct {
 	expr  expression
 	names []importName
-	span  Span
+	span  span
 }
 type extendsStmt struct {
 	name expression
-	span Span
+	span span
 }
 type includeStmt struct {
 	name          expression
 	ignoreMissing bool
-	span          Span
+	span          span
 }
 type macroStmt struct {
 	name     string
 	args     []expression
 	defaults []expression
 	body     []statement
-	span     Span
+	span     span
 }
 type callBlockStmt struct {
 	call      call
 	macroDecl macroStmt
-	span      Span
+	span      span
 }
 type doStmt struct {
 	call call
-	span Span
+	span span
 }
 
 type assignment struct {
@@ -228,12 +228,12 @@ type expression interface {
 
 type varExpr struct {
 	id   string
-	span Span
+	span span
 }
 
 type constExpr struct {
 	val  Value
-	span Span
+	span span
 }
 
 type sliceExpr struct {
@@ -241,74 +241,74 @@ type sliceExpr struct {
 	start option.Option[expression]
 	stop  option.Option[expression]
 	step  option.Option[expression]
-	span  Span
+	span  span
 }
 
 type unaryOpExpr struct {
 	op   unaryOpType
 	expr expression
-	span Span
+	span span
 }
 
 type binOpExpr struct {
 	op    binOpType
 	left  expression
 	right expression
-	span  Span
+	span  span
 }
 
 type ifExpr struct {
 	testExpr  expression
 	trueExpr  expression
 	falseExpr option.Option[expression]
-	span      Span
+	span      span
 }
 
 type filterExpr struct {
 	name string
 	expr option.Option[expression]
 	args []expression
-	span Span
+	span span
 }
 
 type testExpr struct {
 	name string
 	expr expression
 	args []expression
-	span Span
+	span span
 }
 
 type getAttrExpr struct {
 	expr expression
 	name string
-	span Span
+	span span
 }
 
 type getItemExpr struct {
 	expr          expression
 	subscriptExpr expression
-	span          Span
+	span          span
 }
 
 type callExpr struct {
 	call call
-	span Span
+	span span
 }
 
 type listExpr struct {
 	items []expression
-	span  Span
+	span  span
 }
 
 type mapExpr struct {
 	keys   []expression
 	values []expression
-	span   Span
+	span   span
 }
 
 type kwargsExpr struct {
 	pairs []kwargExpr
-	span  Span
+	span  span
 }
 
 type kwargExpr struct {
@@ -324,13 +324,13 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 		return option.None[Value]()
 	}
 
-	rv := ValueMapWithCapacity(uint(len(e.pairs)))
+	rv := valueMapWithCapacity(uint(len(e.pairs)))
 	for _, pair := range e.pairs {
 		if v, ok := pair.arg.(constExpr); ok {
-			rv.Set(KeyRefFromValue(ValueFromString(pair.key)), v.val.Clone())
+			rv.Set(keyRefFromValue(valueFromString(pair.key)), v.val.clone())
 		}
 	}
-	return option.Some(ValueFromKwargs(NewKwargs(*rv)))
+	return option.Some(valueFromKwargs(newKwArgs(*rv)))
 }
 
 var _ = expression(varExpr{})
@@ -484,7 +484,7 @@ func (l listExpr) asConst() option.Option[Value] {
 			seq = append(seq, item.val)
 		}
 	}
-	return option.Some(ValueFromSlice(seq))
+	return option.Some(valueFromSlice(seq))
 }
 
 func (m mapExpr) asConst() option.Option[Value] {
@@ -499,15 +499,15 @@ func (m mapExpr) asConst() option.Option[Value] {
 		}
 	}
 
-	rv := ValueMapWithCapacity(uint(len(m.keys)))
+	rv := valueMapWithCapacity(uint(len(m.keys)))
 	for i, key := range m.keys {
 		val := m.values[i]
 		if key.typ() == exprTypeConst && val.typ() == exprTypeConst {
-			keyRf := KeyRefFromValue(key.(constExpr).val)
+			keyRf := keyRefFromValue(key.(constExpr).val)
 			rv.Set(keyRf, val.(constExpr).val)
 		}
 	}
-	return option.Some(ValueFromIndexMap(rv))
+	return option.Some(valueFromIndexMap(rv))
 }
 
 type callType interface {

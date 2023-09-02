@@ -23,7 +23,7 @@ func (t *Template) name() string {
 	return t.compiled.instructions.Name()
 }
 
-func (t *Template) _eval(root Value, out *Output) error {
+func (t *Template) _eval(root Value, out *output) error {
 	vm := newVirtualMachine(t.env)
 	if _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
 		out, t.initialAutoEscape); err != nil {
@@ -32,23 +32,23 @@ func (t *Template) _eval(root Value, out *Output) error {
 	return nil
 }
 
-func (t *Template) instructionsAndBlocks() (instructions Instructions, blocks map[string]Instructions, err error) {
+func (t *Template) instructionsAndBlocks() (insts instructions, blocks map[string]instructions, err error) {
 	return t.compiled.instructions, t.compiled.blocks, nil
 }
 
 type compiledTemplate struct {
-	instructions   Instructions
-	blocks         map[string]Instructions
+	instructions   instructions
+	blocks         map[string]instructions
 	bufferSizeHint uint
 	syntax         *SyntaxConfig
 }
 
 func newCompiledTemplate(name, source string, syntax SyntaxConfig) (*compiledTemplate, error) {
-	st, err := ParseWithSyntax(source, name, syntax)
+	st, err := parseWithSyntax(source, name, syntax)
 	if err != nil {
 		return nil, err
 	}
-	gen := NewCodeGenerator(name, source)
+	gen := newCodeGenerator(name, source)
 	gen.CompileStmt(st)
 	instructions, blocks := gen.Finish()
 	return &compiledTemplate{

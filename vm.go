@@ -18,10 +18,10 @@ const includeRecursionConst = 10
 // the cost of a single macro call against the stack limit.
 const macroRecursionConst = 5
 
-func prepareBlocks(blocks map[string]Instructions) map[string]*blockStack {
+func prepareBlocks(blocks map[string]instructions) map[string]*blockStack {
 	rv := make(map[string]*blockStack, len(blocks))
 	for name, insts := range blocks {
-		rv[name] = &blockStack{instrs: []Instructions{insts}}
+		rv[name] = &blockStack{instrs: []instructions{insts}}
 	}
 	return rv
 }
@@ -34,19 +34,19 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 	return &virtualMachine{env: env}
 }
 
-func (m *virtualMachine) eval(instructions Instructions, root Value, blocks map[string]Instructions, out *Output, escape AutoEscape) (option.Option[Value], error) {
-	state := State{
+func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], error) {
+	state := vmState{
 		env:          m.env,
 		ctx:          *newContext(*newFrame(root)),
 		autoEscape:   escape,
-		instructions: instructions,
+		instructions: insts,
 		blocks:       prepareBlocks(blocks),
 	}
 	return m.evalState(&state, out)
 }
 
-func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
-	caller option.Option[Value], out *Output, state *State, args []Value) (option.Option[Value], error) {
+func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
+	caller option.Option[Value], out *output, state *vmState, args []Value) (option.Option[Value], error) {
 	ctx := newContext(*newFrame(closure))
 	if caller.IsSome() {
 		ctx.store("caller", caller.Unwrap())
@@ -56,7 +56,7 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 	}
 
 	stack := stackpkg.Stack[Value](args)
-	return m.evalImpl(&State{
+	return m.evalImpl(&vmState{
 		env:             m.env,
 		ctx:             *ctx,
 		currentBlock:    option.None[string](),
@@ -68,23 +68,23 @@ func (m *virtualMachine) evalMacro(insts Instructions, pc uint, closure Value,
 	}, out, &stack, pc)
 }
 
-func (m *virtualMachine) evalState(state *State, out *Output) (option.Option[Value], error) {
+func (m *virtualMachine) evalState(state *vmState, out *output) (option.Option[Value], error) {
 	var stack stackpkg.Stack[Value]
 	return m.evalImpl(state, out, &stack, 0)
 }
 
-func (m *virtualMachine) evalImpl(state *State, out *Output, stack *stackpkg.Stack[Value], pc uint) (option.Option[Value], error) {
+func (m *virtualMachine) evalImpl(state *vmState, out *output, stack *stackpkg.Stack[Value], pc uint) (option.Option[Value], error) {
 	initialAutoEscape := state.autoEscape
 	undefinedBehavior := state.undefinedBehavior()
 	var autoEscapeStack stackpkg.Stack[AutoEscape]
 	nextRecursionJump := option.None[recursionJump]()
-	loadedFilters := [MaxLocals]option.Option[FilterFunc]{}
-	loadedTests := [MaxLocals]option.Option[TestFunc]{}
+	loadedFilters := [maxLocals]option.Option[BoxedFilter]{}
+	loadedTests := [maxLocals]option.Option[BoxedTest]{}
 
 	// If we are extending we are holding the instructions of the target parent
 	// template here.  This is used to detect multiple extends and the evaluation
 	// uses these instructions when it makes it to the end of the instructions.
-	parentInstructions := option.None[Instructions]()
+	parentInstructions := option.None[instructions]()
 
 	recurseLoop := func(capture bool) error {
 		jumpTarget, err := m.prepareLoopRecursion(state)
@@ -106,7 +106,7 @@ func (m *virtualMachine) evalImpl(state *State, out *Output, stack *stackpkg.Sta
 
 loop:
 	for {
-		var inst Instruction
+		var inst instruction
 		if pc < uint(len(state.instructions.Instructions())) {
 			inst = state.instructions.Instructions()[pc]
 		} else {
@@ -117,7 +117,7 @@ loop:
 			// from the new instructions.
 			if parentInstructions.IsSome() {
 				state.instructions = parentInstructions.Unwrap()
-				parentInstructions = option.None[Instructions]()
+				parentInstructions = option.None[instructions]()
 			} else {
 				break loop
 			}
@@ -130,18 +130,18 @@ loop:
 		var a, b Value
 
 		switch inst := inst.(type) {
-		case EmitRawInstruction:
+		case emitRawInstruction:
 			if _, err := io.WriteString(out, inst.Val); err != nil {
 				return option.None[Value](), err
 			}
-		case EmitInstruction:
+		case emitInstruction:
 			v := stack.Pop()
 			if err := m.env.format(v, state, out); err != nil {
 				return option.None[Value](), err
 			}
-		case StoreLocalInstruction:
+		case storeLocalInstruction:
 			state.ctx.store(inst.Name, stack.Pop())
-		case LookupInstruction:
+		case lookupInstruction:
 			var v Value
 			if val := state.lookup(inst.Name); val.IsSome() {
 				v = val.Unwrap()
@@ -149,207 +149,207 @@ loop:
 				v = Undefined
 			}
 			stack.Push(v)
-		case GetAttrInstruction:
+		case getAttrInstruction:
 			a = stack.Pop()
 			// This is a common enough operation that it's interesting to consider a fast
 			// path here.  This is slightly faster than the regular attr lookup because we
 			// do not need to pass down the error object for the more common success case.
 			// Only when we cannot look up something, we start to consider the undefined
 			// special case.
-			if v := a.GetAttrFast(inst.Name); v.IsSome() {
+			if v := a.getAttrFast(inst.Name); v.IsSome() {
 				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
 					stack.Push(v)
 				}
 			} else {
-				if v, err := undefinedBehavior.HandleUndefined(a.IsUndefined()); err != nil {
+				if v, err := undefinedBehavior.handleUndefined(a.isUndefined()); err != nil {
 					return option.None[Value](), processErr(err, pc, state)
 				} else {
 					stack.Push(v)
 				}
 			}
-		case GetItemInstruction:
+		case getItemInstruction:
 			a = stack.Pop()
 			b = stack.Pop()
-			if v := b.GetItemOpt(a); v.IsSome() {
+			if v := b.getItemOpt(a); v.IsSome() {
 				if v, err := assertValid(v.Unwrap(), pc, state); err != nil {
 					return option.None[Value](), err
 				} else {
 					stack.Push(v)
 				}
 			} else {
-				if v, err := undefinedBehavior.HandleUndefined(b.IsUndefined()); err != nil {
+				if v, err := undefinedBehavior.handleUndefined(b.isUndefined()); err != nil {
 					return option.None[Value](), processErr(err, pc, state)
 				} else {
 					stack.Push(v)
 				}
 			}
-		case SliceInstruction:
+		case sliceInstruction:
 			step := stack.Pop()
 			stop := stack.Pop()
 			b = stack.Pop()
 			a = stack.Pop()
-			if a.IsUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
-				return option.None[Value](), processErr(NewError(UndefinedError, ""), pc, state)
+			if a.isUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
+				return option.None[Value](), processErr(newError(UndefinedError, ""), pc, state)
 			}
-			if s, err := Slice(a, b, stop, step); err != nil {
+			if s, err := opSlice(a, b, stop, step); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(s)
 			}
-		case LoadConstInstruction:
+		case loadConstInstruction:
 			stack.Push(inst.Val)
-		case BuildMapInstruction:
-			m := ValueMapWithCapacity(inst.PairCount)
+		case buildMapInstruction:
+			m := valueMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stack.Pop()
 				key := stack.Pop()
-				m.Set(KeyRefFromValue(key), val)
+				m.Set(keyRefFromValue(key), val)
 			}
-			stack.Push(ValueFromIndexMap(m))
-		case BuildKwargsInstruction:
-			m := ValueMapWithCapacity(inst.PairCount)
+			stack.Push(valueFromIndexMap(m))
+		case buildKwargsInstruction:
+			m := valueMapWithCapacity(inst.PairCount)
 			for i := uint(0); i < inst.PairCount; i++ {
 				val := stack.Pop()
 				key := stack.Pop()
-				m.Set(KeyRefFromValue(key), val)
+				m.Set(keyRefFromValue(key), val)
 			}
-			stack.Push(MapValue{Map: m, Type: MapTypeKwargs})
-		case BuildListInstruction:
+			stack.Push(mapValue{Map: m, Type: mapTypeKwargs})
+		case buildListInstruction:
 			v := make([]Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
 				v = append(v, stack.Pop())
 			}
 			slices.Reverse(v)
-			stack.Push(ValueFromSlice(v))
-		case UnpackListInstruction:
+			stack.Push(valueFromSlice(v))
+		case unpackListInstruction:
 			if err := m.unpackList(stack, inst.Count); err != nil {
 				return option.None[Value](), err
 			}
-		case ListAppendInstruction:
+		case listAppendInstruction:
 			a = stack.Pop()
 			// this intentionally only works with actual sequences
-			if v, ok := stack.Pop().(SeqValue); ok {
+			if v, ok := stack.Pop().(seqValue); ok {
 				v.Append(a)
 				stack.Push(v)
 			} else {
-				err := NewError(InvalidOperation, "cannot append to non-list")
+				err := newError(InvalidOperation, "cannot append to non-list")
 				return option.None[Value](), processErr(err, pc, state)
 			}
-		case AddInstruction:
+		case addInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Add(a, b); err != nil {
+			if v, err := opAdd(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case SubInstruction:
+		case subInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Sub(a, b); err != nil {
+			if v, err := opSub(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case MulInstruction:
+		case mulInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Mul(a, b); err != nil {
+			if v, err := opMul(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case DivInstruction:
+		case divInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Div(a, b); err != nil {
+			if v, err := opDiv(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case IntDivInstruction:
+		case intDivInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := IntDiv(a, b); err != nil {
+			if v, err := opIntDiv(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case RemInstruction:
+		case remInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Rem(a, b); err != nil {
+			if v, err := opRem(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case PowInstruction:
+		case powInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			if v, err := Pow(a, b); err != nil {
+			if v, err := opPow(a, b); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case EqInstruction:
+		case eqInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(Equal(a, b)))
-		case NeInstruction:
+			stack.Push(valueFromBool(valueEqual(a, b)))
+		case neInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(!Equal(a, b)))
-		case GtInstruction:
+			stack.Push(valueFromBool(!valueEqual(a, b)))
+		case gtInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(Cmp(a, b) > 0))
-		case GteInstruction:
+			stack.Push(valueFromBool(valueCmp(a, b) > 0))
+		case gteInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(Cmp(a, b) >= 0))
-		case LtInstruction:
+			stack.Push(valueFromBool(valueCmp(a, b) >= 0))
+		case ltInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(Cmp(a, b) < 0))
-		case LteInstruction:
+			stack.Push(valueFromBool(valueCmp(a, b) < 0))
+		case lteInstruction:
 			b = stack.Pop()
 			a = stack.Pop()
-			stack.Push(ValueFromBool(Cmp(a, b) <= 0))
-		case NotInstruction:
+			stack.Push(valueFromBool(valueCmp(a, b) <= 0))
+		case notInstruction:
 			a = stack.Pop()
-			stack.Push(ValueFromBool(!a.IsTrue()))
-		case StringConcatInstruction:
+			stack.Push(valueFromBool(!a.isTrue()))
+		case stringConcatInstruction:
 			a = stack.Pop()
 			b = stack.Pop()
-			v := StringConcat(b, a)
+			v := opStringConcat(b, a)
 			stack.Push(v)
-		case InInstruction:
+		case inInstruction:
 			a = stack.Pop()
 			b = stack.Pop()
 			// the in-operator can fail if the value is undefined and
 			// we are in strict mode.
-			if err := state.undefinedBehavior().AssertIterable(a); err != nil {
+			if err := state.undefinedBehavior().assertIterable(a); err != nil {
 				return option.None[Value](), err
 			}
-			rv, err := Contains(a, b)
+			rv, err := opContains(a, b)
 			if err != nil {
 				return option.None[Value](), err
 			}
 			stack.Push(rv)
-		case NegInstruction:
+		case negInstruction:
 			a = stack.Pop()
-			if v, err := Neg(a); err != nil {
+			if v, err := opNeg(a); err != nil {
 				return option.None[Value](), err
 			} else {
 				stack.Push(v)
 			}
-		case PushWithInstruction:
+		case pushWithInstruction:
 			if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
 				return option.None[Value](), err
 			}
-		case PopFrameInstruction:
+		case popFrameInstruction:
 			if optLoopCtx := state.ctx.popFrame().currentLoop; optLoopCtx.IsSome() {
 				loopCtx := optLoopCtx.Unwrap()
 				if loopCtx.currentRecursionJump.IsSome() {
@@ -362,15 +362,15 @@ loop:
 					continue
 				}
 			}
-		case IsUndefinedInstruction:
+		case isUndefinedInstruction:
 			a = stack.Pop()
-			stack.Push(ValueFromBool(a.IsUndefined()))
-		case PushLoopInstruction:
+			stack.Push(valueFromBool(a.isUndefined()))
+		case pushLoopInstruction:
 			a = stack.Pop()
 			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
-		case IterateInstruction:
+		case iterateInstruction:
 			var l *loopState
 			if mayLoopState := state.ctx.currentLoop(); mayLoopState.IsSome() {
 				l = mayLoopState.Unwrap()
@@ -384,7 +384,7 @@ loop:
 			triple[1] = triple[2]
 			triple[2] = l.iterator.Next()
 			if triple[1].IsSome() {
-				next = option.Some(triple[1].Unwrap().Clone())
+				next = option.Some(triple[1].Unwrap().clone())
 			}
 			if next.IsSome() {
 				item := next.Unwrap()
@@ -397,21 +397,21 @@ loop:
 				pc = inst.JumpTarget
 				continue
 			}
-		case PushDidNotIterateInstruction:
+		case pushDidNotIterateInstruction:
 			l := state.ctx.currentLoop().Unwrap()
-			stack.Push(ValueFromBool(l.object.idx == 0))
-		case JumpInstruction:
+			stack.Push(valueFromBool(l.object.idx == 0))
+		case jumpInstruction:
 			pc = inst.JumpTarget
 			continue
-		case JumpIfFalseInstruction:
+		case jumpIfFalseInstruction:
 			a = stack.Pop()
-			if !a.IsTrue() {
+			if !a.isTrue() {
 				pc = inst.JumpTarget
 				continue
 			}
-		case JumpIfFalseOrPopInstruction:
+		case jumpIfFalseOrPopInstruction:
 			if a, ok := stack.Peek(); ok {
-				if a.IsTrue() {
+				if a.isTrue() {
 					stack.Pop()
 				} else {
 					pc = inst.JumpTarget
@@ -420,9 +420,9 @@ loop:
 			} else {
 				panic("unreachable")
 			}
-		case JumpIfTrueOrPopInstruction:
+		case jumpIfTrueOrPopInstruction:
 			if a, ok := stack.Peek(); ok {
-				if a.IsTrue() {
+				if a.isTrue() {
 					pc = inst.JumpTarget
 					continue
 				} else {
@@ -431,11 +431,11 @@ loop:
 			} else {
 				panic("unreachable")
 			}
-		case CallBlockInstruction:
+		case callBlockInstruction:
 			if parentInstructions.IsNone() && !out.isDiscarding() {
 				m.callBlock(inst.Name, state, out)
 			}
-		case PushAutoEscapeInstruction:
+		case pushAutoEscapeInstruction:
 			a = stack.Pop()
 			autoEscapeStack.Push(state.autoEscape)
 			if escape, err := m.deriveAutoEscape(a, initialAutoEscape); err != nil {
@@ -443,23 +443,23 @@ loop:
 			} else {
 				state.autoEscape = escape
 			}
-		case PopAutoEscapeInstruction:
+		case popAutoEscapeInstruction:
 			if autoEscape, ok := autoEscapeStack.TryPop(); ok {
 				state.autoEscape = autoEscape
 			} else {
 				panic("unreachable")
 			}
-		case BeginCaptureInstruction:
+		case beginCaptureInstruction:
 			out.beginCapture(inst.Mode)
-		case EndCaptureInstruction:
+		case endCaptureInstruction:
 			stack.Push(out.endCapture(state.autoEscape))
-		case ApplyFilterInstruction:
-			f := func() option.Option[FilterFunc] { return state.env.getFilter(inst.Name) }
-			var tf FilterFunc
+		case applyFilterInstruction:
+			f := func() option.Option[BoxedFilter] { return state.env.getFilter(inst.Name) }
+			var tf BoxedFilter
 			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
-				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)
@@ -469,13 +469,13 @@ loop:
 				stack.DropTop(inst.ArgCount)
 				stack.Push(rv)
 			}
-		case PerformTestInstruction:
-			f := func() option.Option[TestFunc] { return state.env.getTest(inst.Name) }
-			var tf TestFunc
+		case performTestInstruction:
+			f := func() option.Option[BoxedTest] { return state.env.getTest(inst.Name) }
+			var tf BoxedTest
 			if optVal := getOrLookupLocal(loadedTests[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
-				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)
@@ -483,13 +483,13 @@ loop:
 				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.DropTop(inst.ArgCount)
-				stack.Push(ValueFromBool(rv))
+				stack.Push(valueFromBool(rv))
 			}
-		case CallFunctionInstruction:
+		case callFunctionInstruction:
 			if inst.Name == "super" {
 				// super is a special function reserved for super-ing into blocks.
 				if inst.ArgCount != 0 {
-					err := NewError(InvalidOperation, "super() takes no arguments")
+					err := newError(InvalidOperation, "super() takes no arguments")
 					return option.None[Value](), processErr(err, pc, state)
 				}
 				val, err := m.performSuper(state, out, true)
@@ -500,7 +500,7 @@ loop:
 			} else if inst.Name == "loop" {
 				// loop is a special name which when called recurses the current loop.
 				if inst.ArgCount != 1 {
-					err := NewError(InvalidOperation,
+					err := newError(InvalidOperation,
 						fmt.Sprintf("loop() takes one argument, got %d", inst.ArgCount))
 					return option.None[Value](), processErr(err, pc, state)
 				}
@@ -512,44 +512,44 @@ loop:
 			} else if optFunc := state.lookup(inst.Name); optFunc.IsSome() {
 				f := optFunc.Unwrap()
 				args := stack.SliceTop(inst.ArgCount)
-				a, err := Call(f, state, args)
+				a, err := valueCall(f, state, args)
 				if err != nil {
 					return option.None[Value](), err
 				}
 				stack.DropTop(inst.ArgCount)
 				stack.Push(a)
 			} else {
-				err := NewError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
+				err := newError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
-		case CallMethodInstruction:
+		case callMethodInstruction:
 			args := stack.SliceTop(inst.ArgCount)
-			a, err := CallMethod(args[0], state, inst.Name, args[1:])
+			a, err := callMethod(args[0], state, inst.Name, args[1:])
 			if err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			stack.DropTop(inst.ArgCount)
 			stack.Push(a)
-		case CallObjectInstruction:
+		case callObjectInstruction:
 			panic("not implemented for CallObjectInstruction")
-		case DupTopInstruction:
+		case dupTopInstruction:
 			if val, ok := stack.Peek(); ok {
-				stack.Push(val.Clone())
+				stack.Push(val.clone())
 			} else {
 				panic("stack must not be empty")
 			}
-		case DiscardTopInstruction:
+		case discardTopInstruction:
 			stack.Pop()
-		case FastSuperInstruction:
+		case fastSuperInstruction:
 			if _, err := m.performSuper(state, out, false); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
-		case FastRecurseInstruction:
+		case fastRecurseInstruction:
 			if err := recurseLoop(false); err != nil {
 				return option.None[Value](), err
 			}
 			continue
-		case LoadBlocksInstruction:
+		case loadBlocksInstruction:
 			// Explanation on the behavior of `LoadBlocks` and rendering of
 			// inherited templates:
 			//
@@ -575,7 +575,7 @@ loop:
 			// create name clashes this works fine.
 			a = stack.Pop()
 			if parentInstructions.IsSome() {
-				err := NewError(InvalidOperation, "tried to extend a second time in a template")
+				err := newError(InvalidOperation, "tried to extend a second time in a template")
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			insts, err := m.loadBlocks(a, state)
@@ -583,28 +583,28 @@ loop:
 				return option.None[Value](), err
 			}
 			parentInstructions = option.Some(insts)
-			out.beginCapture(CaptureModeDiscard)
-		case IncludeInstruction:
+			out.beginCapture(captureModeDiscard)
+		case includeInstruction:
 			a = stack.Pop()
 			if err := m.performInclude(a, state, out, inst.IgnoreMissing); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
-		case ExportLocalsInstruction:
+		case exportLocalsInstruction:
 			locals := state.ctx.currentLocals()
-			module := ValueMapWithCapacity(uint(len(*locals)))
+			module := valueMapWithCapacity(uint(len(*locals)))
 			for key, val := range *locals {
-				module.Set(KeyRefFromValue(ValueFromString(key)), val.Clone())
+				module.Set(keyRefFromValue(valueFromString(key)), val.clone())
 			}
-			stack.Push(ValueFromIndexMap(module))
-		case BuildMacroInstruction:
+			stack.Push(valueFromIndexMap(module))
+		case buildMacroInstruction:
 			m.buildMacro(stack, state, inst.Offset, inst.Name, inst.Flags)
-		case ReturnInstruction:
+		case returnInstruction:
 			break loop
-		case EncloseInstruction:
+		case encloseInstruction:
 			state.ctx.enclose(state.env, inst.Name)
-		case GetClosureInstruction:
+		case getClosureInstruction:
 			closure := state.ctx.closure()
-			stack.Push(ValueFromObject(&closure))
+			stack.Push(valueFromObject(&closure))
 		default:
 			panic("unreachable")
 		}
@@ -616,21 +616,21 @@ loop:
 	return option.None[Value](), nil
 }
 
-func (m *virtualMachine) performInclude(name Value, state *State, out *Output, ignoreMissing bool) error {
-	var choices SeqObject
-	if optChoices := name.AsSeq(); optChoices.IsSome() {
+func (m *virtualMachine) performInclude(name Value, state *vmState, out *output, ignoreMissing bool) error {
+	var choices seqObject
+	if optChoices := name.asSeq(); optChoices.IsSome() {
 		choices = optChoices.Unwrap()
 	} else {
-		choices = NewSliceSeqObject([]Value{name})
+		choices = newSliceSeqObject([]Value{name})
 	}
 
 	var templatesTried stackpkg.Stack[Value]
 	l := choices.ItemCount()
 	for i := uint(0); i < l; i++ {
 		choice := choices.GetItem(i).Unwrap()
-		optName := choice.AsStr()
+		optName := choice.asStr()
 		if optName.IsNone() {
-			return NewError(InvalidOperation, "template name was not a string")
+			return newError(InvalidOperation, "template name was not a string")
 		}
 		tmpl, err := m.env.GetTemplate(optName.Unwrap())
 		if err != nil {
@@ -664,7 +664,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 		state.instructions = oldInsts
 		state.blocks = oldBlocks
 		if err != nil {
-			return NewError(BadInclude, fmt.Sprintf("error in \"%s\"", tmpl.name())).WithSource(err)
+			return newError(BadInclude, fmt.Sprintf("error in \"%s\"", tmpl.name())).withSource(err)
 		}
 		return nil
 	}
@@ -676,24 +676,24 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *Output, i
 		} else {
 			detail = fmt.Sprintf("tried to include one of multiple templates, none of which existed %s", templatesTried)
 		}
-		return NewError(TemplateNotFound, detail)
+		return newError(TemplateNotFound, detail)
 	}
 	return nil
 }
 
-func (m *virtualMachine) performSuper(state *State, out *Output, capture bool) (Value, error) {
+func (m *virtualMachine) performSuper(state *vmState, out *output, capture bool) (Value, error) {
 	if state.currentBlock.IsNone() {
-		return nil, NewError(InvalidOperation, "cannot super outside of block")
+		return nil, newError(InvalidOperation, "cannot super outside of block")
 	}
 	name := state.currentBlock.Unwrap()
 
 	blockStack := state.blocks[name]
 	if !blockStack.push() {
-		return nil, NewError(InvalidOperation, "no parent block exists")
+		return nil, newError(InvalidOperation, "no parent block exists")
 	}
 
 	if capture {
-		out.beginCapture(CaptureModeCapture)
+		out.beginCapture(captureModeCapture)
 	}
 
 	oldInsts := state.instructions
@@ -706,7 +706,7 @@ func (m *virtualMachine) performSuper(state *State, out *Output, capture bool) (
 	state.instructions = oldInsts
 	state.blocks[name].pop()
 	if err != nil {
-		return nil, NewError(EvalBlock, "error in super block").WithSource(err)
+		return nil, newError(EvalBlock, "error in super block").withSource(err)
 	}
 	if capture {
 		return out.endCapture(state.autoEscape), nil
@@ -718,34 +718,34 @@ func untrustedSizeHint(val uint) uint {
 	return min(val, 1024)
 }
 
-func (m *virtualMachine) prepareLoopRecursion(state *State) (uint, error) {
+func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
 	if optLoopState := state.ctx.currentLoop(); optLoopState.IsSome() {
 		loopCtx := optLoopState.Unwrap()
 		if loopCtx.recurseJumpTarget.IsSome() {
 			return loopCtx.recurseJumpTarget.Unwrap(), nil
 		}
-		return 0, NewError(InvalidOperation, "cannot recurse outside of recursive loop")
+		return 0, newError(InvalidOperation, "cannot recurse outside of recursive loop")
 	}
-	return 0, NewError(InvalidOperation, "cannot recurse outside of loop")
+	return 0, newError(InvalidOperation, "cannot recurse outside of loop")
 }
 
-func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, error) {
-	optName := name.AsStr()
+func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, error) {
+	optName := name.asStr()
 	if optName.IsNone() {
-		return Instructions{}, NewError(InvalidOperation, "template name was not a string")
+		return instructions{}, newError(InvalidOperation, "template name was not a string")
 	}
 	strName := optName.Unwrap()
 	if state.loadedTemplates.Contains(strName) {
-		return Instructions{}, NewError(InvalidOperation,
+		return instructions{}, newError(InvalidOperation,
 			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
 	}
 	tmpl, err := m.env.GetTemplate(strName)
 	if err != nil {
-		return Instructions{}, err
+		return instructions{}, err
 	}
 	newInsts, newBlocks, err := tmpl.instructionsAndBlocks()
 	if err != nil {
-		return Instructions{}, err
+		return instructions{}, err
 	}
 	for strName, insts := range newBlocks {
 		if _, ok := state.blocks[strName]; ok {
@@ -758,7 +758,7 @@ func (m *virtualMachine) loadBlocks(name Value, state *State) (Instructions, err
 	return newInsts, nil
 }
 
-func (m *virtualMachine) callBlock(name string, state *State, out *Output) (option.Option[Value], error) {
+func (m *virtualMachine) callBlock(name string, state *vmState, out *output) (option.Option[Value], error) {
 	if blockStack, ok := state.blocks[name]; ok {
 		oldBlock := state.currentBlock
 		state.currentBlock = option.Some(name)
@@ -771,11 +771,11 @@ func (m *virtualMachine) callBlock(name string, state *State, out *Output) (opti
 		state.currentBlock = oldBlock
 		return rv, err
 	}
-	return option.None[Value](), NewError(UnknownBlock, fmt.Sprintf("block '%s' not found", name))
+	return option.None[Value](), newError(UnknownBlock, fmt.Sprintf("block '%s' not found", name))
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
-	strVal := val.AsStr()
+	strVal := val.asStr()
 	if strVal.IsSome() {
 		switch strVal.Unwrap() {
 		case "html":
@@ -785,18 +785,18 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 		case "none":
 			return AutoEscapeNone{}, nil
 		}
-	} else if v, ok := val.(BoolValue); ok && v.B {
+	} else if v, ok := val.(boolValue); ok && v.B {
 		if _, ok := initialAutoEscape.(AutoEscapeNone); ok {
 			return AutoEscapeHTML{}, nil
 		}
 		return initialAutoEscape, nil
 	}
-	return nil, NewError(InvalidOperation, "invalid value to autoescape tag")
+	return nil, newError(InvalidOperation, "invalid value to autoescape tag")
 }
 
-func (m *virtualMachine) pushLoop(state *State, iterable Value,
+func (m *virtualMachine) pushLoop(state *vmState, iterable Value,
 	flags uint8, pc uint, currentRecursionJump option.Option[recursionJump]) error {
-	it, err := state.undefinedBehavior().TryIter(iterable)
+	it, err := state.undefinedBehavior().tryIter(iterable)
 	if err != nil {
 		return err
 	}
@@ -808,8 +808,8 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 			depth = loopState.object.depth + 1
 		}
 	}
-	recursive := (flags & LoopFlagRecursive) != 0
-	withLoopVar := (flags & LoopFlagWithLoopVar) != 0
+	recursive := (flags & loopFlagRecursive) != 0
+	withLoopVar := (flags & loopFlagWithLoopVar) != 0
 	recurseJumpTarget := option.None[uint]()
 	if recursive {
 		recurseJumpTarget = option.Some(pc)
@@ -819,7 +819,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 		withLoopVar:          withLoopVar,
 		recurseJumpTarget:    recurseJumpTarget,
 		currentRecursionJump: currentRecursionJump,
-		object: LoopObject{
+		object: loopObject{
 			idx:         ^uint(0),
 			len:         l,
 			depth:       depth,
@@ -832,14 +832,14 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 
 func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) error {
 	top := stack.Pop()
-	var seq SeqObject
-	if optSeq := top.AsSeq(); optSeq.IsSome() {
+	var seq seqObject
+	if optSeq := top.asSeq(); optSeq.IsSome() {
 		seq = optSeq.Unwrap()
 	} else {
-		return NewError(CannotUnpack, "not a sequence")
+		return newError(CannotUnpack, "not a sequence")
 	}
 	if seq.ItemCount() != count {
-		return NewError(CannotUnpack,
+		return newError(CannotUnpack,
 			fmt.Sprintf("sequence of wrong length (expected %d, got %d)", count, seq.ItemCount()))
 	}
 	for i := count - 1; ; i-- {
@@ -852,11 +852,11 @@ func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) er
 	return nil
 }
 
-func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *State, offset uint, name string, flags uint8) {
+func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *vmState, offset uint, name string, flags uint8) {
 	var argSpec []string
-	if args, ok := stack.Pop().(SeqValue); ok {
+	if args, ok := stack.Pop().(seqValue); ok {
 		argSpec = slicex.Map(args.Items, func(arg Value) string {
-			if strVal, ok := arg.(StringValue); ok {
+			if strVal, ok := arg.(stringValue); ok {
 				return strVal.Str
 			}
 			panic("unreachable")
@@ -866,17 +866,17 @@ func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *State, 
 	}
 	closure := stack.Pop()
 	macroRefID := uint(len(state.macros))
-	state.macros.Push(tuple2[Instructions, uint]{a: state.instructions, b: offset})
-	macro := &Macro{
-		data: MacroData{
+	state.macros.Push(tuple2[instructions, uint]{a: state.instructions, b: offset})
+	macro := &macro{
+		data: macroData{
 			name:            name,
 			argSpec:         argSpec,
 			macroRefID:      macroRefID,
 			closure:         closure,
-			callerReference: flags&MacroCaller != 0,
+			callerReference: flags&macroCaller != 0,
 		},
 	}
-	stack.Push(ValueFromObject(macro))
+	stack.Push(valueFromObject(macro))
 }
 
 func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() option.Option[T]) option.Option[T] {
@@ -901,27 +901,27 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 	}
 }
 
-func assertValid(v Value, pc uint, st *State) (Value, error) {
-	if vInvalid, ok := v.(InvalidValue); ok {
+func assertValid(v Value, pc uint, st *vmState) (Value, error) {
+	if vInvalid, ok := v.(invalidValue); ok {
 		detail := vInvalid.Detail
-		err := NewError(BadSerialization, detail)
+		err := newError(BadSerialization, detail)
 		processErr(err, pc, st)
 		return nil, err
 	}
 	return v, nil
 }
 
-func processErr(err error, pc uint, st *State) error {
+func processErr(err error, pc uint, st *vmState) error {
 	er, ok := err.(*Error)
 	if !ok {
 		return err
 	}
 	// only attach line information if the error does not have line info yet.
-	if er.Line().IsNone() {
+	if er.line().IsNone() {
 		if spn := st.instructions.GetSpan(pc); spn.IsSome() {
-			er.SetFilenameAndSpan(st.instructions.Name(), spn.Unwrap())
+			er.setFilenameAndSpan(st.instructions.Name(), spn.Unwrap())
 		} else if lineno := st.instructions.GetLine(pc); lineno.IsSome() {
-			er.SetFilenameAndLine(st.instructions.Name(), lineno.Unwrap())
+			er.setFilenameAndLine(st.instructions.Name(), lineno.Unwrap())
 		}
 	}
 	return er

@@ -11,15 +11,15 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type FilterFunc = func(*State, []Value) (Value, error)
+type BoxedFilter = func(*vmState, []Value) (Value, error)
 
-func filterFuncFromFilterWithStrArgValRet(f func(val string) Value) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStrArgValRet(f func(val string) Value) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
-		a, err := StringFromValue(option.Some(tpl.a))
+		a, err := stringFromValue(option.Some(tpl.a))
 		if err != nil {
 			return nil, err
 		}
@@ -27,8 +27,8 @@ func filterFuncFromFilterWithStrArgValRet(f func(val string) Value) func(*State,
 	}
 }
 
-func filterFuncFromWithStateValArgValErrRet(f func(*State, Value) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromWithStateValArgValErrRet(f func(*vmState, Value) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
@@ -37,8 +37,8 @@ func filterFuncFromWithStateValArgValErrRet(f func(*State, Value) (Value, error)
 	}
 }
 
-func filterFuncFromWithValArgValErrRet(f func(Value) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromWithValArgValErrRet(f func(Value) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
@@ -47,8 +47,8 @@ func filterFuncFromWithValArgValErrRet(f func(Value) (Value, error)) func(*State
 	}
 }
 
-func filterFuncFromWithValValArgValErrRet(f func(Value, Value) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromWithValValArgValErrRet(f func(Value, Value) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple2FromValues(state, values)
 		if err != nil {
 			return nil, err
@@ -56,44 +56,44 @@ func filterFuncFromWithValValArgValErrRet(f func(Value, Value) (Value, error)) f
 		return f(tpl.a, tpl.b)
 	}
 }
-func filterFuncFromFilterWithStrArgStrRet(f func(val string) string) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStrArgStrRet(f func(val string) string) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
-		a, err := StringFromValue(option.Some(tpl.a))
+		a, err := stringFromValue(option.Some(tpl.a))
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromString(f(a)), nil
+		return valueFromString(f(a)), nil
 	}
 }
 
-func filterFuncFromFilterWithStateStrStrStrArgStrRet(f func(state *State, v1, v2, v3 string) string) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStateStrStrStrArgStrRet(f func(state *vmState, v1, v2, v3 string) string) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple3FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
-		a, err := StringFromValue(option.Some(tpl.a))
+		a, err := stringFromValue(option.Some(tpl.a))
 		if err != nil {
 			return nil, err
 		}
-		b, err := StringFromValue(option.Some(tpl.b))
+		b, err := stringFromValue(option.Some(tpl.b))
 		if err != nil {
 			return nil, err
 		}
-		c, err := StringFromValue(option.Some(tpl.c))
+		c, err := stringFromValue(option.Some(tpl.c))
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromString(f(state, a, b, c)), nil
+		return valueFromString(f(state, a, b, c)), nil
 	}
 }
 
-func filterFuncFromFilterWithValArgUintErrRet(f func(val Value) (uint, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValArgUintErrRet(f func(val Value) (uint, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
@@ -102,12 +102,12 @@ func filterFuncFromFilterWithValArgUintErrRet(f func(val Value) (uint, error)) f
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromI64(int64(l)), nil
+		return valueFromI64(int64(l)), nil
 	}
 }
 
-func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr option.Option[string]) (string, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr option.Option[string]) (string, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
 		optStr := option.None[string]()
 		switch {
@@ -129,12 +129,12 @@ func filterFuncFromFilterWithValOptStrArgStrErrRet(f func(val Value, optStr opti
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromString(rv), nil
+		return valueFromString(rv), nil
 	}
 }
 
-func filterFuncFromFilterWithValOptI32ArgValErrRet(f func(val Value, optI32 option.Option[int32]) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValOptI32ArgValErrRet(f func(val Value, optI32 option.Option[int32]) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
 		optI32 := option.None[int32]()
 		switch {
@@ -150,7 +150,7 @@ func filterFuncFromFilterWithValOptI32ArgValErrRet(f func(val Value, optI32 opti
 				return nil, err
 			}
 			val = tpl2.a
-			n, err := I32TryFromValue(tpl2.b)
+			n, err := i32TryFromValue(tpl2.b)
 			if err != nil {
 				return nil, err
 			}
@@ -160,8 +160,8 @@ func filterFuncFromFilterWithValOptI32ArgValErrRet(f func(val Value, optI32 opti
 	}
 }
 
-func filterFuncFromFilterWithValOptValArgValRet(f func(a Value, optB option.Option[Value]) Value) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValOptValArgValRet(f func(a Value, optB option.Option[Value]) Value) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var a Value
 		optB := option.None[Value]()
 		switch {
@@ -183,8 +183,8 @@ func filterFuncFromFilterWithValOptValArgValRet(f func(a Value, optB option.Opti
 	}
 }
 
-func filterFuncFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.Option[string]) string) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.Option[string]) string) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
 		optStr := option.None[string]()
 		switch {
@@ -202,26 +202,26 @@ func filterFuncFromFilterWithStrOptStrArgStrRet(f func(s string, optStr option.O
 			val = tpl2.a
 			optStr = option.Some(tpl2.b.String())
 		}
-		s, err := StringFromValue(option.Some(val))
+		s, err := stringFromValue(option.Some(val))
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromString(f(s, optStr)), nil
+		return valueFromString(f(s, optStr)), nil
 	}
 }
 
-func filterFuncFromFilterWithValArgBoolRet(f func(val Value) bool) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValArgBoolRet(f func(val Value) bool) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromBool(f(tpl.a)), nil
+		return valueFromBool(f(tpl.a)), nil
 	}
 }
 
-func filterFuncFromFilterWithStateValUintOptValArgValErrRet(f func(*State, Value, uint, option.Option[Value]) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStateValUintOptValArgValErrRet(f func(*vmState, Value, uint, option.Option[Value]) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val, countVal Value
 		fillWith := option.None[Value]()
 		switch {
@@ -241,7 +241,7 @@ func filterFuncFromFilterWithStateValUintOptValArgValErrRet(f func(*State, Value
 			countVal = tpl3.b
 			fillWith = option.Some(tpl3.c)
 		}
-		count, err := countVal.TryToUint()
+		count, err := countVal.tryToUint()
 		if err != nil {
 			return nil, err
 		}
@@ -249,8 +249,8 @@ func filterFuncFromFilterWithStateValUintOptValArgValErrRet(f func(*State, Value
 	}
 }
 
-func filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(f func(string, uint, option.Option[bool], option.Option[bool]) string) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStrUintOptBoolOptBoolArgStrrRet(f func(string, uint, option.Option[bool], option.Option[bool]) string) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var strVal, uintVal Value
 		optBoolVal1 := option.None[Value]()
 		optBool2 := option.None[bool]()
@@ -278,34 +278,34 @@ func filterFuncFromFilterWithStrUintOptBoolOptBoolArgStrrRet(f func(string, uint
 			strVal = tpl4.a
 			uintVal = tpl4.b
 			optBoolVal1 = option.Some(tpl4.c)
-			b, err := BoolTryFromValue(tpl4.d)
+			b, err := boolTryFromValue(tpl4.d)
 			if err != nil {
 				return nil, err
 			}
 			optBool2 = option.Some(b)
 		}
-		s, err := StringFromValue(option.Some(strVal))
+		s, err := stringFromValue(option.Some(strVal))
 		if err != nil {
 			return nil, err
 		}
-		n, err := uintVal.TryToUint()
+		n, err := uintVal.tryToUint()
 		if err != nil {
 			return nil, err
 		}
 		optBool1 := option.None[bool]()
 		if optBoolVal1.IsSome() {
-			b, err := BoolTryFromValue(optBoolVal1.Unwrap())
+			b, err := boolTryFromValue(optBoolVal1.Unwrap())
 			if err != nil {
 				return nil, err
 			}
 			optBool1 = option.Some(b)
 		}
-		return ValueFromString(f(s, n, optBool1, optBool2)), nil
+		return valueFromString(f(s, n, optBool1, optBool2)), nil
 	}
 }
 
-func filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(f func(*State, Value, option.Option[string], ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStateValOptStrValVarArgValSliceErrRet(f func(*vmState, Value, option.Option[string], ...Value) ([]Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
 		optStr := option.None[string]()
 		var args []Value
@@ -323,7 +323,7 @@ func filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(f func(*State
 				return nil, err
 			}
 			val = tpl2.a
-			s, err := StringFromValue(option.Some(tpl2.b))
+			s, err := stringFromValue(option.Some(tpl2.b))
 			if err != nil {
 				return nil, err
 			}
@@ -334,12 +334,12 @@ func filterFuncFromFilterWithStateValOptStrValVarArgValSliceErrRet(f func(*State
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromSlice(rv), nil
+		return valueFromSlice(rv), nil
 	}
 }
 
-func filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*State, Value, string, option.Option[string], ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*vmState, Value, string, option.Option[string], ...Value) ([]Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val, strVal Value
 		optStr := option.None[string]()
 		var args []Value
@@ -359,14 +359,14 @@ func filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*St
 			}
 			val = tpl3.a
 			strVal = tpl3.b
-			s, err := StringFromValue(option.Some(tpl3.c))
+			s, err := stringFromValue(option.Some(tpl3.c))
 			if err != nil {
 				return nil, err
 			}
 			optStr = option.Some(s)
 			args = values[3:]
 		}
-		s, err := StringFromValue(option.Some(strVal))
+		s, err := stringFromValue(option.Some(strVal))
 		if err != nil {
 			return nil, err
 		}
@@ -374,17 +374,17 @@ func filterFuncFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(f func(*St
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromSlice(rv), nil
+		return valueFromSlice(rv), nil
 	}
 }
 
-func filterFuncFromFilterWithValSliceArgValRet(f func([]Value) Value) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithValSliceArgValRet(f func([]Value) Value) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		tpl, err := tuple1FromValues(state, values)
 		if err != nil {
 			return nil, err
 		}
-		iter, err := state.undefinedBehavior().TryIter(tpl.a)
+		iter, err := state.undefinedBehavior().tryIter(tpl.a)
 		if err != nil {
 			return nil, err
 		}
@@ -392,10 +392,10 @@ func filterFuncFromFilterWithValSliceArgValRet(f func([]Value) Value) func(*Stat
 	}
 }
 
-func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromWithValKwargsArgValErrRet(f func(Value, kwArgs) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
-		var kwargs Kwargs
+		var kwargs kwArgs
 		switch {
 		case len(values) <= 1:
 			tpl, err := tuple1FromValues(state, values)
@@ -403,14 +403,14 @@ func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error
 				return nil, err
 			}
 			val = tpl.a
-			kwargs = NewKwargs(*NewValueMap())
+			kwargs = newKwArgs(*newValueMap())
 		case len(values) >= 2:
 			tpl, err := tuple2FromValues(state, values)
 			if err != nil {
 				return nil, err
 			}
 			val = tpl.a
-			kwargs, err = KwargsTryFromValue(tpl.b)
+			kwargs, err = kwArgsTryFromValue(tpl.b)
 			if err != nil {
 				return nil, err
 			}
@@ -419,10 +419,10 @@ func filterFuncFromWithValKwargsArgValErrRet(f func(Value, Kwargs) (Value, error
 	}
 }
 
-func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) (Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromWithStateValKwargsArgValErrRet(f func(*vmState, Value, kwArgs) (Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		var val Value
-		var kwargs Kwargs
+		var kwargs kwArgs
 		switch {
 		case len(values) <= 1:
 			tpl, err := tuple1FromValues(state, values)
@@ -430,14 +430,14 @@ func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) 
 				return nil, err
 			}
 			val = tpl.a
-			kwargs = NewKwargs(*NewValueMap())
+			kwargs = newKwArgs(*newValueMap())
 		case len(values) >= 2:
 			tpl, err := tuple2FromValues(state, values)
 			if err != nil {
 				return nil, err
 			}
 			val = tpl.a
-			kwargs, err = KwargsTryFromValue(tpl.b)
+			kwargs, err = kwArgsTryFromValue(tpl.b)
 			if err != nil {
 				return nil, err
 			}
@@ -446,10 +446,10 @@ func filterFuncFromWithStateValKwargsArgValErrRet(f func(*State, Value, Kwargs) 
 	}
 }
 
-func filterFuncFromFilterWithStateValValVarArgValSliceErrRet(f func(*State, Value, ...Value) ([]Value, error)) func(*State, []Value) (Value, error) {
-	return func(state *State, values []Value) (Value, error) {
+func boxedFilterFromFilterWithStateValValVarArgValSliceErrRet(f func(*vmState, Value, ...Value) ([]Value, error)) func(*vmState, []Value) (Value, error) {
+	return func(state *vmState, values []Value) (Value, error) {
 		if len(values) == 0 {
-			return nil, NewError(MissingArgument, "")
+			return nil, newError(MissingArgument, "")
 		}
 		val := values[0]
 		args := values[1:]
@@ -457,7 +457,7 @@ func filterFuncFromFilterWithStateValValVarArgValSliceErrRet(f func(*State, Valu
 		if err != nil {
 			return nil, err
 		}
-		return ValueFromSlice(rv), nil
+		return valueFromSlice(rv), nil
 	}
 }
 
@@ -465,8 +465,8 @@ func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
 
-func escape(state *State, v Value) (Value, error) {
-	if v.IsSafe() {
+func escape(state *vmState, v Value) (Value, error) {
+	if v.isSafe() {
 		return v, nil
 	}
 
@@ -480,7 +480,7 @@ func escape(state *State, v Value) (Value, error) {
 		}
 	}
 	var b strings.Builder
-	if optStr := v.AsStr(); optStr.IsSome() {
+	if optStr := v.asStr(); optStr.IsSome() {
 		b.Grow(len(optStr.Unwrap()))
 	}
 	out := newOutput(&b)
@@ -519,24 +519,24 @@ func capitalize(s string) string {
 //	-> Goodbye World
 //
 // ```
-func replace(_ *State, v, from, to string) string {
+func replace(_ *vmState, v, from, to string) string {
 	r := strings.NewReplacer(from, to)
 	return r.Replace(v)
 }
 
 func length(val Value) (uint, error) {
-	if optLen := val.Len(); optLen.IsSome() {
+	if optLen := val.len(); optLen.IsSome() {
 		return optLen.Unwrap(), nil
 	}
-	return 0, NewError(InvalidOperation,
-		fmt.Sprintf("cannot calculate length of value of type %s", val.Kind()))
+	return 0, newError(InvalidOperation,
+		fmt.Sprintf("cannot calculate length of value of type %s", val.kind()))
 }
 
 func compareValuesCaseInsensitive(a, b Value) int {
-	if optA, optB := a.AsStr(), b.AsStr(); optA.IsSome() && optB.IsSome() {
+	if optA, optB := a.asStr(), b.asStr(); optA.IsSome() && optB.IsSome() {
 		return strings.Compare(strings.ToLower(optA.Unwrap()), strings.ToLower(optB.Unwrap()))
 	}
-	return Cmp(a, b)
+	return valueCmp(a, b)
 }
 
 type keyAndValue struct {
@@ -553,18 +553,18 @@ type keyAndValue struct {
 // * `case_sensitive`: set to `true` to make the sorting of strings case sensitive.
 // * `by`: set to `"value"` to sort by  Defaults to `"key"`.
 // * `reverse`: set to `true` to sort in reverse.
-func dictsort(v Value, kwargs Kwargs) (Value, error) {
-	if v.Kind() != ValueKindMap {
-		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
+func dictsort(v Value, kwargs kwArgs) (Value, error) {
+	if v.kind() != valueKindMap {
+		return nil, newError(InvalidOperation, "cannot convert value into pair list")
 	}
-	entries := make([]keyAndValue, 0, v.Len().UnwrapOr(0))
-	iter, err := v.TryIter()
+	entries := make([]keyAndValue, 0, v.len().UnwrapOr(0))
+	iter, err := v.tryIter()
 	if err != nil {
 		return nil, err
 	}
 	var key Value
 	for iter.Next().UnwrapTo(&key) {
-		val, err := GetItem(v, key)
+		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
 		}
@@ -573,14 +573,14 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 
 	byVal := false
 	if optBy := kwargs.GetValue("by"); optBy.IsSome() {
-		if by, ok := optBy.Unwrap().(StringValue); ok {
+		if by, ok := optBy.Unwrap().(stringValue); ok {
 			switch by.Str {
 			case "key":
 				byVal = false
 			case "value":
 				byVal = true
 			default:
-				return nil, NewError(InvalidOperation,
+				return nil, newError(InvalidOperation,
 					fmt.Sprintf("invalid value '%s' for 'by' parameter", by.Str))
 			}
 		}
@@ -592,18 +592,18 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 
 	caseSensitive := false
 	if optCaseSensitive := kwargs.GetValue("case_sensitive"); optCaseSensitive.IsSome() {
-		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optCaseSensitive.Unwrap().(boolValue); ok && cs.B {
 			caseSensitive = true
 		}
 	}
-	sortFn := Cmp
+	sortFn := valueCmp
 	if !caseSensitive {
 		sortFn = compareValuesCaseInsensitive
 	}
 
 	reverse := false
 	if optReverse := kwargs.GetValue("reverse"); optReverse.IsSome() {
-		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optReverse.Unwrap().(boolValue); ok && cs.B {
 			reverse = true
 		}
 	}
@@ -622,49 +622,49 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 
 	items := make([]Value, 0, len(entries))
 	for _, entry := range entries {
-		item := ValueFromSlice([]Value{entry.Key, entry.Value})
+		item := valueFromSlice([]Value{entry.Key, entry.Value})
 		items = append(items, item)
 	}
-	return ValueFromSlice(items), nil
+	return valueFromSlice(items), nil
 }
 
-func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
-	iter, err := state.undefinedBehavior().TryIter(val)
+func sortFilter(state *vmState, val Value, kwargs kwArgs) (Value, error) {
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, NewError(InvalidOperation, "cannot convert value to list").WithSource(err)
+		return nil, newError(InvalidOperation, "cannot convert value to list").withSource(err)
 	}
 	items := iter.Collect()
 	caseSensitive := false
 	if optCaseSensitive := kwargs.GetValue("case_sensitive"); optCaseSensitive.IsSome() {
-		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optCaseSensitive.Unwrap().(boolValue); ok && cs.B {
 			caseSensitive = true
 		}
 	}
-	sortFn := Cmp
+	sortFn := valueCmp
 	if !caseSensitive {
 		sortFn = compareValuesCaseInsensitive
 	}
 
 	var attr string
 	if optAttr := kwargs.GetValue("attribute"); optAttr.IsSome() {
-		if strVal, ok := optAttr.Unwrap().(StringValue); ok {
+		if strVal, ok := optAttr.Unwrap().(stringValue); ok {
 			attr = strVal.Str
 		}
 	}
 	reverse := false
 	if optReverse := kwargs.GetValue("reverse"); optReverse.IsSome() {
-		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optReverse.Unwrap().(boolValue); ok && cs.B {
 			reverse = true
 		}
 	}
 
 	if attr != "" {
 		slices.SortFunc(items, func(a, b Value) int {
-			aVal, err := GetPath(a, attr)
+			aVal, err := getPath(a, attr)
 			if err != nil {
 				return 0
 			}
-			bVal, err := GetPath(b, attr)
+			bVal, err := getPath(b, attr)
 			if err != nil {
 				return 0
 			}
@@ -687,7 +687,7 @@ func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 	if err := kwargs.AssertAllUsed(); err != nil {
 		return nil, err
 	}
-	return ValueFromSlice(items), nil
+	return valueFromSlice(items), nil
 }
 
 // Returns a list of pairs (items) from a mapping.
@@ -710,34 +710,34 @@ func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 // </dl>
 // ```
 func items(v Value) (Value, error) {
-	if v.Kind() != ValueKindMap {
-		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
+	if v.kind() != valueKindMap {
+		return nil, newError(InvalidOperation, "cannot convert value into pair list")
 	}
-	items := make([]Value, 0, v.Len().UnwrapOr(0))
-	iter, err := v.TryIter()
+	items := make([]Value, 0, v.len().UnwrapOr(0))
+	iter, err := v.tryIter()
 	if err != nil {
 		return nil, err
 	}
 	var key Value
 	for iter.Next().UnwrapTo(&key) {
-		val, err := GetItem(v, key)
+		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
 		}
-		item := ValueFromSlice([]Value{key, val})
+		item := valueFromSlice([]Value{key, val})
 		items = append(items, item)
 	}
-	return ValueFromSlice(items), nil
+	return valueFromSlice(items), nil
 }
 
 // Joins a sequence by a character
 func join(val Value, joiner option.Option[string]) (string, error) {
-	if val.IsUndefined() || val.IsNone() {
+	if val.isUndefined() || val.isNone() {
 		return "", nil
 	}
 
 	joinerStr := joiner.UnwrapOr("")
-	if optValStr := val.AsStr(); optValStr.IsSome() {
+	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		var b strings.Builder
 		for len(rest) > 0 {
@@ -750,7 +750,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 		}
 		return b.String(), nil
 	}
-	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+	if optValSeq := val.asSeq(); optValSeq.IsSome() {
 		valSeq := optValSeq.Unwrap()
 		var b strings.Builder
 		n := valSeq.ItemCount()
@@ -759,7 +759,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 				b.WriteString(joinerStr)
 			}
 			item := valSeq.GetItem(i).Unwrap()
-			if optItemStr := item.AsStr(); optItemStr.IsSome() {
+			if optItemStr := item.asStr(); optItemStr.IsSome() {
 				b.WriteString(optItemStr.Unwrap())
 			} else {
 				fmt.Fprintf(&b, "%s", item)
@@ -767,8 +767,8 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 		}
 		return b.String(), nil
 	}
-	return "", NewError(InvalidOperation,
-		fmt.Sprintf("cannot join value of type %s", val.Kind()))
+	return "", newError(InvalidOperation,
+		fmt.Sprintf("cannot join value of type %s", val.kind()))
 }
 
 // Reverses a list or string
@@ -781,7 +781,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 // {% endfor %}
 // ```
 func reverse(val Value) (Value, error) {
-	if optValStr := val.AsStr(); optValStr.IsSome() {
+	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		var b strings.Builder
 		for len(rest) > 0 {
@@ -789,9 +789,9 @@ func reverse(val Value) (Value, error) {
 			b.WriteRune(r)
 			rest = rest[:len(rest)-size]
 		}
-		return ValueFromString(b.String()), nil
+		return valueFromString(b.String()), nil
 	}
-	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+	if optValSeq := val.asSeq(); optValSeq.IsSome() {
 		valSeq := optValSeq.Unwrap()
 		n := valSeq.ItemCount()
 		items := make([]Value, 0, n)
@@ -802,10 +802,10 @@ func reverse(val Value) (Value, error) {
 				break
 			}
 		}
-		return ValueFromSlice(items), nil
+		return valueFromSlice(items), nil
 	}
-	return nil, NewError(InvalidOperation,
-		fmt.Sprintf("cannot reverse value of type %s", val.Kind()))
+	return nil, newError(InvalidOperation,
+		fmt.Sprintf("cannot reverse value of type %s", val.kind()))
 }
 
 func trim(s string, cutset option.Option[string]) string {
@@ -816,41 +816,41 @@ func trim(s string, cutset option.Option[string]) string {
 }
 
 func defaultFilter(val Value, other option.Option[Value]) Value {
-	if val.IsUndefined() {
-		return other.UnwrapOrElse(func() Value { return ValueFromString("") })
+	if val.isUndefined() {
+		return other.UnwrapOrElse(func() Value { return valueFromString("") })
 	}
 	return val
 }
 
 func round(val Value, precision option.Option[int32]) (Value, error) {
 	switch v := val.(type) {
-	case I64Value, I128Value:
+	case i64Value, i128Value:
 		return val, nil
-	case F64Value:
+	case f64Value:
 		x := math.Pow10(int(precision.UnwrapOr(0)))
-		return ValueFromF64(math.Round(x*v.F) / x), nil
+		return valueFromF64(math.Round(x*v.F) / x), nil
 	default:
-		return nil, NewError(InvalidOperation, "cannot round value")
+		return nil, newError(InvalidOperation, "cannot round value")
 	}
 }
 
 func abs(val Value) (Value, error) {
 	switch v := val.(type) {
-	case I64Value:
+	case i64Value:
 		n := v.N
 		if n < 0 {
 			n = -n
 		}
-		return I64Value{N: n}, nil
-	case I128Value:
+		return i64Value{N: n}, nil
+	case i128Value:
 		var n big.Int
 		n.Abs(&v.N)
-		return I128Value{N: n}, nil
-	case F64Value:
-		return F64Value{F: math.Abs(v.F)}, nil
+		return i128Value{N: n}, nil
+	case f64Value:
+		return f64Value{F: math.Abs(v.F)}, nil
 	default:
 		// TODO: Verify MiniJinja error message is really intentional.
-		return nil, NewError(InvalidOperation, "cannot round value")
+		return nil, newError(InvalidOperation, "cannot round value")
 	}
 }
 
@@ -864,11 +864,11 @@ func abs(val Value) (Value, error) {
 // {{ value['key'] == value|attr('key') }} -> true
 // ```
 func attr(val, key Value) (Value, error) {
-	return GetItem(val, key)
+	return getItem(val, key)
 }
 
 func first(val Value) (Value, error) {
-	if optValStr := val.AsStr(); optValStr.IsSome() {
+	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		if rest == "" {
 			return Undefined, nil
@@ -876,17 +876,17 @@ func first(val Value) (Value, error) {
 		var b strings.Builder
 		r, _ := utf8.DecodeRuneInString(rest)
 		b.WriteRune(r)
-		return ValueFromString(b.String()), nil
+		return valueFromString(b.String()), nil
 	}
-	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+	if optValSeq := val.asSeq(); optValSeq.IsSome() {
 		valSeq := optValSeq.Unwrap()
 		return valSeq.GetItem(0).UnwrapOr(Undefined), nil
 	}
-	return nil, NewError(InvalidOperation, "cannot get first item from value")
+	return nil, newError(InvalidOperation, "cannot get first item from value")
 }
 
 func last(val Value) (Value, error) {
-	if optValStr := val.AsStr(); optValStr.IsSome() {
+	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		if rest == "" {
 			return Undefined, nil
@@ -894,9 +894,9 @@ func last(val Value) (Value, error) {
 		var b strings.Builder
 		r, _ := utf8.DecodeLastRuneInString(rest)
 		b.WriteRune(r)
-		return ValueFromString(b.String()), nil
+		return valueFromString(b.String()), nil
 	}
-	if optValSeq := val.AsSeq(); optValSeq.IsSome() {
+	if optValSeq := val.asSeq(); optValSeq.IsSome() {
 		valSeq := optValSeq.Unwrap()
 		n := valSeq.ItemCount()
 		if n == 0 {
@@ -904,31 +904,31 @@ func last(val Value) (Value, error) {
 		}
 		return valSeq.GetItem(n - 1).UnwrapOr(Undefined), nil
 	}
-	return nil, NewError(InvalidOperation, "cannot get last item from value")
+	return nil, newError(InvalidOperation, "cannot get last item from value")
 }
 
-func minFilter(state *State, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().TryIter(val)
+func minFilter(state *vmState, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Min().UnwrapOr(Undefined), nil
 }
 
-func maxFilter(state *State, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().TryIter(val)
+func maxFilter(state *vmState, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Max().UnwrapOr(Undefined), nil
 }
 
-func listFilter(state *State, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().TryIter(val)
+func listFilter(state *vmState, val Value) (Value, error) {
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, NewError(InvalidDelimiter, "cannot convert value to list").WithSource(err)
+		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
-	return ValueFromSlice(iter.Collect()), nil
+	return valueFromSlice(iter.Collect()), nil
 }
 
 // Converts the value into a boolean
@@ -936,7 +936,7 @@ func listFilter(state *State, val Value) (Value, error) {
 // This behaves the same as the if statement does with regards to
 // handling of boolean values.
 func boolFilter(val Value) bool {
-	return val.IsTrue()
+	return val.isTrue()
 }
 
 // Batch items.
@@ -958,22 +958,22 @@ func boolFilter(val Value) bool {
 //
 // </table>
 // ```
-func batchFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
-		return nil, NewError(InvalidOperation, "count cannot be 0")
+		return nil, newError(InvalidOperation, "count cannot be 0")
 	}
 
-	rv := make([]Value, 0, val.Len().UnwrapOr(0)/count)
+	rv := make([]Value, 0, val.len().UnwrapOr(0)/count)
 	tmp := make([]Value, 0, count)
 
-	iter, err := state.undefinedBehavior().TryIter(val)
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
 	var item Value
 	for iter.Next().UnwrapTo(&item) {
 		if uint(len(tmp)) == count {
-			rv = append(rv, ValueFromSlice(tmp))
+			rv = append(rv, valueFromSlice(tmp))
 			tmp = make([]Value, 0, count)
 		}
 		tmp = append(tmp, item)
@@ -983,13 +983,13 @@ func batchFilter(state *State, val Value, count uint, fillWith option.Option[Val
 		if fillWith.IsSome() {
 			filler := fillWith.Unwrap()
 			for i := uint(0); i < count-uint(len(tmp)); i++ {
-				tmp = append(tmp, filler.Clone())
+				tmp = append(tmp, filler.clone())
 			}
 		}
-		rv = append(rv, ValueFromSlice(tmp))
+		rv = append(rv, valueFromSlice(tmp))
 	}
 
-	return ValueFromSlice(rv), nil
+	return valueFromSlice(rv), nil
 }
 
 // Slice an iterable and return a list of lists containing
@@ -1014,12 +1014,12 @@ func batchFilter(state *State, val Value, count uint, fillWith option.Option[Val
 //
 // If you pass it a second argument it’s used to fill missing values on the
 // last iteration.
-func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func sliceFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
-		return nil, NewError(InvalidOperation, "count cannot be 0")
+		return nil, newError(InvalidOperation, "count cannot be 0")
 	}
 
-	iter, err := state.undefinedBehavior().TryIter(val)
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
@@ -1038,14 +1038,14 @@ func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Val
 		tmp := items[start:end]
 		if fillWith.IsSome() && slice >= slicesWithExtra {
 			filler := fillWith.Unwrap()
-			tmp = append(tmp, filler.Clone())
-			rv = append(rv, ValueFromSlice(tmp))
+			tmp = append(tmp, filler.clone())
+			rv = append(rv, valueFromSlice(tmp))
 			continue
 		}
-		rv = append(rv, ValueFromSlice(tmp))
+		rv = append(rv, valueFromSlice(tmp))
 	}
 
-	return ValueFromSlice(rv), nil
+	return valueFromSlice(rv), nil
 }
 
 func indentFilter(val string, width uint, indentFirstLine, indentBlankLines option.Option[bool]) string {
@@ -1087,16 +1087,16 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 	return rv
 }
 
-func selectOrReject(state *State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectOrReject(state *vmState, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
 	var rv []Value
-	test := option.None[TestFunc]()
+	test := option.None[BoxedTest]()
 	if testName.IsSome() {
 		test = state.env.getTest(testName.Unwrap())
 		if test.IsNone() {
-			return nil, NewError(UnknownTest, "")
+			return nil, newError(UnknownTest, "")
 		}
 	}
-	iter, err := state.undefinedBehavior().TryIter(val)
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
@@ -1104,17 +1104,17 @@ func selectOrReject(state *State, invert bool, val Value, attr, testName option.
 	for iter.Next().UnwrapTo(&item) {
 		var testVal Value
 		if attr.IsSome() {
-			testVal, err = GetAttr(item, attr.Unwrap())
+			testVal, err = getAttr(item, attr.Unwrap())
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			testVal = item.Clone()
+			testVal = item.clone()
 		}
 		var passed bool
 		if test.IsSome() {
-			iter, _ := ValueFromSlice([]Value{testVal}).TryIter()
-			iter2, _ := ValueFromSlice(args).TryIter()
+			iter, _ := valueFromSlice([]Value{testVal}).tryIter()
+			iter2, _ := valueFromSlice(args).tryIter()
 			chainedIter := iter.Chain(iter2.Cloned())
 			testArgs := chainedIter.Collect()
 			passed, err = test.Unwrap()(state, testArgs)
@@ -1122,7 +1122,7 @@ func selectOrReject(state *State, invert bool, val Value, attr, testName option.
 				return nil, err
 			}
 		} else {
-			passed = testVal.IsTrue()
+			passed = testVal.isTrue()
 		}
 		if passed != invert {
 			rv = append(rv, item)
@@ -1131,19 +1131,19 @@ func selectOrReject(state *State, invert bool, val Value, attr, testName option.
 	return rv, nil
 }
 
-func selectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.None[string](), testName, args...)
 }
 
-func selectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.Some(attr), testName, args...)
 }
 
-func rejectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.None[string](), testName, args...)
 }
 
-func rejectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.Some(attr), testName, args...)
 }
 
@@ -1168,7 +1168,7 @@ func uniqueFilter(values []Value) Value {
 			seen[item] = struct{}{}
 		}
 	}
-	return ValueFromSlice(rv)
+	return valueFromSlice(rv)
 }
 
 // Applies a filter to a sequence of objects or looks up an attribute.
@@ -1197,11 +1197,11 @@ func uniqueFilter(values []Value) Value {
 // ```jinja
 // Users on this page: {{ titles|map('lower')|join(', ') }}
 // ```
-func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
-	rv := make([]Value, 0, val.Len().UnwrapOr(0))
-	kwargs, err := KwargsTryFromValue(args[len(args)-1])
+func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
+	rv := make([]Value, 0, val.len().UnwrapOr(0))
+	kwargs, err := kwArgsTryFromValue(args[len(args)-1])
 	if err != nil {
-		kwargs = NewKwargs(*NewValueMap())
+		kwargs = newKwArgs(*newValueMap())
 	} else {
 		args = args[:len(args)-1]
 	}
@@ -1209,29 +1209,29 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 	if optAttr := kwargs.GetValue("attribute"); optAttr.IsSome() {
 		attrVal := optAttr.Unwrap()
 		if len(args) != 0 {
-			return nil, NewError(TooManyArguments, "")
+			return nil, newError(TooManyArguments, "")
 		}
 		defVal := kwargs.GetValue("default").UnwrapOr(Undefined)
-		iter, err := state.undefinedBehavior().TryIter(val)
+		iter, err := state.undefinedBehavior().tryIter(val)
 		if err != nil {
 			return nil, err
 		}
 		var item Value
 		for iter.Next().UnwrapTo(&item) {
 			var subVal Value
-			if optAttrStr := attrVal.AsStr(); optAttrStr.IsSome() {
+			if optAttrStr := attrVal.asStr(); optAttrStr.IsSome() {
 				path := optAttrStr.Unwrap()
-				subVal, err = GetPath(item, path)
+				subVal, err = getPath(item, path)
 			} else {
-				subVal, err = GetItem(item, attrVal)
+				subVal, err = getItem(item, attrVal)
 			}
 			if err != nil {
-				if defVal.IsUndefined() {
+				if defVal.isUndefined() {
 					return nil, err
 				}
-				subVal = defVal.Clone()
-			} else if subVal.IsUndefined() {
-				subVal = defVal.Clone()
+				subVal = defVal.clone()
+			} else if subVal.isUndefined() {
+				subVal = defVal.clone()
 			}
 			rv = append(rv, subVal)
 		}
@@ -1240,27 +1240,27 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 
 	// filter mapping
 	if len(args) == 0 {
-		return nil, NewError(InvalidOperation, "filter name is required")
+		return nil, newError(InvalidOperation, "filter name is required")
 	}
 	filterNameVal := args[0]
-	optFilterName := filterNameVal.AsStr()
+	optFilterName := filterNameVal.asStr()
 	if optFilterName.IsNone() {
-		return nil, NewError(InvalidOperation, "filter name must be a string")
+		return nil, newError(InvalidOperation, "filter name must be a string")
 	}
 	filterName := optFilterName.Unwrap()
 	optFilter := state.env.getFilter(filterName)
 	if optFilter.IsNone() {
-		return nil, NewError(UnknownFilter, "")
+		return nil, newError(UnknownFilter, "")
 	}
 	filter := optFilter.Unwrap()
-	iter, err := state.undefinedBehavior().TryIter(val)
+	iter, err := state.undefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
 	var item Value
 	for iter.Next().UnwrapTo(&item) {
-		iter2, _ := ValueFromSlice([]Value{item.Clone()}).TryIter()
-		iter3, _ := ValueFromSlice(args[1:]).TryIter()
+		iter2, _ := valueFromSlice([]Value{item.clone()}).tryIter()
+		iter3, _ := valueFromSlice(args[1:]).tryIter()
 		iter4 := iter2.Chain(iter3.Cloned())
 		newArgs := iter4.Collect()
 		rvItem, err := filter(state, newArgs)

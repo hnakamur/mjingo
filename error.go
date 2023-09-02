@@ -12,11 +12,11 @@ type Error struct {
 	detail string
 	name   option.Option[string]
 	lineno uint
-	span   option.Option[Span]
+	span   option.Option[span]
 	source error
 }
 
-func NewError(typ ErrorType, detail string) *Error {
+func newError(typ ErrorType, detail string) *Error {
 	return &Error{typ: typ, detail: detail}
 }
 
@@ -135,25 +135,25 @@ func (e *Error) Error() string {
 
 func (e *Error) Type() ErrorType { return e.typ }
 
-func (e *Error) Line() option.Option[uint] {
+func (e *Error) line() option.Option[uint] {
 	if e.lineno > 0 {
 		return option.Some(e.lineno)
 	}
 	return option.None[uint]()
 }
 
-func (e *Error) SetFilenameAndLine(filename string, lineno uint) {
+func (e *Error) setFilenameAndLine(filename string, lineno uint) {
 	e.name = option.Some(filename)
 	e.lineno = lineno
 }
 
-func (e *Error) SetFilenameAndSpan(filename string, spn Span) {
+func (e *Error) setFilenameAndSpan(filename string, spn span) {
 	e.name = option.Some(filename)
 	e.span = option.Some(spn)
 	e.lineno = uint(spn.StartLine)
 }
 
-func (e *Error) WithSource(err error) *Error {
+func (e *Error) withSource(err error) *Error {
 	e.source = err
 	return e
 }

@@ -12,85 +12,85 @@ import (
 )
 
 func serializeBool(v bool) (Value, error) {
-	return ValueFromBool(v), nil
+	return valueFromBool(v), nil
 }
 
 func serializeI8(v int8) (Value, error) {
-	return ValueFromI64(int64(v)), nil
+	return valueFromI64(int64(v)), nil
 }
 
 func serializeI16(v int16) (Value, error) {
-	return ValueFromI64(int64(v)), nil
+	return valueFromI64(int64(v)), nil
 }
 
 func serializeI32(v int32) (Value, error) {
-	return ValueFromI64(int64(v)), nil
+	return valueFromI64(int64(v)), nil
 }
 
 func serializeI64(v int64) (Value, error) {
-	return ValueFromI64(v), nil
+	return valueFromI64(v), nil
 }
 
 func serializeInt(v int) (Value, error) {
-	return ValueFromI64(int64(v)), nil
+	return valueFromI64(int64(v)), nil
 }
 
 func serializeI128(v big.Int) (Value, error) {
 	if isI128(&v) {
-		return ValueFromI128(v), nil
+		return valueFromI128(v), nil
 	}
 	return nil, errors.New("value out of range of i128")
 }
 
 func serializeU8(v uint8) (Value, error) {
-	return ValueFromU64(uint64(v)), nil
+	return valueFromU64(uint64(v)), nil
 }
 
 func serializeU16(v uint16) (Value, error) {
-	return ValueFromU64(uint64(v)), nil
+	return valueFromU64(uint64(v)), nil
 }
 
 func serializeU32(v uint32) (Value, error) {
-	return ValueFromU64(uint64(v)), nil
+	return valueFromU64(uint64(v)), nil
 }
 
 func serializeU64(v uint64) (Value, error) {
-	return ValueFromU64(v), nil
+	return valueFromU64(v), nil
 }
 
 func serializeUint(v uint) (Value, error) {
-	return ValueFromU64(uint64(v)), nil
+	return valueFromU64(uint64(v)), nil
 }
 
 func serializeU128(v big.Int) (Value, error) {
 	if isU128(&v) {
-		return ValueFromU128(v), nil
+		return valueFromU128(v), nil
 	}
 	return nil, errors.New("value out of range of u128")
 }
 
 func serializeF32(v float32) (Value, error) {
-	return ValueFromF64(float64(v)), nil
+	return valueFromF64(float64(v)), nil
 }
 
 func serializeF64(v float64) (Value, error) {
-	return ValueFromF64(v), nil
+	return valueFromF64(v), nil
 }
 
 func serializeRune(v rune) (Value, error) {
-	return ValueFromString(string(v)), nil
+	return valueFromString(string(v)), nil
 }
 
 func serializeStr(v string) (Value, error) {
-	return ValueFromString(v), nil
+	return valueFromString(v), nil
 }
 
 func serializeBytes(v []byte) (Value, error) {
-	return ValueFromBytes(v), nil
+	return valueFromBytes(v), nil
 }
 
 func serializeNone() (Value, error) {
-	return None, nil
+	return none, nil
 }
 
 type ValueFromGoValueOption func(*valueFromGoValueConfig)
@@ -117,7 +117,7 @@ const maxNestLevelForValueFromGoValue = 100
 
 func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint) Value {
 	if level >= maxNestLevelForValueFromGoValue {
-		return InvalidValue{Detail: "nested level too deep"}
+		return invalidValue{Detail: "nested level too deep"}
 	}
 	switch v := val.(type) {
 	case bool:
@@ -172,9 +172,9 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		k := ty.Kind()
 		switch k {
 		case reflect.Struct:
-			return ValueFromObject(structObjectWithReflect(reflect.ValueOf(v), config, level))
+			return valueFromObject(structObjectWithReflect(reflect.ValueOf(v), config, level))
 		case reflect.Array, reflect.Slice:
-			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
+			return valueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
 		case reflect.Map:
 			return valueFromGoMapReflect(reflect.ValueOf(v), config, level)
 		case reflect.Ptr:
@@ -186,20 +186,20 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 
 func mapErrToInvalidValue(val Value, err error) Value {
 	if err != nil {
-		return InvalidValue{Detail: err.Error()}
+		return invalidValue{Detail: err.Error()}
 	}
 	return val
 }
 
 func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
-	m := NewValueMap()
+	m := newValueMap()
 	iter := val.MapRange()
 	for iter.Next() {
 		key := valueFromGoValueHelper(iter.Key().Interface(), config, level+1)
 		v := valueFromGoValueHelper(iter.Value().Interface(), config, level+1)
-		m.Set(KeyRefFromValue(key), v)
+		m.Set(keyRefFromValue(key), v)
 	}
-	return ValueFromIndexMap(m)
+	return valueFromIndexMap(m)
 }
 
 type reflectStructObject struct {
@@ -210,14 +210,14 @@ type reflectStructObject struct {
 	nameToFieldIdx map[string]int
 }
 
-var _ = (Object)((*reflectStructObject)(nil))
-var _ = (StructObject)((*reflectStructObject)(nil))
+var _ = (object)((*reflectStructObject)(nil))
+var _ = (structObject)((*reflectStructObject)(nil))
 
 func structObjectWithReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectStructObject {
 	return &reflectStructObject{val: val, config: config, level: level}
 }
 
-func (*reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
+func (*reflectStructObject) Kind() objectKind { return objectKindStruct }
 
 func (o *reflectStructObject) GetField(name string) option.Option[Value] {
 	o.collectFieldNames()
@@ -271,14 +271,14 @@ type reflectSeqObject struct {
 	level  uint
 }
 
-var _ = (Object)((*reflectSeqObject)(nil))
-var _ = (SeqObject)((*reflectSeqObject)(nil))
+var _ = (object)((*reflectSeqObject)(nil))
+var _ = (seqObject)((*reflectSeqObject)(nil))
 
 func sqeObjectFromGoReflectSeq(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectSeqObject {
 	return &reflectSeqObject{val: val, config: config, level: level}
 }
 
-func (*reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
+func (*reflectSeqObject) Kind() objectKind { return objectKindSeq }
 
 func (o *reflectSeqObject) GetItem(idx uint) option.Option[Value] {
 	if idx >= o.ItemCount() {

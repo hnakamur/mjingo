@@ -7,46 +7,46 @@ import (
 	"strings"
 )
 
-type Output struct {
+type output struct {
 	w            io.Writer
 	captureStack []io.Writer
 }
 
-var _ = (io.Writer)((*Output)(nil))
+var _ = (io.Writer)((*output)(nil))
 
-func newOutput(w io.Writer) *Output {
-	return &Output{w: w}
+func newOutput(w io.Writer) *output {
+	return &output{w: w}
 }
 
-func newOutputNull() *Output {
+func newOutputNull() *output {
 	// The null writer also has a single entry on the discarding capture
 	// stack.  In fact, `w` is more or less useless here as we always
 	// shadow it.  This is done so that `is_discarding` returns true.
-	return &Output{w: io.Discard, captureStack: []io.Writer{io.Discard}}
+	return &output{w: io.Discard, captureStack: []io.Writer{io.Discard}}
 }
 
-func (o *Output) target() io.Writer {
+func (o *output) target() io.Writer {
 	if len(o.captureStack) > 0 {
 		return o.captureStack[len(o.captureStack)-1]
 	}
 	return o.w
 }
 
-func (o *Output) isDiscarding() bool {
+func (o *output) isDiscarding() bool {
 	return len(o.captureStack) > 0 && o.captureStack[len(o.captureStack)-1] == io.Discard
 }
 
-func (o *Output) Write(p []byte) (n int, err error) {
+func (o *output) Write(p []byte) (n int, err error) {
 	return o.target().Write(p)
 }
 
 // Begins capturing into a string or discard.
-func (o *Output) beginCapture(mode CaptureMode) {
+func (o *output) beginCapture(mode captureMode) {
 	var w io.Writer
 	switch mode {
-	case CaptureModeCapture:
+	case captureModeCapture:
 		w = new(strings.Builder)
-	case CaptureModeDiscard:
+	case captureModeDiscard:
 		w = io.Discard
 	default:
 		panic("unreachable")
@@ -55,7 +55,7 @@ func (o *Output) beginCapture(mode CaptureMode) {
 }
 
 // Ends capturing and returns the captured string as
-func (o *Output) endCapture(escape AutoEscape) Value {
+func (o *output) endCapture(escape AutoEscape) Value {
 	if len(o.captureStack) == 0 {
 		return Undefined
 	}
@@ -66,23 +66,23 @@ func (o *Output) endCapture(escape AutoEscape) Value {
 		if _, ok := escape.(AutoEscapeNone); !ok {
 			return ValueFromSafeString(str)
 		} else {
-			return ValueFromString(str)
+			return valueFromString(str)
 		}
 	}
 	return Undefined
 }
 
-func writeString(o *Output, s string) error {
+func writeString(o *output, s string) error {
 	_, err := io.WriteString(o, s)
 	return err
 }
 
-func writeWithHTMLEscaping(o *Output, val Value) error {
-	switch val.Kind() {
-	case ValueKindUndefined, ValueKindNone, ValueKindBool, ValueKindNumber:
+func writeWithHTMLEscaping(o *output, val Value) error {
+	switch val.kind() {
+	case valueKindUndefined, valueKindNone, valueKindBool, valueKindNumber:
 		return writeString(o, val.String())
 	default:
-		if optStr := val.AsStr(); optStr.IsSome() {
+		if optStr := val.asStr(); optStr.IsSome() {
 			// TODO: escape single quote with `&quot;` not `&#34;`
 			return writeString(o, html.EscapeString(optStr.Unwrap()))
 		}
@@ -90,9 +90,9 @@ func writeWithHTMLEscaping(o *Output, val Value) error {
 	}
 }
 
-func writeEscaped(o *Output, autoEscape AutoEscape, val Value) error {
+func writeEscaped(o *output, autoEscape AutoEscape, val Value) error {
 	// common case of safe strings or strings without auto escaping
-	if val.IsSafe() || autoEscape.IsNone() {
+	if val.isSafe() || autoEscape.isNone() {
 		return writeString(o, val.String())
 	}
 
@@ -104,7 +104,7 @@ func writeEscaped(o *Output, autoEscape AutoEscape, val Value) error {
 	case AutoEscapeJSON:
 		panic("not implemented")
 	case AutoEscapeCustom:
-		panic(fmt.Sprintf("not implemented for custom auto escape name=%s", esc.Name))
+		panic(fmt.Sprintf("not implemented for custom auto escape name=%s", esc.name))
 	}
 	return nil
 }

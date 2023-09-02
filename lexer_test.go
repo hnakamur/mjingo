@@ -7,7 +7,7 @@ import (
 func TestBasicIdentifiers(t *testing.T) {
 	t.Run("ident", func(t *testing.T) {
 		assertIdent := func(s string) {
-			tk, _, err := Tokenize(s, true, nil).Next()
+			tk, _, err := tokenize(s, true, nil).Next()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28,7 +28,7 @@ func TestBasicIdentifiers(t *testing.T) {
 	})
 	t.Run("notIdent", func(t *testing.T) {
 		assertNotIdent := func(s string) {
-			it := Tokenize(s, true, nil)
+			it := tokenize(s, true, nil)
 			tk, _, _ := it.Next()
 			if tk, ok := tk.(identToken); ok {
 				t.Errorf("token should not be an identifier, got=%s, input=%q", tk.typ(), s)

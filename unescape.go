@@ -24,7 +24,7 @@ func (u *unescaper) unescape(s string) (string, error) {
 		r, size := utf8.DecodeRuneInString(rest)
 		if r == utf8.RuneError {
 			if size != 0 {
-				return "", NewError(BadEscape, "")
+				return "", newError(BadEscape, "")
 			}
 			break
 		}
@@ -33,7 +33,7 @@ func (u *unescaper) unescape(s string) (string, error) {
 		if r == '\\' {
 			r, size = utf8.DecodeRuneInString(rest)
 			if r == utf8.RuneError {
-				return "", NewError(BadEscape, "")
+				return "", newError(BadEscape, "")
 			}
 			rest = rest[size:]
 
@@ -80,7 +80,7 @@ func (u *unescaper) unescape(s string) (string, error) {
 		}
 	}
 	if u.pendingSurrogate != 0 {
-		return "", NewError(BadEscape, "")
+		return "", newError(BadEscape, "")
 	}
 	return string(u.out), nil
 }
@@ -96,7 +96,7 @@ func (u *unescaper) parseU16(s string) (r rune, rest string, err error) {
 	}
 	val, err := strconv.ParseUint(s[:i], 16, 16)
 	if err != nil {
-		return 0, "", NewError(BadEscape, "")
+		return 0, "", newError(BadEscape, "")
 	}
 	return rune(val), s[i:], nil
 }
@@ -113,7 +113,7 @@ func (u *unescaper) pushU16(c rune) error {
 	r := utf16.DecodeRune(u.pendingSurrogate, c)
 	const replacementChar = '\ufffd'
 	if r == replacementChar {
-		return NewError(BadEscape, "")
+		return newError(BadEscape, "")
 	}
 	u.pendingSurrogate = 0
 	return u.pushChar(r)
@@ -121,7 +121,7 @@ func (u *unescaper) pushU16(c rune) error {
 
 func (u *unescaper) pushChar(r rune) error {
 	if u.pendingSurrogate != 0 {
-		return NewError(BadEscape, "")
+		return newError(BadEscape, "")
 	}
 	u.out = utf8.AppendRune(u.out, r)
 	return nil

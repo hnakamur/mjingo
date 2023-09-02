@@ -4,17 +4,17 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/indexmap"
 )
 
-type ValueMap = indexmap.Map[KeyRef, Value]
-type ValueMapEntry = indexmap.Entry[KeyRef, Value]
+type valueMap = indexmap.Map[keyRef, Value]
+type valueMapEntry = indexmap.Entry[keyRef, Value]
 
-func NewValueMap() *ValueMap {
-	return indexmap.New[KeyRef, Value]()
+func newValueMap() *valueMap {
+	return indexmap.New[keyRef, Value]()
 }
 
-func ValueMapWithCapacity(capacity uint) *ValueMap {
-	return indexmap.WithCapacity[KeyRef, Value](capacity)
+func valueMapWithCapacity(capacity uint) *valueMap {
+	return indexmap.WithCapacity[keyRef, Value](capacity)
 }
 
-func ValueMapFromEntries(entries []ValueMapEntry) *ValueMap {
-	return indexmap.FromEntries[KeyRef, Value](entries)
+func valueMapFromEntries(entries []valueMapEntry) *valueMap {
+	return indexmap.FromEntries[keyRef, Value](entries)
 }

@@ -11,27 +11,27 @@ func TestValueString(t *testing.T) {
 		want  string
 	}{
 		{
-			input: F64Value{F: math.NaN()},
+			input: f64Value{F: math.NaN()},
 			want:  "NaN",
 		},
 		{
-			input: F64Value{F: math.Inf(-1)},
+			input: f64Value{F: math.Inf(-1)},
 			want:  "-inf",
 		},
 		{
-			input: F64Value{F: math.Inf(+1)},
+			input: f64Value{F: math.Inf(+1)},
 			want:  "inf",
 		},
 		{
-			input: F64Value{F: 3.0},
+			input: f64Value{F: 3.0},
 			want:  "3.0",
 		},
 		{
-			input: F64Value{F: 3.1},
+			input: f64Value{F: 3.1},
 			want:  "3.1",
 		},
 		{
-			input: F64Value{F: float64(1e99)},
+			input: f64Value{F: float64(1e99)},
 			want:  "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0",
 		},
 	}

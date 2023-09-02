@@ -10,8 +10,8 @@ import (
 type Environment struct {
 	syntaxConfig      SyntaxConfig
 	templates         map[string]*Template
-	filters           map[string]FilterFunc
-	tests             map[string]TestFunc
+	filters           map[string]BoxedFilter
+	tests             map[string]BoxedTest
 	globals           map[string]Value
 	defaultAutoEscape autoEscapeFunc
 	undefinedBehavior UndefinedBehavior
@@ -19,7 +19,7 @@ type Environment struct {
 }
 
 type autoEscapeFunc func(name string) AutoEscape
-type formatterFunc = func(*Output, *State, Value) error
+type formatterFunc = func(*output, *vmState, Value) error
 
 var ErrTemplateNotFound = errors.New("template not found")
 
@@ -56,9 +56,9 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
-func (e *Environment) format(v Value, state *State, out *Output) error {
-	if v.IsUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
-		return NewError(UndefinedError, "")
+func (e *Environment) format(v Value, state *vmState, out *output) error {
+	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
+		return newError(UndefinedError, "")
 	}
 	return e.formatter(out, state, v)
 }
@@ -66,7 +66,7 @@ func (e *Environment) format(v Value, state *State, out *Output) error {
 func (e *Environment) getGlobal(name string) option.Option[Value] {
 	val := e.globals[name]
 	if val != nil {
-		return option.Some(val.Clone())
+		return option.Some(val.clone())
 	}
 	return option.None[Value]()
 }
@@ -75,18 +75,18 @@ func (e *Environment) initialAutoEscape(name string) AutoEscape {
 	return e.defaultAutoEscape(name)
 }
 
-func (e *Environment) getFilter(name string) option.Option[FilterFunc] {
+func (e *Environment) getFilter(name string) option.Option[BoxedFilter] {
 	if f, ok := e.filters[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[FilterFunc]()
+	return option.None[BoxedFilter]()
 }
 
-func (e *Environment) getTest(name string) option.Option[TestFunc] {
+func (e *Environment) getTest(name string) option.Option[BoxedTest] {
 	if f, ok := e.tests[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[TestFunc]()
+	return option.None[BoxedTest]()
 }
 
 func noAutoEscape(_ string) AutoEscape { return AutoEscapeNone{} }
