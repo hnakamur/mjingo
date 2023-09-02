@@ -886,12 +886,9 @@ func (i *Iterator) Len() uint {
 // All returns if every element of the iterator matches a predicate.
 // An empty iterator returns true.
 func (i *Iterator) All(f func(Value) bool) bool {
-	for {
-		optVal := i.Next()
-		if optVal.IsNone() {
-			break
-		}
-		if !f(optVal.Unwrap()) {
+	var item Value
+	for i.Next().UnwrapTo(&item) {
+		if !f(item) {
 			return false
 		}
 	}
@@ -955,12 +952,9 @@ func (i *Iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 
 func (i *Iterator) collect() []Value {
 	items := make([]Value, 0, i.Len())
-	for {
-		optItem := i.Next()
-		if optItem.IsNone() {
-			break
-		}
-		items = append(items, optItem.Unwrap())
+	var item Value
+	for i.Next().UnwrapTo(&item) {
+		items = append(items, item)
 	}
 	return items
 }
