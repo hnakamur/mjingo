@@ -1,9 +1,9 @@
-package mjingo
+package mjingo_test
 
 import (
 	"testing"
 
-	"github.com/hnakamur/mjingo/internal/value"
+	"github.com/hnakamur/mjingo"
 )
 
 func TestSingleTemplate(t *testing.T) {
@@ -17,7 +17,7 @@ func TestSingleTemplate(t *testing.T) {
 	runTests := func(t *testing.T, testCases []testCase) {
 		for i, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				env := NewEnvironment()
+				env := mjingo.NewEnvironment()
 				const templateName = "test.html"
 				err := env.AddTemplate(templateName, tc.source)
 				if err != nil {
@@ -27,7 +27,8 @@ func TestSingleTemplate(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				got, err := tpl.Render(tc.context)
+				context := mjingo.ValueFromGoValue(tc.context, mjingo.WithStructTag("json"))
+				got, err := tpl.Render(context)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -41,256 +42,226 @@ func TestSingleTemplate(t *testing.T) {
 	t.Run("expression", func(t *testing.T) {
 		runTests(t, []testCase{
 			{
-				name:   "var",
-				source: "Hello {{ name }}",
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("name"), Value: value.ValueFromString("World"),
-				}})),
-				want: "Hello World",
+				name:    "var",
+				source:  "Hello {{ name }}",
+				context: map[string]string{"name": "World"},
+				want:    "Hello World",
 			},
 			{
 				name:    "stringExpr",
 				source:  `Hello {{ "world" }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello world",
 			},
 			{
 				name:    "i64Expr",
 				source:  `Hello {{ 3 }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello 3",
 			},
 			{
 				name:    "f64Expr",
 				source:  `Hello {{ 3.14 }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello 3.14",
 			},
 			{
 				name:    "boolExprTrue",
 				source:  `Hello {{ true }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello true",
 			},
 			{
 				name:    "boolExprFalse",
 				source:  `Hello {{ False }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello false",
 			},
 			{
 				name:    "noneExpr",
 				source:  `Hello {{ none }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello none",
 			},
 			{
 				name:   "getFastAttr",
 				source: `Hello {{ user.name }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("user"),
-					Value: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-						Key:   value.KeyRefFromString("name"),
-						Value: value.ValueFromString("John"),
-					}})),
-				}})),
+				context: map[string]any{
+					"user": map[string]string{
+						"name": "John",
+					},
+				},
 				want: "Hello John",
 			},
 			{
 				name:   "getItemOpt",
 				source: `Hello {{ user["name"] }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("user"),
-					Value: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-						Key:   value.KeyRefFromValue(value.ValueFromString("name")),
-						Value: value.ValueFromString("John"),
-					}})),
-				}})),
+				context: map[string]any{
+					"user": map[string]string{
+						"name": "John",
+					},
+				},
 				want: "Hello John",
 			},
 			{
 				name:    "sliceString",
 				source:  `Hello {{ "Johnson"[:4] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello John",
 			},
 			{
 				name:    "sliceSeq",
 				source:  `Hello {{ ["John", "Paul"][1] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Paul",
 			},
 			{
-				name:   "sliceVarElem",
-				source: `Hello {{ ["John", name][1] }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("name"), Value: value.ValueFromString("Paul"),
-				}})),
-				want: "Hello Paul",
+				name:    "sliceVarElem",
+				source:  `Hello {{ ["John", name][1] }}`,
+				context: map[string]string{"name": "Paul"},
+				want:    "Hello Paul",
 			},
 			{
 				name:    "mapGetItem",
 				source:  `Hello {{ {"name": "John"}["name"] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello John",
 			},
 			{
-				name:   "mapVarValue",
-				source: `Hello {{ {"name": name}["name"] }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("name"), Value: value.ValueFromString("Paul"),
-				}})),
-				want: "Hello Paul",
+				name:    "mapVarValue",
+				source:  `Hello {{ {"name": name}["name"] }}`,
+				context: map[string]string{"name": "Paul"},
+				want:    "Hello Paul",
 			},
 			{
 				name:    "sliceSeqNegativeIndex",
 				source:  `Hello {{ ["John", "Paul", "George", "Ringo"][-1] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Ringo",
 			},
 			{
 				name:    "addExprString",
 				source:  `Hello {{ {"name": "John"}["nam" + "e"] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello John",
 			},
 			{
 				name:    "addExprInt",
 				source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1 + 2] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Ringo",
 			},
 			{
 				name:    "addExprFloat",
 				source:  `Hello {{ ["John", "Paul", "George", "Ringo"][1.0 + 2.0] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Ringo",
 			},
 			{
 				name:    "subExprInt",
 				source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3 - 2] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Paul",
 			},
 			{
 				name:    "subExprFloat",
 				source:  `Hello {{ ["John", "Paul", "George", "Ringo"][3.0 - 2.0] }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello Paul",
 			},
 			{
-				name:   "stringConcat",
-				source: `{{ "Hello " ~ name ~ "!" }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("name"), Value: value.ValueFromString("John"),
-				}})),
-				want: "Hello John!",
+				name:    "stringConcat",
+				source:  `{{ "Hello " ~ name ~ "!" }}`,
+				context: map[string]string{"name": "John"},
+				want:    "Hello John!",
 			},
-			{name: "pow", source: `{{ 2 ** 3 }}`, context: value.None, want: "8"},
-			{name: "mul", source: `{{ 2 * 3 }}`, context: value.None, want: "6"},
-			{name: "div", source: `{{ 3 / 2 }}`, context: value.None, want: "1.5"},
-			{name: "intdiv", source: `{{ 3 // 2 }}`, context: value.None, want: "1"},
-			{name: "rem", source: `{{ 3 % 2 }}`, context: value.None, want: "1"},
-			{name: "neg", source: `{{ -3 }}`, context: value.None, want: "-3"},
-			{name: "notTrue", source: `{{ not 0 }}`, context: value.None, want: "true"},
-			{name: "notFalse", source: `{{ not 1 }}`, context: value.None, want: "false"},
-			{name: "eq", source: `{{ 1 == 1 }}`, context: value.None, want: "true"},
-			{name: "lt", source: `{{ 1 < 2 }}`, context: value.None, want: "true"},
-			{name: "lte", source: `{{ 1 <= 1 }}`, context: value.None, want: "true"},
-			{name: "gt", source: `{{ 2 > 1 }}`, context: value.None, want: "true"},
-			{name: "gte", source: `{{ 1 >= 1 }}`, context: value.None, want: "true"},
-			{name: "inTrue", source: `{{ 1 in [1] }}`, context: value.None, want: "true"},
-			{name: "inFalse", source: `{{ 1 in [2] }}`, context: value.None, want: "false"},
-			{name: "inNot", source: `{{ 1 not in [2] }}`, context: value.None, want: "true"},
-			{name: "tuipleTreatedAsSeq0", source: `{{ () }}`, context: value.None, want: "[]"},
-			{name: "tuipleTreatedAsSeq1", source: `{{ (1,) }}`, context: value.None, want: "[1]"},
-			{name: "tuipleTreatedAsSeq2", source: `{{ (1, 2) }}`, context: value.None, want: "[1, 2]"},
-			{name: "scAnd1", source: `{{ false and false }}`, context: value.None, want: "false"},
-			{name: "scAnd2", source: `{{ true and false }}`, context: value.None, want: "false"},
-			{name: "scAnd3", source: `{{ true and true }}`, context: value.None, want: "true"},
-			{name: "scOr1", source: `{{ false or false }}`, context: value.None, want: "false"},
-			{name: "scOr2", source: `{{ false or true }}`, context: value.None, want: "true"},
-			{name: "scOr3", source: `{{ true or false }}`, context: value.None, want: "true"},
+			{name: "pow", source: `{{ 2 ** 3 }}`, context: nil, want: "8"},
+			{name: "mul", source: `{{ 2 * 3 }}`, context: nil, want: "6"},
+			{name: "div", source: `{{ 3 / 2 }}`, context: nil, want: "1.5"},
+			{name: "intdiv", source: `{{ 3 // 2 }}`, context: nil, want: "1"},
+			{name: "rem", source: `{{ 3 % 2 }}`, context: nil, want: "1"},
+			{name: "neg", source: `{{ -3 }}`, context: nil, want: "-3"},
+			{name: "notTrue", source: `{{ not 0 }}`, context: nil, want: "true"},
+			{name: "notFalse", source: `{{ not 1 }}`, context: nil, want: "false"},
+			{name: "eq", source: `{{ 1 == 1 }}`, context: nil, want: "true"},
+			{name: "lt", source: `{{ 1 < 2 }}`, context: nil, want: "true"},
+			{name: "lte", source: `{{ 1 <= 1 }}`, context: nil, want: "true"},
+			{name: "gt", source: `{{ 2 > 1 }}`, context: nil, want: "true"},
+			{name: "gte", source: `{{ 1 >= 1 }}`, context: nil, want: "true"},
+			{name: "inTrue", source: `{{ 1 in [1] }}`, context: nil, want: "true"},
+			{name: "inFalse", source: `{{ 1 in [2] }}`, context: nil, want: "false"},
+			{name: "inNot", source: `{{ 1 not in [2] }}`, context: nil, want: "true"},
+			{name: "tuipleTreatedAsSeq0", source: `{{ () }}`, context: nil, want: "[]"},
+			{name: "tuipleTreatedAsSeq1", source: `{{ (1,) }}`, context: nil, want: "[1]"},
+			{name: "tuipleTreatedAsSeq2", source: `{{ (1, 2) }}`, context: nil, want: "[1, 2]"},
+			{name: "scAnd1", source: `{{ false and false }}`, context: nil, want: "false"},
+			{name: "scAnd2", source: `{{ true and false }}`, context: nil, want: "false"},
+			{name: "scAnd3", source: `{{ true and true }}`, context: nil, want: "true"},
+			{name: "scOr1", source: `{{ false or false }}`, context: nil, want: "false"},
+			{name: "scOr2", source: `{{ false or true }}`, context: nil, want: "true"},
+			{name: "scOr3", source: `{{ true or false }}`, context: nil, want: "true"},
 		})
 	})
 	t.Run("statement", func(t *testing.T) {
 		runTests(t, []testCase{
 			{
-				name:   "ifStmtNoElse",
-				source: `{% if down %}I am down{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("down"), Value: value.ValueFromBool(true),
-				}})),
-				want: "I am down",
+				name:    "ifStmtNoElse",
+				source:  `{% if down %}I am down{% endif %}`,
+				context: map[string]any{"down": true},
+				want:    "I am down",
 			},
 			{
-				name:   "ifStmtWithElse",
-				source: `{% if down %}I am down{% else %}I am up{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("down"), Value: value.ValueFromBool(false),
-				}})),
-				want: "I am up",
+				name:    "ifStmtWithElse",
+				source:  `{% if down %}I am down{% else %}I am up{% endif %}`,
+				context: map[string]any{"down": false},
+				want:    "I am up",
 			},
 			{
-				name:   "ifExprNoElse",
-				source: `{{ "I am down" if down }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("down"), Value: value.ValueFromBool(true),
-				}})),
-				want: "I am down",
+				name:    "ifExprNoElse",
+				source:  `{{ "I am down" if down }}`,
+				context: map[string]any{"down": true},
+				want:    "I am down",
 			},
 			{
-				name:   "ifExprWithElse",
-				source: `{{ "I am down" if down else "I am up" }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("down"), Value: value.ValueFromBool(false),
-				}})),
-				want: "I am up",
+				name:    "ifExprWithElse",
+				source:  `{{ "I am down" if down else "I am up" }}`,
+				context: map[string]any{"down": false},
+				want:    "I am up",
 			},
 			{
-				name:   "forStmtNoElse",
-				source: `{% for name in names %}{{ name }} {% endfor %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("names"), Value: value.ValueFromSlice([]value.Value{
-						value.ValueFromString("John"),
-						value.ValueFromString("Paul"),
-					}),
-				}})),
-				want: "John Paul ",
+				name:    "forStmtNoElse",
+				source:  `{% for name in names %}{{ name }} {% endfor %}`,
+				context: map[string][]string{"names": {"John", "Paul"}},
+				want:    "John Paul ",
 			},
 			{
-				name:   "forStmtWithElseUnused",
-				source: `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("names"), Value: value.ValueFromSlice([]value.Value{
-						value.ValueFromString("John"),
-						value.ValueFromString("Paul"),
-					}),
-				}})),
-				want: "John Paul ",
+				name:    "forStmtWithElseUnused",
+				source:  `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
+				context: map[string][]string{"names": {"John", "Paul"}},
+				want:    "John Paul ",
 			},
 			{
 				name:    "forStmtWithElseUsed",
 				source:  `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
-				context: value.Undefined,
+				context: mjingo.Undefined,
 				want:    "no users",
 			},
 			{
 				name:    "rawStmt",
 				source:  `{% raw %}Hello {{ name }}{% endraw %}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello {{ name }}",
 			},
 			{
 				name:    "withStmt",
 				source:  `{% with foo = 42 %}{{ foo }}{% endwith %}`,
-				context: value.None,
+				context: nil,
 				want:    "42",
 			},
 			{
 				name:    "setStmt",
 				source:  `{% set name = "John" %}Hello {{ name }}`,
-				context: value.None,
+				context: nil,
 				want:    "Hello John",
 			},
 			{
@@ -302,7 +273,7 @@ func TestSingleTemplate(t *testing.T) {
 					"<ul>\n" +
 					"{{ navigation }}\n" +
 					"</ul>\n",
-				context: value.None,
+				context: nil,
 				want: "\n" +
 					"<ul>\n" +
 					"\n" +
@@ -312,17 +283,15 @@ func TestSingleTemplate(t *testing.T) {
 					"</ul>",
 			},
 			{
-				name:   "autoEscapeStmt",
-				source: `{% autoescape "html" %}{{ unsafe }}{% endautoescape %} {% autoescape "none" %}{{ unsafe }}{% endautoescape %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("unsafe"), Value: value.ValueFromString("<foo>"),
-				}})),
-				want: "&lt;foo&gt; <foo>",
+				name:    "autoEscapeStmt",
+				source:  `{% autoescape "html" %}{{ unsafe }}{% endautoescape %} {% autoescape "none" %}{{ unsafe }}{% endautoescape %}`,
+				context: map[string]string{"unsafe": "<foo>"},
+				want:    "&lt;foo&gt; <foo>",
 			},
 			{
 				name:    "filterStmt",
 				source:  `{% filter upper %}hello{% endfilter %} world`,
-				context: value.None,
+				context: nil,
 				want:    "HELLO world",
 			},
 			{
@@ -331,7 +300,7 @@ func TestSingleTemplate(t *testing.T) {
 					"Dialog is {{ title }}\n" +
 					"{% endmacro %}\n" +
 					"{% do dialog(title=\"Hello World\") %}",
-				context: value.None,
+				context: nil,
 				want:    "\n",
 			},
 			{
@@ -345,7 +314,7 @@ func TestSingleTemplate(t *testing.T) {
 					"{% call dialog(title=\"Hello World\") %}\n" +
 					"  This is the dialog body.\n" +
 					"{% endcall %}",
-				context: value.None,
+				context: nil,
 				want: "\n\n  <div class=\"dialog\">\n" +
 					"    <h3>Hello World</h3>\n" +
 					"    <div class=\"contents\">\n  This is the dialog body.\n</div>\n" +
@@ -354,105 +323,49 @@ func TestSingleTemplate(t *testing.T) {
 		})
 	})
 	t.Run("loopVariable", func(t *testing.T) {
-		ctx := value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-			Key: value.KeyRefFromString("users"),
-			Value: value.ValueFromSlice([]value.Value{
-				value.ValueFromString("John"),
-				value.ValueFromString("Paul"),
-				value.ValueFromString("George"),
-				value.ValueFromString("Ringo"),
-			}),
-		}}))
+		ctx := map[string][]string{"users": {"John", "Paul", "George", "Ringo"}}
 
-		recurCtx := value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-			Key: value.KeyRefFromString("menu"),
-			Value: value.ValueFromSlice([]value.Value{
-				value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key:   value.KeyRefFromString("href"),
-					Value: value.ValueFromString("/menu1"),
+		recurCtx := map[string]any{
+			"menu": []map[string]any{{
+				"href":  "/menu1",
+				"title": "menu1",
+				"children": []map[string]any{{
+					"menu": []map[string]any{{
+						"href":  "/submenu1",
+						"title": "submenu1",
+						"children": []map[string]any{{
+							"menu": []map[string]any{{
+								"href":     "/submenu1-1",
+								"title":    "submenu1-1",
+								"children": []map[string]any{},
+							}},
+						}},
+					}},
 				}, {
-					Key:   value.KeyRefFromString("title"),
-					Value: value.ValueFromString("menu1"),
-				}, {
-					Key: value.KeyRefFromString("children"),
-					Value: value.ValueFromSlice([]value.Value{
-						value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-							Key: value.KeyRefFromString("menu"),
-							Value: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-								Key:   value.KeyRefFromString("href"),
-								Value: value.ValueFromString("/submenu1"),
-							}, {
-								Key:   value.KeyRefFromString("title"),
-								Value: value.ValueFromString("submenu1"),
-							}, {
-								Key: value.KeyRefFromString("children"),
-								Value: value.ValueFromSlice([]value.Value{
-									value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-										Key: value.KeyRefFromString("menu"),
-										Value: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-											Key:   value.KeyRefFromString("href"),
-											Value: value.ValueFromString("/submenu1-1"),
-										}, {
-											Key:   value.KeyRefFromString("title"),
-											Value: value.ValueFromString("submenu1-1"),
-										}, {
-											Key:   value.KeyRefFromString("children"),
-											Value: value.ValueFromSlice([]value.Value{}),
-										}})),
-									}})),
-								}),
-							}})),
-						}})),
-						value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-							Key: value.KeyRefFromString("menu"),
-							Value: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-								Key:   value.KeyRefFromString("href"),
-								Value: value.ValueFromString("/submenu2"),
-							}, {
-								Key:   value.KeyRefFromString("title"),
-								Value: value.ValueFromString("submenu2"),
-							}, {
-								Key:   value.KeyRefFromString("children"),
-								Value: value.ValueFromSlice([]value.Value{}),
-							}})),
-						}}))}),
-				}})),
-			}),
-		}}))
+					"menu": []map[string]any{{
+						"href":     "/submenu2",
+						"title":    "submenu2",
+						"children": []map[string]any{},
+					}},
+				}},
+			}},
+		}
 
-		changedCtx := value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-			Key: value.KeyRefFromString("entries"),
-			Value: value.ValueFromSlice([]value.Value{
-				value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key:   value.KeyRefFromString("category"),
-					Value: value.ValueFromString("Go"),
-				}, {
-					Key:   value.KeyRefFromString("message"),
-					Value: value.ValueFromString("Forward Compatibility and Toolchain Management in Go 1.21"),
-				}})),
-				value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key:   value.KeyRefFromString("category"),
-					Value: value.ValueFromString("Go"),
-				}, {
-					Key:   value.KeyRefFromString("message"),
-					Value: value.ValueFromString("Structured Logging with slog"),
-				}})),
-				value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key:   value.KeyRefFromString("category"),
-					Value: value.ValueFromString("Rust"),
-				}, {
-					Key:   value.KeyRefFromString("message"),
-					Value: value.ValueFromString("2022 Annual Rust Survey Results"),
-				}})),
-				value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key:   value.KeyRefFromString("category"),
-					Value: value.ValueFromString("Rust"),
-				}, {
-					Key:   value.KeyRefFromString("message"),
-					Value: value.ValueFromString("Announcing Rust 1.72.0"),
-				}})),
-			}),
-		}}))
+		changedCtx := map[string]any{
+			"entries": []map[string]any{{
+				"category": "Go",
+				"message":  "Forward Compatibility and Toolchain Management in Go 1.21",
+			}, {
+				"category": "Go",
+				"message":  "Structured Logging with slog",
+			}, {
+				"category": "Rust",
+				"message":  "2022 Annual Rust Survey Results",
+			}, {
+				"category": "Rust",
+				"message":  "Announcing Rust 1.72.0",
+			}},
+		}
 
 		runTests(t, []testCase{{
 			name:    "index",
@@ -535,210 +448,196 @@ func TestSingleTemplate(t *testing.T) {
 			source: "{% autoescape 'none' %}{% set d = \"closure\" -%}\n" +
 				"{% macro example(a, b, c=\"default\") %}{{ [a, b, c, d] }}{% endmacro -%}\n" +
 				"{{ example(\"Hello\", \"World\") }}{% endautoescape %}\n",
-			context: value.Undefined,
+			context: mjingo.Undefined,
 			want:    `["Hello", "World", "default", "closure"]`,
 		}})
 	})
 	t.Run("filter", func(t *testing.T) {
 		runTests(t, []testCase{
 			{
-				name:   "escape",
-				source: `{{ v|escape }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.ValueFromString("<br/>"),
-				}})),
-				want: "&lt;br/&gt;",
+				name:    "escape",
+				source:  `{{ v|escape }}`,
+				context: map[string]string{"v": "<br/>"},
+				want:    "&lt;br/&gt;",
 			},
 			{
-				name:   "safeEscape",
-				source: `{{ v|safe|e }}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.ValueFromString("<br/>"),
-				}})),
-				want: "<br/>",
+				name:    "safeEscape",
+				source:  `{{ v|safe|e }}`,
+				context: map[string]string{"v": "<br/>"},
+				want:    "<br/>",
 			},
-			{name: "lower", source: `{{ "HELLO"|lower }}`, context: value.None, want: "hello"},
-			{name: "upper", source: `{{ "hello"|upper }}`, context: value.None, want: "HELLO"},
-			{name: "title", source: `{{ "hello world"|title }}`, context: value.None, want: "HELLO WORLD"},
-			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: value.None, want: "Hello world"},
-			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: value.None, want: "Goodbye World"},
-			{name: "countSlice", source: `{{ ["foo", "bar"]|length }}`, context: value.None, want: "2"},
-			{name: "countStr", source: `{{ "あいう"|length }}`, context: value.None, want: "3"},
-			{name: "dictsortCase1", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort }}{% endautoescape %}`, context: value.None, want: `[["a", 4], ["B", 1], ["c", 3]]`},
-			{name: "dictsortCase2", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value") }}{% endautoescape %}`, context: value.None, want: `[["b", 1], ["c", 3], ["a", 4]]`},
-			{name: "dictsortCase3", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value", reverse=true) }}{% endautoescape %}`, context: value.None, want: `[["a", 4], ["c", 3], ["b", 1]]`},
-			{name: "dictsortCase4", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort(case_sensitive=true) }}{% endautoescape %}`, context: value.None, want: `[["B", 1], ["a", 4], ["c", 3]]`},
-			{name: "sortCase1", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort }}{% endautoescape %}`, context: value.None, want: `["a", "B", "c"]`},
-			{name: "sortCase2", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(reverse=true) }}{% endautoescape %}`, context: value.None, want: `["c", "B", "a"]`},
-			{name: "sortCase3", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(case_sensitive=true) }}{% endautoescape %}`, context: value.None, want: `["B", "a", "c"]`},
-			{name: "sortCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|sort(attribute="id", reverse=true) }}{% endautoescape %}`, context: value.None, want: `[{"name": "Paul", "id": 2}, {"name": "John", "id": 1}]`},
+			{name: "lower", source: `{{ "HELLO"|lower }}`, context: nil, want: "hello"},
+			{name: "upper", source: `{{ "hello"|upper }}`, context: nil, want: "HELLO"},
+			{name: "title", source: `{{ "hello world"|title }}`, context: nil, want: "HELLO WORLD"},
+			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: nil, want: "Hello world"},
+			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: nil, want: "Goodbye World"},
+			{name: "countSlice", source: `{{ ["foo", "bar"]|length }}`, context: nil, want: "2"},
+			{name: "countStr", source: `{{ "あいう"|length }}`, context: nil, want: "3"},
+			{name: "dictsortCase1", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort }}{% endautoescape %}`, context: nil, want: `[["a", 4], ["B", 1], ["c", 3]]`},
+			{name: "dictsortCase2", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value") }}{% endautoescape %}`, context: nil, want: `[["b", 1], ["c", 3], ["a", 4]]`},
+			{name: "dictsortCase3", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'b': 1}|dictsort(by="value", reverse=true) }}{% endautoescape %}`, context: nil, want: `[["a", 4], ["c", 3], ["b", 1]]`},
+			{name: "dictsortCase4", source: `{% autoescape 'none' %}{{ {'a': 4, 'c': 3, 'B': 1}|dictsort(case_sensitive=true) }}{% endautoescape %}`, context: nil, want: `[["B", 1], ["a", 4], ["c", 3]]`},
+			{name: "sortCase1", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort }}{% endautoescape %}`, context: nil, want: `["a", "B", "c"]`},
+			{name: "sortCase2", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(reverse=true) }}{% endautoescape %}`, context: nil, want: `["c", "B", "a"]`},
+			{name: "sortCase3", source: `{% autoescape 'none' %}{{ ['a', 'c', 'B']|sort(case_sensitive=true) }}{% endautoescape %}`, context: nil, want: `["B", "a", "c"]`},
+			{name: "sortCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|sort(attribute="id", reverse=true) }}{% endautoescape %}`, context: nil, want: `[{"name": "Paul", "id": 2}, {"name": "John", "id": 1}]`},
 			{
 				name:    "items",
 				source:  `{% for key, value in {'a': 1, 'b': 2}|items %}{%if not loop.first %}, {% endif %}{{ key }}: {{ value }}{% endfor %}`,
-				context: value.None,
+				context: nil,
 				want:    "a: 1, b: 2",
 			},
-			{name: "joinStrNoJoiner", source: `{{ "あいう"|join }}`, context: value.None, want: "あいう"},
-			{name: "joinStrWithJoiner", source: `{{ "あいう"|join(",") }}`, context: value.None, want: "あ,い,う"},
-			{name: "joinSeqNoJoiner", source: `{{ [1, 2, 3]|join }}`, context: value.None, want: "123"},
-			{name: "joinSeqWithJoiner", source: `{{ [1, 2, 3]|join(", ") }}`, context: value.None, want: "1, 2, 3"},
-			{name: "reverseStr", source: `{{ "あいう"|reverse }}`, context: value.None, want: "ういあ"},
-			{name: "reverseSeq", source: `{{ [1, 2, 3]|reverse }}`, context: value.None, want: "[3, 2, 1]"},
-			{name: "trimWithCutset", source: `{{ "¡¡¡Hello, Gophers!!!"|trim("!¡") }}`, context: value.None, want: "Hello, Gophers"},
-			{name: "trimNoCutset", source: `{{ " \tHello, Gophers\n "|trim }}`, context: value.None, want: "Hello, Gophers"},
-			{name: "defaultNoArg", source: `{{ undefined|default }}`, context: value.None, want: ""},
-			{name: "defaultStrArg", source: `{{ undefined|default("hello") }}`, context: value.None, want: "hello"},
-			{name: "defaultIntArg", source: `{{ undefined|default(2) }}`, context: value.None, want: "2"},
-			{name: "defaultAlias", source: `{{ undefined|d(2) }}`, context: value.None, want: "2"},
-			{name: "defaultAliasWithVal", source: `{{ 3|d }}`, context: value.None, want: "3"},
-			{name: "roundDefPrec", source: `{{ 42.5|round }}`, context: value.None, want: "43.0"},
-			{name: "roundWithPrec", source: `{{ 42.45|round(1) }}`, context: value.None, want: "42.5"},
-			{name: "absI64", source: `{{ -3|abs }}`, context: value.None, want: "3"},
-			{name: "absI128", source: `{{ (-9223372036854775807 * 2)|abs }}`, context: value.None, want: "18446744073709551614"},
-			{name: "absF64", source: `{{ -3.2|abs }}`, context: value.None, want: "3.2"},
-			{name: "attr", source: `{{ {'a': 1, 'b': 2}|attr('b') }}`, context: value.None, want: "2"},
-			{name: "firstStr", source: `{{ "あいう"|first }}`, context: value.None, want: "あ"},
-			{name: "firstSeq", source: `{{ [1, 2, 3]|first }}`, context: value.None, want: "1"},
-			{name: "lastStr", source: `{{ "あいう"|last }}`, context: value.None, want: "う"},
-			{name: "lastSeq", source: `{{ [1, 2, 3]|last }}`, context: value.None, want: "3"},
-			{name: "minSeq", source: `{{ [1, 2, 3]|min }}`, context: value.None, want: "1"},
-			{name: "maxSeq", source: `{{ [1, 2, 3]|max }}`, context: value.None, want: "3"},
-			{name: "listStr", source: `{% autoescape 'none' %}{{ "あいう"|list }}{% endautoescape %}`, context: value.None, want: `["あ", "い", "う"]`},
-			{name: "boolTrue", source: `{{ 1|bool }}`, context: value.None, want: "true"},
-			{name: "boolFalse", source: `{{ 0|bool }}`, context: value.None, want: "false"},
-			{name: "batchNoFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3) }}`, context: value.None, want: "[[1, 2, 3], [4, 5]]"},
-			{name: "batchWithFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3, 0) }}`, context: value.None, want: "[[1, 2, 3], [4, 5, 0]]"},
-			{name: "sliceNoFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3) }}`, context: value.None, want: "[[1, 2], [3, 4], [5]]"},
-			{name: "sliceWithFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3, 0) }}`, context: value.None, want: "[[1, 2], [3, 4], [5, 0]]"},
-			{name: "indentCase1", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2) }}`, context: value.None, want: "line1\n    line2\n\n    line3"},
-			{name: "indentCase2", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, true) }}`, context: value.None, want: "  line1\n    line2\n\n    line3"},
-			{name: "indentCase3", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, false, true) }}`, context: value.None, want: "line1\n    line2\n  \n    line3"},
-			{name: "selectCase1", source: `{{ [1, 2, 3, 4, 5]|select("odd") }}`, context: value.None, want: "[1, 3, 5]"},
-			{name: "rejectCase1", source: `{{ [1, 2, 3, 4, 5]|reject("odd") }}`, context: value.None, want: "[2, 4]"},
-			{name: "selectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|selectattr("is_active") }}{% endautoescape %}`, context: value.None, want: `[{"name": "Paul", "is_active": true}]`},
-			{name: "selectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`, context: value.None, want: `[{"name": "Paul", "id": 2}]`},
-			{name: "rejectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|rejectattr("is_active") }}{% endautoescape %}`, context: value.None, want: `[{"name": "John", "is_active": false}]`},
-			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: value.None, want: `[{"name": "John", "id": 1}]`},
-			{name: "unique", source: `{% autoescape 'none' %}{{ ['foo', 'bar', 'foobar', 'foobar']|unique }}{% endautoescape %}`, context: value.None, want: `["foo", "bar", "foobar"]`},
-			{name: "mapCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|map(attribute="name")|join(', ') }}{% endautoescape %}`, context: value.None, want: `John, Paul`},
-			{name: "mapCase2", source: `{% autoescape 'none' %}{{ [-1, -2, 3, 4, -5]|map("abs") }}{% endautoescape %}`, context: value.None, want: `[1, 2, 3, 4, 5]`},
+			{name: "joinStrNoJoiner", source: `{{ "あいう"|join }}`, context: nil, want: "あいう"},
+			{name: "joinStrWithJoiner", source: `{{ "あいう"|join(",") }}`, context: nil, want: "あ,い,う"},
+			{name: "joinSeqNoJoiner", source: `{{ [1, 2, 3]|join }}`, context: nil, want: "123"},
+			{name: "joinSeqWithJoiner", source: `{{ [1, 2, 3]|join(", ") }}`, context: nil, want: "1, 2, 3"},
+			{name: "reverseStr", source: `{{ "あいう"|reverse }}`, context: nil, want: "ういあ"},
+			{name: "reverseSeq", source: `{{ [1, 2, 3]|reverse }}`, context: nil, want: "[3, 2, 1]"},
+			{name: "trimWithCutset", source: `{{ "¡¡¡Hello, Gophers!!!"|trim("!¡") }}`, context: nil, want: "Hello, Gophers"},
+			{name: "trimNoCutset", source: `{{ " \tHello, Gophers\n "|trim }}`, context: nil, want: "Hello, Gophers"},
+			{name: "defaultNoArg", source: `{{ undefined|default }}`, context: nil, want: ""},
+			{name: "defaultStrArg", source: `{{ undefined|default("hello") }}`, context: nil, want: "hello"},
+			{name: "defaultIntArg", source: `{{ undefined|default(2) }}`, context: nil, want: "2"},
+			{name: "defaultAlias", source: `{{ undefined|d(2) }}`, context: nil, want: "2"},
+			{name: "defaultAliasWithVal", source: `{{ 3|d }}`, context: nil, want: "3"},
+			{name: "roundDefPrec", source: `{{ 42.5|round }}`, context: nil, want: "43.0"},
+			{name: "roundWithPrec", source: `{{ 42.45|round(1) }}`, context: nil, want: "42.5"},
+			{name: "absI64", source: `{{ -3|abs }}`, context: nil, want: "3"},
+			{name: "absI128", source: `{{ (-9223372036854775807 * 2)|abs }}`, context: nil, want: "18446744073709551614"},
+			{name: "absF64", source: `{{ -3.2|abs }}`, context: nil, want: "3.2"},
+			{name: "attr", source: `{{ {'a': 1, 'b': 2}|attr('b') }}`, context: nil, want: "2"},
+			{name: "firstStr", source: `{{ "あいう"|first }}`, context: nil, want: "あ"},
+			{name: "firstSeq", source: `{{ [1, 2, 3]|first }}`, context: nil, want: "1"},
+			{name: "lastStr", source: `{{ "あいう"|last }}`, context: nil, want: "う"},
+			{name: "lastSeq", source: `{{ [1, 2, 3]|last }}`, context: nil, want: "3"},
+			{name: "minSeq", source: `{{ [1, 2, 3]|min }}`, context: nil, want: "1"},
+			{name: "maxSeq", source: `{{ [1, 2, 3]|max }}`, context: nil, want: "3"},
+			{name: "listStr", source: `{% autoescape 'none' %}{{ "あいう"|list }}{% endautoescape %}`, context: nil, want: `["あ", "い", "う"]`},
+			{name: "boolTrue", source: `{{ 1|bool }}`, context: nil, want: "true"},
+			{name: "boolFalse", source: `{{ 0|bool }}`, context: nil, want: "false"},
+			{name: "batchNoFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3) }}`, context: nil, want: "[[1, 2, 3], [4, 5]]"},
+			{name: "batchWithFiller", source: `{{ [1, 2, 3, 4, 5]|batch(3, 0) }}`, context: nil, want: "[[1, 2, 3], [4, 5, 0]]"},
+			{name: "sliceNoFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3) }}`, context: nil, want: "[[1, 2], [3, 4], [5]]"},
+			{name: "sliceWithFiller", source: `{{ [1, 2, 3, 4, 5]|slice(3, 0) }}`, context: nil, want: "[[1, 2], [3, 4], [5, 0]]"},
+			{name: "indentCase1", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2) }}`, context: nil, want: "line1\n    line2\n\n    line3"},
+			{name: "indentCase2", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, true) }}`, context: nil, want: "  line1\n    line2\n\n    line3"},
+			{name: "indentCase3", source: `{{ "line1\n  line2\n\n  line3\n"|indent(2, false, true) }}`, context: nil, want: "line1\n    line2\n  \n    line3"},
+			{name: "selectCase1", source: `{{ [1, 2, 3, 4, 5]|select("odd") }}`, context: nil, want: "[1, 3, 5]"},
+			{name: "rejectCase1", source: `{{ [1, 2, 3, 4, 5]|reject("odd") }}`, context: nil, want: "[2, 4]"},
+			{name: "selectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|selectattr("is_active") }}{% endautoescape %}`, context: nil, want: `[{"name": "Paul", "is_active": true}]`},
+			{name: "selectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`, context: nil, want: `[{"name": "Paul", "id": 2}]`},
+			{name: "rejectattrCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "is_active": false}, {"name": "Paul", "is_active": true}]|rejectattr("is_active") }}{% endautoescape %}`, context: nil, want: `[{"name": "John", "is_active": false}]`},
+			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: nil, want: `[{"name": "John", "id": 1}]`},
+			{name: "unique", source: `{% autoescape 'none' %}{{ ['foo', 'bar', 'foobar', 'foobar']|unique }}{% endautoescape %}`, context: nil, want: `["foo", "bar", "foobar"]`},
+			{name: "mapCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|map(attribute="name")|join(', ') }}{% endautoescape %}`, context: nil, want: `John, Paul`},
+			{name: "mapCase2", source: `{% autoescape 'none' %}{{ [-1, -2, 3, 4, -5]|map("abs") }}{% endautoescape %}`, context: nil, want: `[1, 2, 3, 4, 5]`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
 		runTests(t, []testCase{
 			{
-				name:   "isDefined",
-				source: `{% if v is defined %}I am defined{% else %}I am fallback{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.None,
-				}})),
-				want: "I am defined",
+				name:    "isDefined",
+				source:  `{% if v is defined %}I am defined{% else %}I am fallback{% endif %}`,
+				context: map[string]any{"v": nil},
+				want:    "I am defined",
 			},
 			{
 				name:    "isNotDefined",
 				source:  `{% if v is not defined %}I am fallback{% endif %}`,
-				context: value.None,
+				context: nil,
 				want:    "I am fallback",
 			},
 			{
-				name:   "isNone",
-				source: `{% if v is none %}I am none{% else %}I am not none{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.None,
-				}})),
-				want: "I am none",
+				name:    "isNone",
+				source:  `{% if v is none %}I am none{% else %}I am not none{% endif %}`,
+				context: map[string]any{"v": nil},
+				want:    "I am none",
 			},
 			{
-				name:   "isSafeTrue",
-				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.ValueFromSafeString("s"),
-				}})),
-				want: "I am safe",
+				name:    "isSafeTrue",
+				source:  `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
+				context: map[string]any{"v": mjingo.ValueFromSafeString("s")},
+				want:    "I am safe",
 			},
 			{
-				name:   "isSafeFalse",
-				source: `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.ValueFromString("s"),
-				}})),
-				want: "I am not safe",
+				name:    "isSafeFalse",
+				source:  `{% if v is safe %}I am safe{% else %}I am not safe{% endif %}`,
+				context: map[string]any{"v": "s"},
+				want:    "I am not safe",
 			},
 			{
-				name:   "isEscaped",
-				source: `{% if v is escaped %}I am safe{% else %}I am not safe{% endif %}`,
-				context: value.ValueFromIndexMap(value.ValueMapFromEntries([]value.ValueMapEntry{{
-					Key: value.KeyRefFromString("v"), Value: value.ValueFromSafeString("s"),
-				}})),
-				want: "I am safe",
+				name:    "isEscaped",
+				source:  `{% if v is escaped %}I am safe{% else %}I am not safe{% endif %}`,
+				context: map[string]any{"v": mjingo.ValueFromSafeString("s")},
+				want:    "I am safe",
 			},
-			{name: "isOddTrue", source: `{{ 41 is odd }}`, context: value.None, want: "true"},
-			{name: "isOddValueFalse", source: `{{ 42 is odd }}`, context: value.None, want: "false"},
-			{name: "isOddTypeFalse", source: `{{ "s" is odd }}`, context: value.None, want: "false"},
-			{name: "isEvenTrue", source: `{{ 41 is even }}`, context: value.None, want: "false"},
-			{name: "isEvenValueFalse", source: `{{ 42 is even }}`, context: value.None, want: "true"},
-			{name: "isEvenTypeFalse", source: `{{ "s" is even }}`, context: value.None, want: "false"},
-			{name: "isNumberTrue", source: `{{ 42 is number }}`, context: value.None, want: "true"},
-			{name: "isNumberFalse", source: `{{ "42" is number }}`, context: value.None, want: "false"},
-			{name: "isStringTrue", source: `{{ "42" is string }}`, context: value.None, want: "true"},
-			{name: "isStringFalse", source: `{{ 42 is string }}`, context: value.None, want: "false"},
-			{name: "isSequenceTrue", source: `{{ [1, 2, 3] is sequence }}`, context: value.None, want: "true"},
-			{name: "isSequenceFalse", source: `{{ 42 is sequence }}`, context: value.None, want: "false"},
-			{name: "isMappingTrue", source: `{{ {"foo": "bar"} is mapping }}`, context: value.None, want: "true"},
-			{name: "isMappingFalse", source: `{{ [1, 2, 3] is mapping }}`, context: value.None, want: "false"},
-			{name: "isStartingWithTrue", source: `{{ "foobar" is startingwith("foo") }}`, context: value.None, want: "true"},
-			{name: "isStartingWithFalse", source: `{{ "foobar" is startingwith("bar") }}`, context: value.None, want: "false"},
-			{name: "isEndingWithTrue", source: `{{ "foobar" is endingwith("bar") }}`, context: value.None, want: "true"},
-			{name: "isEndingWithFalse", source: `{{ "foobar" is endingwith("foo") }}`, context: value.None, want: "false"},
-			{name: "eqTrue", source: `{{ 41 is eq(41) }}`, context: value.None, want: "true"},
-			{name: "eqFalse", source: `{{ 41 is eq(42) }}`, context: value.None, want: "false"},
-			{name: "equaltoTrue", source: `{{ 41 is equalto(41) }}`, context: value.None, want: "true"},
-			{name: "equaltoFalse", source: `{{ 41 is equalto(42) }}`, context: value.None, want: "false"},
-			{name: "==True", source: `{{ 41 == 41 }}`, context: value.None, want: "true"},
-			{name: "==False", source: `{{ 41 == 42 }}`, context: value.None, want: "false"},
-			{name: "neTrue", source: `{{ 41 is ne(42) }}`, context: value.None, want: "true"},
-			{name: "neFalse", source: `{{ 41 is ne(41) }}`, context: value.None, want: "false"},
-			{name: "!=True", source: `{{ 41 != 42 }}`, context: value.None, want: "true"},
-			{name: "!=False", source: `{{ 41 != 41 }}`, context: value.None, want: "false"},
-			{name: "ltTrue", source: `{{ 41 is lt(42) }}`, context: value.None, want: "true"},
-			{name: "ltFalse", source: `{{ 41 is lt(41) }}`, context: value.None, want: "false"},
-			{name: "lessthanTrue", source: `{{ 41 is lessthan(42) }}`, context: value.None, want: "true"},
-			{name: "lessthanFalse", source: `{{ 41 is lessthan(41) }}`, context: value.None, want: "false"},
-			{name: "<True", source: `{{ 41 < 42 }}`, context: value.None, want: "true"},
-			{name: "<False", source: `{{ 41 < 41 }}`, context: value.None, want: "false"},
-			{name: "leTrue", source: `{{ 41 is le(41) }}`, context: value.None, want: "true"},
-			{name: "leFalse", source: `{{ 41 is le(40) }}`, context: value.None, want: "false"},
-			{name: "<=True", source: `{{ 41 <= 41 }}`, context: value.None, want: "true"},
-			{name: "<=False", source: `{{ 41 <= 40 }}`, context: value.None, want: "false"},
-			{name: "gtTrue", source: `{{ 42 is gt(41) }}`, context: value.None, want: "true"},
-			{name: "gtFalse", source: `{{ 41 is gt(41) }}`, context: value.None, want: "false"},
-			{name: "greaterthanTrue", source: `{{ 42 is greaterthan(41) }}`, context: value.None, want: "true"},
-			{name: "greaterthanFalse", source: `{{ 41 is greaterthan(41) }}`, context: value.None, want: "false"},
-			{name: ">True", source: `{{ 42 > 41 }}`, context: value.None, want: "true"},
-			{name: ">False", source: `{{ 41 > 41 }}`, context: value.None, want: "false"},
-			{name: "geTrue", source: `{{ 42 is ge(42) }}`, context: value.None, want: "true"},
-			{name: "geFalse", source: `{{ 40 is ge(41) }}`, context: value.None, want: "false"},
-			{name: ">=True", source: `{{ 41 >= 41 }}`, context: value.None, want: "true"},
-			{name: ">=False", source: `{{ 40 >= 41 }}`, context: value.None, want: "false"},
-			{name: "isInTrue", source: `{{ 1 is in([1, 2]) }}`, context: value.None, want: "true"},
-			{name: "isInFalse", source: `{{ 3 is in([1, 2]) }}`, context: value.None, want: "false"},
-			{name: "isTrueTrue", source: `{{ true is true }}`, context: value.None, want: "true"},
-			{name: "isTrueFalse", source: `{{ 1 is true }}`, context: value.None, want: "false"},
-			{name: "isFalseTrue", source: `{{ false is false }}`, context: value.None, want: "true"},
-			{name: "isFalseFalse", source: `{{ 0 is false }}`, context: value.None, want: "false"},
-			{name: "isFilterTrue", source: `{{ "escape" is filter }}`, context: value.None, want: "true"},
-			{name: "isFilterFalse", source: `{{ "no_such_filter" is filter }}`, context: value.None, want: "false"},
-			{name: "isTestTrue", source: `{{ "defined" is test }}`, context: value.None, want: "true"},
-			{name: "isTestFalse", source: `{{ "no_such_test" is test }}`, context: value.None, want: "false"},
+			{name: "isOddTrue", source: `{{ 41 is odd }}`, context: nil, want: "true"},
+			{name: "isOddValueFalse", source: `{{ 42 is odd }}`, context: nil, want: "false"},
+			{name: "isOddTypeFalse", source: `{{ "s" is odd }}`, context: nil, want: "false"},
+			{name: "isEvenTrue", source: `{{ 41 is even }}`, context: nil, want: "false"},
+			{name: "isEvenValueFalse", source: `{{ 42 is even }}`, context: nil, want: "true"},
+			{name: "isEvenTypeFalse", source: `{{ "s" is even }}`, context: nil, want: "false"},
+			{name: "isNumberTrue", source: `{{ 42 is number }}`, context: nil, want: "true"},
+			{name: "isNumberFalse", source: `{{ "42" is number }}`, context: nil, want: "false"},
+			{name: "isStringTrue", source: `{{ "42" is string }}`, context: nil, want: "true"},
+			{name: "isStringFalse", source: `{{ 42 is string }}`, context: nil, want: "false"},
+			{name: "isSequenceTrue", source: `{{ [1, 2, 3] is sequence }}`, context: nil, want: "true"},
+			{name: "isSequenceFalse", source: `{{ 42 is sequence }}`, context: nil, want: "false"},
+			{name: "isMappingTrue", source: `{{ {"foo": "bar"} is mapping }}`, context: nil, want: "true"},
+			{name: "isMappingFalse", source: `{{ [1, 2, 3] is mapping }}`, context: nil, want: "false"},
+			{name: "isStartingWithTrue", source: `{{ "foobar" is startingwith("foo") }}`, context: nil, want: "true"},
+			{name: "isStartingWithFalse", source: `{{ "foobar" is startingwith("bar") }}`, context: nil, want: "false"},
+			{name: "isEndingWithTrue", source: `{{ "foobar" is endingwith("bar") }}`, context: nil, want: "true"},
+			{name: "isEndingWithFalse", source: `{{ "foobar" is endingwith("foo") }}`, context: nil, want: "false"},
+			{name: "eqTrue", source: `{{ 41 is eq(41) }}`, context: nil, want: "true"},
+			{name: "eqFalse", source: `{{ 41 is eq(42) }}`, context: nil, want: "false"},
+			{name: "equaltoTrue", source: `{{ 41 is equalto(41) }}`, context: nil, want: "true"},
+			{name: "equaltoFalse", source: `{{ 41 is equalto(42) }}`, context: nil, want: "false"},
+			{name: "==True", source: `{{ 41 == 41 }}`, context: nil, want: "true"},
+			{name: "==False", source: `{{ 41 == 42 }}`, context: nil, want: "false"},
+			{name: "neTrue", source: `{{ 41 is ne(42) }}`, context: nil, want: "true"},
+			{name: "neFalse", source: `{{ 41 is ne(41) }}`, context: nil, want: "false"},
+			{name: "!=True", source: `{{ 41 != 42 }}`, context: nil, want: "true"},
+			{name: "!=False", source: `{{ 41 != 41 }}`, context: nil, want: "false"},
+			{name: "ltTrue", source: `{{ 41 is lt(42) }}`, context: nil, want: "true"},
+			{name: "ltFalse", source: `{{ 41 is lt(41) }}`, context: nil, want: "false"},
+			{name: "lessthanTrue", source: `{{ 41 is lessthan(42) }}`, context: nil, want: "true"},
+			{name: "lessthanFalse", source: `{{ 41 is lessthan(41) }}`, context: nil, want: "false"},
+			{name: "<True", source: `{{ 41 < 42 }}`, context: nil, want: "true"},
+			{name: "<False", source: `{{ 41 < 41 }}`, context: nil, want: "false"},
+			{name: "leTrue", source: `{{ 41 is le(41) }}`, context: nil, want: "true"},
+			{name: "leFalse", source: `{{ 41 is le(40) }}`, context: nil, want: "false"},
+			{name: "<=True", source: `{{ 41 <= 41 }}`, context: nil, want: "true"},
+			{name: "<=False", source: `{{ 41 <= 40 }}`, context: nil, want: "false"},
+			{name: "gtTrue", source: `{{ 42 is gt(41) }}`, context: nil, want: "true"},
+			{name: "gtFalse", source: `{{ 41 is gt(41) }}`, context: nil, want: "false"},
+			{name: "greaterthanTrue", source: `{{ 42 is greaterthan(41) }}`, context: nil, want: "true"},
+			{name: "greaterthanFalse", source: `{{ 41 is greaterthan(41) }}`, context: nil, want: "false"},
+			{name: ">True", source: `{{ 42 > 41 }}`, context: nil, want: "true"},
+			{name: ">False", source: `{{ 41 > 41 }}`, context: nil, want: "false"},
+			{name: "geTrue", source: `{{ 42 is ge(42) }}`, context: nil, want: "true"},
+			{name: "geFalse", source: `{{ 40 is ge(41) }}`, context: nil, want: "false"},
+			{name: ">=True", source: `{{ 41 >= 41 }}`, context: nil, want: "true"},
+			{name: ">=False", source: `{{ 40 >= 41 }}`, context: nil, want: "false"},
+			{name: "isInTrue", source: `{{ 1 is in([1, 2]) }}`, context: nil, want: "true"},
+			{name: "isInFalse", source: `{{ 3 is in([1, 2]) }}`, context: nil, want: "false"},
+			{name: "isTrueTrue", source: `{{ true is true }}`, context: nil, want: "true"},
+			{name: "isTrueFalse", source: `{{ 1 is true }}`, context: nil, want: "false"},
+			{name: "isFalseTrue", source: `{{ false is false }}`, context: nil, want: "true"},
+			{name: "isFalseFalse", source: `{{ 0 is false }}`, context: nil, want: "false"},
+			{name: "isFilterTrue", source: `{{ "escape" is filter }}`, context: nil, want: "true"},
+			{name: "isFilterFalse", source: `{{ "no_such_filter" is filter }}`, context: nil, want: "false"},
+			{name: "isTestTrue", source: `{{ "defined" is test }}`, context: nil, want: "true"},
+			{name: "isTestFalse", source: `{{ "no_such_test" is test }}`, context: nil, want: "false"},
 		})
 	})
 	t.Run("function", func(t *testing.T) {
 		runTests(t, []testCase{
-			{name: "rangeJustUpper", source: "{{ range(3) }}", context: value.None, want: "[0, 1, 2]"},
-			{name: "rangeLowerUpper", source: "{{ range(2, 4) }}", context: value.None, want: "[2, 3]"},
-			{name: "rangeLowerUpperStep", source: "{{ range(2, 9, 3) }}", context: value.None, want: "[2, 5, 8]"},
-			{name: "dictEmpty", source: "{{ dict()['foo']|default(1) }}", context: value.None, want: "1"},
-			{name: "dictNonEmpty", source: "{{ dict(foo='bar')['foo'] }}", context: value.None, want: "bar"},
+			{name: "rangeJustUpper", source: "{{ range(3) }}", context: nil, want: "[0, 1, 2]"},
+			{name: "rangeLowerUpper", source: "{{ range(2, 4) }}", context: nil, want: "[2, 3]"},
+			{name: "rangeLowerUpperStep", source: "{{ range(2, 9, 3) }}", context: nil, want: "[2, 5, 8]"},
+			{name: "dictEmpty", source: "{{ dict()['foo']|default(1) }}", context: nil, want: "1"},
+			{name: "dictNonEmpty", source: "{{ dict(foo='bar')['foo'] }}", context: nil, want: "bar"},
 		})
 	})
 }
@@ -754,7 +653,7 @@ func TestErrorSingleTemplate(t *testing.T) {
 	runTests := func(t *testing.T, testCases []testCase) {
 		for i, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				env := NewEnvironment()
+				env := mjingo.NewEnvironment()
 				const templateName = "test.html"
 				err := env.AddTemplate(templateName, tc.source)
 				if err != nil {
@@ -764,8 +663,9 @@ func TestErrorSingleTemplate(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				context := mjingo.ValueFromGoValue(tc.context, mjingo.WithStructTag("json"))
 				var got string
-				if _, err := tpl.Render(tc.context); err != nil {
+				if _, err := tpl.Render(context); err != nil {
 					got = err.Error()
 				}
 				if got != tc.want {
@@ -776,8 +676,8 @@ func TestErrorSingleTemplate(t *testing.T) {
 	}
 	t.Run("function", func(t *testing.T) {
 		runTests(t, []testCase{
-			{name: "rangeNoArgErr", source: "{{ range() }}", context: value.None, want: "missing argument"},
-			{name: "rangeTooManyArgErr", source: "{{ range(1, 2, 3, 4) }}", context: value.None, want: "too many arguments"},
+			{name: "rangeNoArgErr", source: "{{ range() }}", context: nil, want: "missing argument"},
+			{name: "rangeTooManyArgErr", source: "{{ range(1, 2, 3, 4) }}", context: nil, want: "too many arguments"},
 		})
 	})
 }
@@ -799,7 +699,7 @@ func TestMultiTemplates(t *testing.T) {
 		t.Helper()
 		for i, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				env := NewEnvironment()
+				env := mjingo.NewEnvironment()
 				for _, tpl := range tc.templates {
 					err := env.AddTemplate(tpl.name, tpl.source)
 					if err != nil {
@@ -810,7 +710,8 @@ func TestMultiTemplates(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				got, err := tpl.Render(tc.context)
+				context := mjingo.ValueFromGoValue(tc.context, mjingo.WithStructTag("json"))
+				got, err := tpl.Render(context)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -836,7 +737,7 @@ func TestMultiTemplates(t *testing.T) {
 				name:   "footer.html",
 				source: "Footer",
 			}},
-			context: value.None,
+			context: nil,
 			want:    "Header\n  Body\nFooter",
 		}})
 	})
@@ -867,7 +768,7 @@ func TestMultiTemplates(t *testing.T) {
 					"{% endblock %}\n" +
 					"{% block body %}{% endblock %}",
 			}},
-			context: value.None,
+			context: nil,
 			want: "<!doctype html>\n\n  \n" +
 				"<title>Index</title>\n\n" +
 				"  <style type=\"text/css\">\n" +
@@ -893,7 +794,7 @@ func TestMultiTemplates(t *testing.T) {
 					"{% endmacro %}\n" +
 					"{% set my_variable = \"World\" %}\n",
 			}},
-			context: value.None,
+			context: nil,
 			want:    "\n\nHello World\n",
 		}})
 	})
@@ -912,89 +813,9 @@ func TestMultiTemplates(t *testing.T) {
 					"{% endmacro %}\n" +
 					"{% set my_alias = my_macro %}\n",
 			}},
-			context: value.None,
+			context: nil,
 			want: "\n\nHello World\n" +
 				"\n\nHello 日本\n",
 		}})
-	})
-}
-
-func TestSingleTemplWithGoVal(t *testing.T) {
-	type testCase struct {
-		name    string
-		source  string
-		context any
-		want    string
-	}
-
-	runTests := func(t *testing.T, testCases []testCase) {
-		for i, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				env := NewEnvironment()
-				const templateName = "test.html"
-				err := env.AddTemplate(templateName, tc.source)
-				if err != nil {
-					t.Fatal(err)
-				}
-				tpl, err := env.GetTemplate(templateName)
-				if err != nil {
-					t.Fatal(err)
-				}
-				context := value.ValueFromGoValue(tc.context, value.WithStructTag("json"))
-				got, err := tpl.Render(context)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if got != tc.want {
-					t.Errorf("result mismatch, i=%d, source=%s,\n got=%q,\nwant=%q", i, tc.source, got, tc.want)
-				}
-			})
-		}
-	}
-
-	t.Run("expression", func(t *testing.T) {
-		type user struct {
-			Name string `json:"name"`
-			ID   *int   `json:"id"`
-		}
-		type users struct {
-			Users []user `json:"users"`
-		}
-
-		intPtr := func(n int) *int {
-			return &n
-		}
-
-		runTests(t, []testCase{
-			{
-				name:   "var",
-				source: "Hello {{ name }}",
-				context: map[string]any{
-					"name": "World",
-				},
-				want: "Hello World",
-			},
-			{
-				name:   "loopIndex",
-				source: "{% for user in users %}{{ loop.index }} {{ user }}\n{% endfor %}",
-				context: struct {
-					Users []string `json:"users"`
-				}{
-					Users: []string{"John", "Paul", "George", "Ringo"},
-				},
-				want: "1 John\n2 Paul\n3 George\n4 Ringo\n",
-			},
-			{
-				name:   "selectattrCase2",
-				source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|selectattr("id", "even") }}{% endautoescape %}`,
-				context: users{
-					Users: []user{
-						{Name: "John", ID: intPtr(1)},
-						{Name: "Paul", ID: intPtr(2)},
-					},
-				},
-				want: `[{"name": "Paul", "id": 2}]`,
-			},
-		})
 	})
 }

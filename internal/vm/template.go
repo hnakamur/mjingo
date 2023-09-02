@@ -13,11 +13,10 @@ type Template struct {
 	initialAutoEscape AutoEscape
 }
 
-func (t *Template) Render(context any) (string, error) {
+func (t *Template) Render(context value.Value) (string, error) {
 	var b strings.Builder
-	root := context.(value.Value)
 	out := newOutput(&b)
-	if err := t._eval(root, out); err != nil {
+	if err := t._eval(context, out); err != nil {
 		return "", err
 	}
 	return b.String(), nil

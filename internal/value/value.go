@@ -824,7 +824,8 @@ func (v DynamicValue) TryIter() (Iterator, error) {
 	case ObjectKindPlain:
 		return Iterator{iterState: &emptyValueIteratorState{}}, nil
 	case ObjectKindSeq:
-		return Iterator{iterState: &dynSeqValueIteratorState{obj: v.Dy.(SeqObject)}}, nil
+		seqObj := v.Dy.(SeqObject)
+		return Iterator{iterState: &dynSeqValueIteratorState{obj: seqObj}, len: seqObj.ItemCount()}, nil
 	case ObjectKindStruct:
 		obj := v.Dy.(StructObject)
 		if optFields := obj.StaticFields(); optFields.IsSome() {
