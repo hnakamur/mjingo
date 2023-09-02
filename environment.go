@@ -1,19 +1,20 @@
 package mjingo
 
 import (
-	"github.com/hnakamur/mjingo/internal"
+	"github.com/hnakamur/mjingo/internal/common"
+	"github.com/hnakamur/mjingo/internal/vm"
 )
 
-type Environment = internal.Environment
-type Template = internal.Template
+type Environment = vm.Environment
+type Template = vm.Template
 
-type AutoEscape = internal.AutoEscape
-type AutoEscapeNone = internal.AutoEscapeNone
-type AutoEscapeHTML = internal.AutoEscapeHTML
-type AutoEscapeJSON = internal.AutoEscapeJSON
-type AutoEscapeCustom = internal.AutoEscapeCustom
+type AutoEscape = vm.AutoEscape
+type AutoEscapeNone = vm.AutoEscapeNone
+type AutoEscapeHTML = vm.AutoEscapeHTML
+type AutoEscapeJSON = vm.AutoEscapeJSON
+type AutoEscapeCustom = vm.AutoEscapeCustom
 
-type UndefinedBehavior = internal.UndefinedBehavior
+type UndefinedBehavior = vm.UndefinedBehavior
 
 const (
 	// The default, somewhat lenient undefined behavior.
@@ -21,27 +22,27 @@ const (
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** fails
-	UndefinedBehaviorLenient = internal.UndefinedBehaviorLenient
+	UndefinedBehaviorLenient = vm.UndefinedBehaviorLenient
 
 	// Like `Lenient`, but also allows chaining of undefined lookups.
 	//
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** allowed (returns [`undefined`](Value::UNDEFINED))
-	UndefinedBehaviorChainable = internal.UndefinedBehaviorChainable
+	UndefinedBehaviorChainable = vm.UndefinedBehaviorChainable
 
 	// Complains very quickly about undefined values.
 	//
 	// * **printing:** fails
 	// * **iteration:** fails
 	// * **attribute access of undefined values:** fails
-	UndefinedBehaviorStrict = internal.UndefinedBehaviorStrict
+	UndefinedBehaviorStrict = vm.UndefinedBehaviorStrict
 
 	UndefinedBehaviorDefault = UndefinedBehaviorLenient
 )
 
-type Error = internal.Error
+type Error = common.Error
 
 func NewEnvironment() *Environment {
-	return internal.NewEnvironment()
+	return vm.NewEnvironment()
 }
