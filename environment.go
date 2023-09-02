@@ -1,7 +1,6 @@
 package mjingo
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -20,8 +19,6 @@ type Environment struct {
 
 type autoEscapeFunc func(name string) AutoEscape
 type formatterFunc = func(*output, *vmState, Value) error
-
-var ErrTemplateNotFound = errors.New("template not found")
 
 func NewEnvironment() *Environment {
 	return &Environment{
@@ -47,7 +44,7 @@ func (e *Environment) AddTemplate(name, source string) error {
 func (e *Environment) GetTemplate(name string) (*Template, error) {
 	tpl := e.templates[name]
 	if tpl == nil {
-		return nil, ErrTemplateNotFound
+		return nil, newError(TemplateNotFound, "")
 	}
 	return &Template{
 		env:               e,
