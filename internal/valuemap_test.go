@@ -22,7 +22,7 @@ func TestValueMap(t *testing.T) {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
 
-		m.Set(StrKeyRef{str: "bar"}, i64Value{n: 3})
+		m.Set(strKeyRef{str: "bar"}, i64Value{n: 3})
 		if got, want := m.Len(), uint(2); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -32,7 +32,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "foo"}
+			wantKey := strKeyRef{str: "foo"}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -46,7 +46,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "bar"}
+			wantKey := strKeyRef{str: "bar"}
 			if got.Key != wantKey {
 				t.Errorf("second key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -56,13 +56,13 @@ func TestValueMap(t *testing.T) {
 			}
 		}
 
-		m.Set(StrKeyRef{str: "foo"}, f64Value{f: 3.1})
+		m.Set(strKeyRef{str: "foo"}, f64Value{f: 3.1})
 		{
 			got, ok := m.EntryAt(uint(0))
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "foo"}
+			wantKey := strKeyRef{str: "foo"}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -72,7 +72,7 @@ func TestValueMap(t *testing.T) {
 			}
 		}
 
-		m.Delete(StrKeyRef{str: "foo"})
+		m.Delete(strKeyRef{str: "foo"})
 		if got, want := m.Len(), uint(1); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -81,7 +81,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "bar"}
+			wantKey := strKeyRef{str: "bar"}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -194,7 +194,7 @@ func TestValueMap(t *testing.T) {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
 
-		m.Set(StrKeyRef{str: "bar"}, i64Value{n: 3})
+		m.Set(strKeyRef{str: "bar"}, i64Value{n: 3})
 		if got, want := m.Len(), uint(2); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -218,7 +218,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "bar"}
+			wantKey := strKeyRef{str: "bar"}
 			if got.Key != wantKey {
 				t.Errorf("second key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -253,7 +253,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := StrKeyRef{str: "bar"}
+			wantKey := strKeyRef{str: "bar"}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
