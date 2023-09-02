@@ -10,7 +10,7 @@ func New[T comparable]() *HashSet[T] {
 	}
 }
 
-func Add[T comparable](s *HashSet[T], v T) bool {
+func (s *HashSet[T]) Add(v T) bool {
 	_, ok := s.s[v]
 	if !ok {
 		s.s[v] = struct{}{}
@@ -18,16 +18,16 @@ func Add[T comparable](s *HashSet[T], v T) bool {
 	return !ok
 }
 
-func Delete[T comparable](s *HashSet[T], v T) {
+func (s *HashSet[T]) Delete(v T) {
 	delete(s.s, v)
 }
 
-func Contains[T comparable](s *HashSet[T], v T) bool {
+func (s *HashSet[T]) Contains(v T) bool {
 	_, ok := s.s[v]
 	return ok
 }
 
-func Keys[T comparable](s *HashSet[T]) []T {
+func (s *HashSet[T]) Keys() []T {
 	keys := make([]T, 0, len(s.s))
 	for key := range s.s {
 		keys = append(keys, key)
