@@ -288,7 +288,7 @@ const (
 	// Performs a slice operation.
 	instTypeSlice
 
-	// Loads a constant valu.Value.
+	// Loads a constant value.Value.
 	instTypeLoadConst
 
 	// Builds a map of the last n pairs on the stack.
@@ -331,7 +331,7 @@ const (
 	// x to the power of y.
 	instTypePow
 
-	// Negates the valu.Value.
+	// Negates the value.Value.
 	instTypeNeg
 
 	// `=` operator
@@ -396,16 +396,16 @@ const (
 	// Jump if the stack top evaluates to false
 	instTypeJumpIfFalse
 
-	// Jump if the stack top evaluates to false or pops the valu.Value
+	// Jump if the stack top evaluates to false or pops the value.Value
 	instTypeJumpIfFalseOrPop
 
-	// Jump if the stack top evaluates to true or pops the valu.Value
+	// Jump if the stack top evaluates to true or pops the value.Value
 	instTypeJumpIfTrueOrPop
 
-	// Sets the auto escape flag to the current valu.Value.
+	// Sets the auto escape flag to the current value.Value.
 	instTypePushAutoEscape
 
-	// Resets the auto escape flag to the previous valu.Value.
+	// Resets the auto escape flag to the previous value.Value.
 	instTypePopAutoEscape
 
 	// Begins capturing of output (false) or discard (true).
@@ -453,7 +453,7 @@ const (
 	// Breaks from the interpreter loop (exists a function)
 	instTypeReturn
 
-	// True if the valu.Value is undefined
+	// True if the value.Value is undefined
 	instTypeIsUndefined
 
 	// Encloses a variable.

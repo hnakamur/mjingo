@@ -78,9 +78,9 @@ func (b UndefinedBehavior) HandleUndefined(parentWasUndefined bool) (value.Value
 	}
 }
 
-// Tries to iterate over a valu.Value while handling the undefined valu.Value.
+// Tries to iterate over a value.Value while handling the undefined value.Value.
 //
-// If the valu.Value is undefined, then iteration fails if the behavior is set to strict,
+// If the value.Value is undefined, then iteration fails if the behavior is set to strict,
 // otherwise it succeeds with an empty iteration.  This is also internally used in the
 // engine to convert values to lists.
 func (b UndefinedBehavior) TryIter(val value.Value) (value.Iterator, error) {
