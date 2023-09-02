@@ -229,7 +229,7 @@ loop:
 		case ListAppendInstruction:
 			a = stack.Pop()
 			// this intentionally only works with actual sequences
-			if v, ok := stack.Pop().(SeqValue); ok {
+			if v, ok := stack.Pop().(seqValue); ok {
 				v.Append(a)
 				stack.Push(v)
 			} else {
@@ -784,7 +784,7 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 		case "none":
 			return AutoEscapeNone{}, nil
 		}
-	} else if v, ok := val.(BoolValue); ok && v.B {
+	} else if v, ok := val.(boolValue); ok && v.b {
 		if _, ok := initialAutoEscape.(AutoEscapeNone); ok {
 			return AutoEscapeHTML{}, nil
 		}
@@ -853,7 +853,7 @@ func (m *virtualMachine) unpackList(stack *Stack[Value], count uint) error {
 
 func (m *virtualMachine) buildMacro(stack *Stack[Value], state *State, offset uint, name string, flags uint8) {
 	var argSpec []string
-	if args, ok := stack.Pop().(SeqValue); ok {
+	if args, ok := stack.Pop().(seqValue); ok {
 		argSpec = slicex.Map(args.items, func(arg Value) string {
 			if strVal, ok := arg.(stringValue); ok {
 				return strVal.str
@@ -901,8 +901,8 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 }
 
 func assertValid(v Value, pc uint, st *State) (Value, error) {
-	if vInvalid, ok := v.(InvalidValue); ok {
-		detail := vInvalid.Detail
+	if vInvalid, ok := v.(invalidValue); ok {
+		detail := vInvalid.detail
 		err := NewError(BadSerialization, detail)
 		processErr(err, pc, st)
 		return nil, err

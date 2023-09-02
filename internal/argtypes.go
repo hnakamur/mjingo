@@ -34,7 +34,7 @@ func ValueFromUnit(_ Unit) Value {
 }
 
 func ValueFromBool(val bool) Value {
-	return BoolValue{B: val}
+	return boolValue{b: val}
 }
 
 func ValueFromI64(n int64) Value {
@@ -58,7 +58,7 @@ func ValueFromF64(f float64) Value {
 }
 
 func ValueFromSlice(values []Value) Value {
-	return SeqValue{items: values}
+	return seqValue{items: values}
 }
 
 func ValueFromIndexMap(m *IndexMap) Value {

@@ -86,8 +86,8 @@ func Slice(val, start, stop, step Value) (Value, error) {
 		}
 		return stringValue{str: string(sliced)}, nil
 	case undefinedValue, noneValue:
-		return SeqValue{items: []Value{}}, nil
-	case SeqValue:
+		return seqValue{items: []Value{}}, nil
+	case seqValue:
 		maybeSeq = newSliceSeqObject(v.items)
 	case dynamicValue:
 		if obj, ok := v.dy.(SeqObject); ok {
@@ -103,7 +103,7 @@ func Slice(val, start, stop, step Value) (Value, error) {
 				sliced = append(sliced, item.Unwrap())
 			}
 		}
-		return SeqValue{items: sliced}, nil
+		return seqValue{items: sliced}, nil
 	}
 	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s cannot be sliced", val.typ()))

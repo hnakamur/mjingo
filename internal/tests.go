@@ -536,13 +536,13 @@ func isIn(val, other Value) bool {
 }
 
 func isTrue(val Value) bool {
-	boolVal, ok := val.(BoolValue)
-	return ok && boolVal.B
+	boolVal, ok := val.(boolValue)
+	return ok && boolVal.b
 }
 
 func isFalse(val Value) bool {
-	boolVal, ok := val.(BoolValue)
-	return ok && !boolVal.B
+	boolVal, ok := val.(boolValue)
+	return ok && !boolVal.b
 }
 
 func isFilter(state *State, name string) bool {

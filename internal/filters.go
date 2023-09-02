@@ -592,7 +592,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 
 	caseSensitive := false
 	if optCaseSensitive := kwargs.getValue("case_sensitive"); optCaseSensitive.IsSome() {
-		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optCaseSensitive.Unwrap().(boolValue); ok && cs.b {
 			caseSensitive = true
 		}
 	}
@@ -603,7 +603,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 
 	reverse := false
 	if optReverse := kwargs.getValue("reverse"); optReverse.IsSome() {
-		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optReverse.Unwrap().(boolValue); ok && cs.b {
 			reverse = true
 		}
 	}
@@ -636,7 +636,7 @@ func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 	items := iter.collect()
 	caseSensitive := false
 	if optCaseSensitive := kwargs.getValue("case_sensitive"); optCaseSensitive.IsSome() {
-		if cs, ok := optCaseSensitive.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optCaseSensitive.Unwrap().(boolValue); ok && cs.b {
 			caseSensitive = true
 		}
 	}
@@ -653,7 +653,7 @@ func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 	}
 	reverse := false
 	if optReverse := kwargs.getValue("reverse"); optReverse.IsSome() {
-		if cs, ok := optReverse.Unwrap().(BoolValue); ok && cs.B {
+		if cs, ok := optReverse.Unwrap().(boolValue); ok && cs.b {
 			reverse = true
 		}
 	}

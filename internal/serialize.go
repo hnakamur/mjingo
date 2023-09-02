@@ -117,7 +117,7 @@ const maxNestLevelForValueFromGoValue = 100
 
 func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint) Value {
 	if level >= maxNestLevelForValueFromGoValue {
-		return InvalidValue{Detail: "nested level too deep"}
+		return invalidValue{detail: "nested level too deep"}
 	}
 	switch v := val.(type) {
 	case bool:
@@ -184,7 +184,7 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 
 func mapErrToInvalidValue(val Value, err error) Value {
 	if err != nil {
-		return InvalidValue{Detail: err.Error()}
+		return invalidValue{detail: err.Error()}
 	}
 	return val
 }
