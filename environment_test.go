@@ -858,3 +858,27 @@ func TestExpression(t *testing.T) {
 		want: mjingo.ValueFromGoValue(65),
 	}})
 }
+
+func TestKeepTrailingNewline(t *testing.T) {
+	env := mjingo.NewEnvironment()
+	env.SetKeepTrailingNewline(true)
+	const templateName = "test.html"
+	const source = "Hello {{ name }}\n"
+	err := env.AddTemplate(templateName, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl, err := env.GetTemplate(templateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	context := mjingo.ValueFromGoValue(map[string]any{"name": "World"}, mjingo.WithStructTag("json"))
+	got, err := tpl.Render(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "Hello World\n"
+	if got != want {
+		t.Errorf("result mismatch, source=%s,\n got=%q,\nwant=%q", source, got, want)
+	}
+}

@@ -59,6 +59,14 @@ func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 	return newExpression(e, insts), nil
 }
 
+func (e *Environment) SetKeepTrailingNewline(yes bool) {
+	e.templates.KeepTrailingNewline = yes
+}
+
+func (e *Environment) KeepTrailingNewline() bool {
+	return e.templates.KeepTrailingNewline
+}
+
 func (e *Environment) format(v Value, state *vmState, out *output) error {
 	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
 		return newError(UndefinedError, "")
