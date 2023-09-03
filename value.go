@@ -230,7 +230,7 @@ func (v seqValue) String() string {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(item.debugString())
 	}
 	b.WriteString("]")
 	return b.String()
@@ -249,7 +249,7 @@ func (v mapValue) String() string {
 		}
 		b.WriteString(e.Key.AsValue().debugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.debugString())
 	}
 	b.WriteString("}")
 	return b.String()
@@ -280,8 +280,8 @@ func (v noneValue) debugString() string    { return "None" }
 func (v invalidValue) debugString() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
 func (v u128Value) debugString() string    { return v.N.String() }
 func (v i128Value) debugString() string    { return v.N.String() }
-func (v stringValue) debugString() string  { return fmt.Sprintf("%q", v.Str) } // TODO: equivalent impl with Rust's std::fmt::Debug
-func (v bytesValue) debugString() string   { return string(v.B) }              // TODO: equivalent impl as String::from_utf8_lossy
+func (v stringValue) debugString() string  { return fmt.Sprintf("%q", v.Str) }
+func (v bytesValue) debugString() string   { return string(v.B) } // TODO: equivalent impl as String::from_utf8_lossy
 func (v seqValue) debugString() string {
 	var b strings.Builder
 	b.WriteString("[")
@@ -289,7 +289,7 @@ func (v seqValue) debugString() string {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(item.debugString())
 	}
 	b.WriteString("]")
 	return b.String()
@@ -308,7 +308,7 @@ func (v mapValue) debugString() string {
 		}
 		b.WriteString(e.Key.AsValue().debugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.debugString()) // MiniJinja uses fmt::Debug instead of fmt::Display here
+		b.WriteString(e.Value.debugString())
 	}
 	b.WriteString("}")
 	return b.String()

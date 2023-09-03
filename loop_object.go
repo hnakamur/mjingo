@@ -76,11 +76,9 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 	case "len":
 		return option.Some[Value](valueFromI64(int64(l.len)))
 	case "revindex":
-		// TODO: saturating_sub
-		return option.Some[Value](valueFromI64(int64(l.len - idx)))
+		return option.Some[Value](valueFromI64(int64(uintSaturatingSub(l.len, idx))))
 	case "revindex0":
-		// TODO: saturating_sub
-		return option.Some[Value](valueFromI64(int64(l.len - idx - 1)))
+		return option.Some[Value](valueFromI64(int64(uintSaturatingSub(uintSaturatingSub(l.len, idx), 1))))
 	case "first":
 		return option.Some[Value](valueFromBool(idx == 0))
 	case "last":
@@ -95,4 +93,11 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 		return option.Some[Value](l.valueTriple[2].UnwrapOr(Undefined).clone())
 	}
 	return option.None[Value]()
+}
+
+func uintSaturatingSub(x, y uint) uint {
+	if y > x {
+		return 0
+	}
+	return x - y
 }

@@ -50,8 +50,6 @@ func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 		var kwarg Value
 		if kwargs != nil {
 			kwarg, _ = kwargs.Get(keyRefFromValue(valueFromString(name)))
-			// TODO: change to below as well as IndexMap
-			// kwarg, _ = kwargs.Get(KeyRefFromString(name))
 		}
 
 		var arg Value
