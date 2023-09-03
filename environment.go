@@ -6,8 +6,22 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
+// Environment is an abstraction that holds the engine configuration.
+//
+// This object holds the central configuration state for templates.  It is also
+// the container for all loaded templates.
+//
+// The environment holds references to the source the templates were created from.
+// This makes it very inconvenient to pass around unless the templates are static
+// strings.
+//
+// There are generally two ways to construct an environment:
+//
+//   - [`NewEnvironment`] creates an environment preconfigured with sensible
+//     defaults.  It will contain all built-in filters, tests and globals as well
+//     as a callback for auto escaping based on file extension.
+//   - [`NewEnvironmentEmpty`] creates a completely blank environment.
 type Environment struct {
-	syntaxConfig      SyntaxConfig
 	templates         templateStore
 	filters           map[string]BoxedFilter
 	tests             map[string]BoxedTest
@@ -20,9 +34,14 @@ type Environment struct {
 type autoEscapeFunc func(name string) AutoEscape
 type formatterFunc = func(*output, *vmState, Value) error
 
+// NewEnvironment creates a new environment with sensible defaults.
+//
+// This environment does not yet contain any templates but it will have all
+// the default filters, tests and globals loaded.  If you do not want any
+// default configuration you can use the alternative
+// `NewEnvironmentEmpty` method.
 func NewEnvironment() *Environment {
 	return &Environment{
-		syntaxConfig:      DefaultSyntaxConfig,
 		templates:         *newLoaderStoreDefault(),
 		filters:           getDefaultBuiltinFilters(),
 		tests:             getDefaultBuiltinTests(),
@@ -32,10 +51,67 @@ func NewEnvironment() *Environment {
 	}
 }
 
+// NewEnvironmentEmpty creates a completely empty environment.
+//
+// This environment has no filters, no templates, no globals and no default
+// logic for auto escaping configured.
+func NewEnvironmentEmpty() *Environment {
+	return &Environment{
+		templates:         *newLoaderStoreDefault(),
+		filters:           make(map[string]BoxedFilter),
+		tests:             make(map[string]BoxedTest),
+		globals:           make(map[string]Value),
+		defaultAutoEscape: noAutoEscape,
+		formatter:         escapeFormatter,
+	}
+}
+
+// AddTemplate loads a template from a string into the environment.
+//
+// The `name` parameter defines the name of the template which identifies
+// it.  To look up a loaded template use the `GetTemplate`
+// method.
+//
+// Note that there are situations where the interface of this method is
+// too restrictive as you need to hold on to the strings for the lifetime
+// of the environment.
 func (e *Environment) AddTemplate(name, source string) error {
 	return e.templates.insert(name, source)
 }
 
+// SetKeepTrailingNewline preserve the trailing newline when rendering templates.
+//
+// The default is `false`, which causes a single newline, if present, to be
+// stripped from the end of the template.
+func (e *Environment) SetKeepTrailingNewline(yes bool) {
+	e.templates.KeepTrailingNewline = yes
+}
+
+// KeepTrailingNewline returns the value of the trailing newline preservation flag.
+func (e *Environment) KeepTrailingNewline() bool {
+	return e.templates.KeepTrailingNewline
+}
+
+// RemoveTemplate removes a template by name.
+func (e *Environment) RemoveTemplate(name string) {
+	e.templates.remove(name)
+}
+
+// ClearTemplates removes all stored templates.
+//
+// This method is mainly useful when combined with a loader as it causes
+// the loader to "reload" templates.  By calling this method one can trigger
+// a reload.
+func (e *Environment) ClearTemplates() {
+	e.templates.clear()
+}
+
+// GetTemplate fetches a template by name.
+//
+// This requires that the template has been loaded with
+// `AddTemplate` beforehand.  If the template was
+// not loaded an error of kind `TemplateNotFound` is returned.  If a loaded was
+// added to the engine this can also dynamically load templates.
 func (e *Environment) GetTemplate(name string) (*Template, error) {
 	compiled := e.templates.get(name)
 	if compiled == nil {
@@ -48,8 +124,18 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
+func (e *Environment) syntaxConfig() *syntaxConfig {
+	return &e.templates.SyntaxConfig
+}
+
+// CompileExpression compiles an expression.
+//
+// This lets one compile an expression in the template language and
+// receive the output.  This lets one use the expressions of the language
+// be used as a minimal scripting language.  For more information and an
+// example see `Expression`.
 func (e *Environment) CompileExpression(expr string) (*Expression, error) {
-	ast, err := parseExpr(expr, e.syntaxConfig)
+	ast, err := parseExpr(expr, *e.syntaxConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +143,6 @@ func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 	gen.compileExpr(ast)
 	insts, _ := gen.finish()
 	return newExpression(e, insts), nil
-}
-
-func (e *Environment) SetKeepTrailingNewline(yes bool) {
-	e.templates.KeepTrailingNewline = yes
-}
-
-func (e *Environment) KeepTrailingNewline() bool {
-	return e.templates.KeepTrailingNewline
 }
 
 func (e *Environment) format(v Value, state *vmState, out *output) error {

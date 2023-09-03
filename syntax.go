@@ -18,10 +18,10 @@ var DefaultSyntax = Syntax{
 	CommentEnd:    "#}",
 }
 
-type SyntaxConfig struct {
+type syntaxConfig struct {
 	Syntax Syntax
 }
 
-var DefaultSyntaxConfig = SyntaxConfig{
+var defaultSyntaxConfig = syntaxConfig{
 	Syntax: DefaultSyntax,
 }

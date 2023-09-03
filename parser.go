@@ -18,7 +18,7 @@ type tokenStream struct {
 	lastSpan span
 }
 
-func newTokenStream(source string, inExpr bool, syntax *SyntaxConfig) *tokenStream {
+func newTokenStream(source string, inExpr bool, syntax *syntaxConfig) *tokenStream {
 	iter := newTokenizeIterator(source, inExpr, syntax)
 	tkn, spn, err := iter.Next()
 
@@ -68,7 +68,7 @@ type parser struct {
 	depth   uint
 }
 
-func newParser(source string, inExpr bool, syntax *SyntaxConfig) *parser {
+func newParser(source string, inExpr bool, syntax *syntaxConfig) *parser {
 	return &parser{
 		stream: newTokenStream(source, inExpr, syntax),
 		blocks: hashset.NewStrHashSet(),
@@ -1652,10 +1652,10 @@ func (p *parser) parse() (statement, error) {
 }
 
 func parse(source, filename string) (statement, error) {
-	return parseWithSyntax(source, filename, DefaultSyntaxConfig, false)
+	return parseWithSyntax(source, filename, defaultSyntaxConfig, false)
 }
 
-func parseWithSyntax(source, filename string, syntax SyntaxConfig, keepTrailingNewline bool) (statement, error) {
+func parseWithSyntax(source, filename string, syntax syntaxConfig, keepTrailingNewline bool) (statement, error) {
 	// we want to chop off a single newline at the end.  This means that a template
 	// by default does not end in a newline which is a useful property to allow
 	// inline templates to work.  If someone wants a trailing newline the expectation
@@ -1747,7 +1747,7 @@ const (
 	setParseResultTypeSetBlockStmt
 )
 
-func parseExpr(source string, syntax SyntaxConfig) (astExpr, error) {
+func parseExpr(source string, syntax syntaxConfig) (astExpr, error) {
 	parser := newParser(source, true, &syntax)
 	expr, err := parser.parseExpr()
 	if err == nil {

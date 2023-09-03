@@ -40,10 +40,10 @@ type compiledTemplate struct {
 	instructions   instructions
 	blocks         map[string]instructions
 	bufferSizeHint uint
-	syntax         *SyntaxConfig
+	syntax         *syntaxConfig
 }
 
-func newCompiledTemplate(name, source string, syntax SyntaxConfig, keepTrailingNewline bool) (*compiledTemplate, error) {
+func newCompiledTemplate(name, source string, syntax syntaxConfig, keepTrailingNewline bool) (*compiledTemplate, error) {
 	st, err := parseWithSyntax(source, name, syntax, keepTrailingNewline)
 	if err != nil {
 		return nil, err

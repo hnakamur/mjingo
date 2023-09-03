@@ -215,7 +215,7 @@ func (s *tokenizerState) syntaxError(msg string) error {
 type tokenizeIterator struct {
 	state                 tokenizerState
 	inExpr                bool
-	syntaxConfig          *SyntaxConfig
+	syntaxConfig          *syntaxConfig
 	trimLeadingWhitespace bool
 	variableEnd           string
 	blockStart            string
@@ -245,14 +245,14 @@ func (s *lexerStateStack) peek() lexerState {
 	return s.stack[len(s.stack)-1]
 }
 
-func tokenize(input string, inExpr bool, syntaxConfig *SyntaxConfig) *tokenizeIterator {
-	if syntaxConfig == nil {
-		syntaxConfig = &DefaultSyntaxConfig
+func tokenize(input string, inExpr bool, syntaxCfg *syntaxConfig) *tokenizeIterator {
+	if syntaxCfg == nil {
+		syntaxCfg = &defaultSyntaxConfig
 	}
-	return newTokenizeIterator(input, inExpr, syntaxConfig)
+	return newTokenizeIterator(input, inExpr, syntaxCfg)
 }
 
-func newTokenizeIterator(input string, inExpr bool, syntaxConfig *SyntaxConfig) *tokenizeIterator {
+func newTokenizeIterator(input string, inExpr bool, syntaxCfg *syntaxConfig) *tokenizeIterator {
 	ls := lexerStateTemplate
 	if inExpr {
 		ls = lexerStateInVariable
@@ -271,12 +271,12 @@ func newTokenizeIterator(input string, inExpr bool, syntaxConfig *SyntaxConfig) 
 	return &tokenizeIterator{
 		state:                 state,
 		inExpr:                inExpr,
-		syntaxConfig:          syntaxConfig,
+		syntaxConfig:          syntaxCfg,
 		trimLeadingWhitespace: false,
-		variableEnd:           syntaxConfig.Syntax.VariableEnd,
-		blockStart:            syntaxConfig.Syntax.BlockStart,
-		blockEnd:              syntaxConfig.Syntax.BlockEnd,
-		commentEnd:            syntaxConfig.Syntax.CommentEnd,
+		variableEnd:           syntaxCfg.Syntax.VariableEnd,
+		blockStart:            syntaxCfg.Syntax.BlockStart,
+		blockEnd:              syntaxCfg.Syntax.BlockEnd,
+		commentEnd:            syntaxCfg.Syntax.CommentEnd,
 	}
 }
 
@@ -525,7 +525,7 @@ func isASCIIDigit(r rune) bool {
 	return r >= '0' && r <= '9'
 }
 
-func matchStartMarker(rest string, syntaxConfig *SyntaxConfig) (startMarker, uint, bool) {
+func matchStartMarker(rest string, syntaxCfg *syntaxConfig) (startMarker, uint, bool) {
 	return matchStartMarkerDefault(rest)
 }
 
@@ -542,7 +542,7 @@ func matchStartMarkerDefault(rest string) (startMarker, uint, bool) {
 	return 0, 0, false
 }
 
-func findStartMarker(s string, syntaxConfig *SyntaxConfig) (pos uint, hyphen bool, found bool) {
+func findStartMarker(s string, syntaxCfg *syntaxConfig) (pos uint, hyphen bool, found bool) {
 	return findStartMarkerIndexRune(s)
 }
 

@@ -3,7 +3,7 @@ package mjingo
 type loadFunc func(string) (string, error)
 
 type loaderStore struct {
-	SyntaxConfig        SyntaxConfig
+	SyntaxConfig        syntaxConfig
 	KeepTrailingNewline bool
 	loader              loadFunc
 	templates           map[string]*compiledTemplate
@@ -11,7 +11,7 @@ type loaderStore struct {
 
 func newLoaderStoreDefault() *loaderStore {
 	return &loaderStore{
-		SyntaxConfig: DefaultSyntaxConfig,
+		SyntaxConfig: defaultSyntaxConfig,
 		templates:    make(map[string]*compiledTemplate),
 	}
 }
