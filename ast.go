@@ -14,7 +14,7 @@ type templateStmt struct {
 	span     span
 }
 type emitExprStmt struct {
-	expr expression
+	expr astExpr
 	span span
 }
 type emitRawStmt struct {
@@ -22,16 +22,16 @@ type emitRawStmt struct {
 	span span
 }
 type forLoopStmt struct {
-	target     expression
-	iter       expression
-	filterExpr option.Option[expression]
+	target     astExpr
+	iter       astExpr
+	filterExpr option.Option[astExpr]
 	recursive  bool
 	body       []statement
 	elseBody   []statement
 	span       span
 }
 type ifCondStmt struct {
-	expr      expression
+	expr      astExpr
 	trueBody  []statement
 	falseBody []statement
 	span      span
@@ -42,23 +42,23 @@ type withBlockStmt struct {
 	span        span
 }
 type setStmt struct {
-	target expression
-	expr   expression
+	target astExpr
+	expr   astExpr
 	span   span
 }
 type setBlockStmt struct {
-	target expression
-	filter option.Option[expression]
+	target astExpr
+	filter option.Option[astExpr]
 	body   []statement
 	span   span
 }
 type autoEscapeStmt struct {
-	enabled expression
+	enabled astExpr
 	body    []statement
 	span    span
 }
 type filterBlockStmt struct {
-	filter expression
+	filter astExpr
 	body   []statement
 	span   span
 }
@@ -68,28 +68,28 @@ type blockStmt struct {
 	span span
 }
 type importStmt struct {
-	expr expression
-	name expression
+	expr astExpr
+	name astExpr
 	span span
 }
 type fromImportStmt struct {
-	expr  expression
+	expr  astExpr
 	names []importName
 	span  span
 }
 type extendsStmt struct {
-	name expression
+	name astExpr
 	span span
 }
 type includeStmt struct {
-	name          expression
+	name          astExpr
 	ignoreMissing bool
 	span          span
 }
 type macroStmt struct {
 	name     string
-	args     []expression
-	defaults []expression
+	args     []astExpr
+	defaults []astExpr
 	body     []statement
 	span     span
 }
@@ -104,18 +104,18 @@ type doStmt struct {
 }
 
 type assignment struct {
-	lhs expression
-	rhs expression
+	lhs astExpr
+	rhs astExpr
 }
 
 type importName struct {
-	name expression
-	as   option.Option[expression]
+	name astExpr
+	as   option.Option[astExpr]
 }
 
 type call struct {
-	expr expression
-	args []expression
+	expr astExpr
+	args []astExpr
 }
 
 var _ = statement(templateStmt{})
@@ -222,7 +222,7 @@ func (k stmtType) String() string {
 	}
 }
 
-type expression interface {
+type astExpr interface {
 	typ() exprType
 }
 
@@ -237,56 +237,56 @@ type constExpr struct {
 }
 
 type sliceExpr struct {
-	expr  expression
-	start option.Option[expression]
-	stop  option.Option[expression]
-	step  option.Option[expression]
+	expr  astExpr
+	start option.Option[astExpr]
+	stop  option.Option[astExpr]
+	step  option.Option[astExpr]
 	span  span
 }
 
 type unaryOpExpr struct {
 	op   unaryOpType
-	expr expression
+	expr astExpr
 	span span
 }
 
 type binOpExpr struct {
 	op    binOpType
-	left  expression
-	right expression
+	left  astExpr
+	right astExpr
 	span  span
 }
 
 type ifExpr struct {
-	testExpr  expression
-	trueExpr  expression
-	falseExpr option.Option[expression]
+	testExpr  astExpr
+	trueExpr  astExpr
+	falseExpr option.Option[astExpr]
 	span      span
 }
 
 type filterExpr struct {
 	name string
-	expr option.Option[expression]
-	args []expression
+	expr option.Option[astExpr]
+	args []astExpr
 	span span
 }
 
 type testExpr struct {
 	name string
-	expr expression
-	args []expression
+	expr astExpr
+	args []astExpr
 	span span
 }
 
 type getAttrExpr struct {
-	expr expression
+	expr astExpr
 	name string
 	span span
 }
 
 type getItemExpr struct {
-	expr          expression
-	subscriptExpr expression
+	expr          astExpr
+	subscriptExpr astExpr
 	span          span
 }
 
@@ -296,13 +296,13 @@ type callExpr struct {
 }
 
 type listExpr struct {
-	items []expression
+	items []astExpr
 	span  span
 }
 
 type mapExpr struct {
-	keys   []expression
-	values []expression
+	keys   []astExpr
+	values []astExpr
 	span   span
 }
 
@@ -313,7 +313,7 @@ type kwargsExpr struct {
 
 type kwargExpr struct {
 	key string
-	arg expression
+	arg astExpr
 }
 
 func (e kwargsExpr) asConst() option.Option[Value] {
@@ -333,20 +333,20 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 	return option.Some(valueFromKwargs(newKwArgs(*rv)))
 }
 
-var _ = expression(varExpr{})
-var _ = expression(constExpr{})
-var _ = expression(sliceExpr{})
-var _ = expression(unaryOpExpr{})
-var _ = expression(binOpExpr{})
-var _ = expression(ifExpr{})
-var _ = expression(filterExpr{})
-var _ = expression(testExpr{})
-var _ = expression(getAttrExpr{})
-var _ = expression(getItemExpr{})
-var _ = expression(callExpr{})
-var _ = expression(listExpr{})
-var _ = expression(mapExpr{})
-var _ = expression(kwargsExpr{})
+var _ = astExpr(varExpr{})
+var _ = astExpr(constExpr{})
+var _ = astExpr(sliceExpr{})
+var _ = astExpr(unaryOpExpr{})
+var _ = astExpr(binOpExpr{})
+var _ = astExpr(ifExpr{})
+var _ = astExpr(filterExpr{})
+var _ = astExpr(testExpr{})
+var _ = astExpr(getAttrExpr{})
+var _ = astExpr(getItemExpr{})
+var _ = astExpr(callExpr{})
+var _ = astExpr(listExpr{})
+var _ = astExpr(mapExpr{})
+var _ = astExpr(kwargsExpr{})
 
 func (varExpr) typ() exprType     { return exprTypeVar }
 func (constExpr) typ() exprType   { return exprTypeConst }
@@ -516,11 +516,11 @@ type callType interface {
 
 type callTypeFunction struct{ name string }
 type callTypeMethod struct {
-	expr expression
+	expr astExpr
 	name string
 }
 type callTypeBlock struct{ name string }
-type callTypeObject struct{ expr expression }
+type callTypeObject struct{ expr astExpr }
 
 func (callTypeFunction) kind() callTypeKind { return callTypeKindFunction }
 func (callTypeMethod) kind() callTypeKind   { return callTypeKindMethod }

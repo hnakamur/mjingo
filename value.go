@@ -38,7 +38,7 @@ type Value interface {
 	tryIter() (iterator, error)
 	len() option.Option[uint]
 	hash(h hash.Hash)
-	equal(other any) bool
+	Equal(other any) bool
 }
 
 type valueType int
@@ -1390,17 +1390,17 @@ func f64Hash(f float64, h hash.Hash) {
 	binary.Write(h, binary.BigEndian, math.Float64bits(f))
 }
 
-func (v undefinedValue) equal(other any) bool { return valueEqualAny(v, other) }
-func (v boolValue) equal(other any) bool      { return valueEqualAny(v, other) }
-func (v u64Value) equal(other any) bool       { return valueEqualAny(v, other) }
-func (v i64Value) equal(other any) bool       { return valueEqualAny(v, other) }
-func (v f64Value) equal(other any) bool       { return valueEqualAny(v, other) }
-func (v noneValue) equal(other any) bool      { return valueEqualAny(v, other) }
-func (v invalidValue) equal(other any) bool   { return valueEqualAny(v, other) }
-func (v u128Value) equal(other any) bool      { return valueEqualAny(v, other) }
-func (v i128Value) equal(other any) bool      { return valueEqualAny(v, other) }
-func (v stringValue) equal(other any) bool    { return valueEqualAny(v, other) }
-func (v bytesValue) equal(other any) bool     { return valueEqualAny(v, other) }
-func (v seqValue) equal(other any) bool       { return valueEqualAny(v, other) }
-func (v mapValue) equal(other any) bool       { return valueEqualAny(v, other) }
-func (v dynamicValue) equal(other any) bool   { return valueEqualAny(v, other) }
+func (v undefinedValue) Equal(other any) bool { return valueEqualAny(v, other) }
+func (v boolValue) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v u64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v i64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v f64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v noneValue) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v invalidValue) Equal(other any) bool   { return valueEqualAny(v, other) }
+func (v u128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v i128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
+func (v stringValue) Equal(other any) bool    { return valueEqualAny(v, other) }
+func (v bytesValue) Equal(other any) bool     { return valueEqualAny(v, other) }
+func (v seqValue) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v mapValue) Equal(other any) bool       { return valueEqualAny(v, other) }
+func (v dynamicValue) Equal(other any) bool   { return valueEqualAny(v, other) }

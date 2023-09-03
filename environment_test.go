@@ -819,3 +819,42 @@ func TestMultiTemplates(t *testing.T) {
 		}})
 	})
 }
+func TestExpression(t *testing.T) {
+	type testCase struct {
+		name    string
+		expr    string
+		context any
+		want    mjingo.Value
+	}
+
+	runTests := func(t *testing.T, testCases []testCase) {
+		t.Helper()
+		for i, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				env := mjingo.NewEnvironment()
+				expr, err := env.CompileExpression(tc.expr)
+				if err != nil {
+					t.Fatal(err)
+				}
+				root := mjingo.ValueFromGoValue(tc.context, mjingo.WithStructTag("json"))
+				got, err := expr.Eval(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !got.Equal(tc.want) {
+					t.Errorf("result mismatch, i=%d, expr=%s,\n got=%q,\nwant=%q", i, tc.expr, got, tc.want)
+				}
+			})
+		}
+	}
+
+	runTests(t, []testCase{{
+		name: "add",
+		expr: "foo + bar",
+		context: map[string]int{
+			"foo": 42,
+			"bar": 23,
+		},
+		want: mjingo.ValueFromGoValue(65),
+	}})
+}

@@ -55,7 +55,7 @@ func findMacroClosure(m macroStmt) *hashset.StrHashSet {
 	return state.out
 }
 
-func trackAssign(expr expression, state *assignmentTracker) {
+func trackAssign(expr astExpr, state *assignmentTracker) {
 	switch exp := expr.(type) {
 	case varExpr:
 		state.assign(exp.id)
@@ -66,13 +66,13 @@ func trackAssign(expr expression, state *assignmentTracker) {
 	}
 }
 
-func trackVisitExprOpt(expr option.Option[expression], state *assignmentTracker) {
+func trackVisitExprOpt(expr option.Option[astExpr], state *assignmentTracker) {
 	if expr.IsSome() {
 		trackVisitExpr(expr.Unwrap(), state)
 	}
 }
 
-func trackVisitExpr(expr expression, state *assignmentTracker) {
+func trackVisitExpr(expr astExpr, state *assignmentTracker) {
 	switch exp := expr.(type) {
 	case varExpr:
 		if !state.isAssigned(exp.id) {
@@ -157,7 +157,7 @@ func trackVisitExpr(expr expression, state *assignmentTracker) {
 	}
 }
 
-func trackVisitExpressions(expressions []expression, state *assignmentTracker) {
+func trackVisitExpressions(expressions []astExpr, state *assignmentTracker) {
 	for _, expr := range expressions {
 		trackVisitExpr(expr, state)
 	}

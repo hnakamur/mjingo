@@ -221,7 +221,7 @@ func (g *codeGenerator) compileForLoop(forLoop forLoopStmt) {
 		g.endIf()
 	}
 }
-func (g *codeGenerator) compileAssignment(expr expression) {
+func (g *codeGenerator) compileAssignment(expr astExpr) {
 	switch exp := expr.(type) {
 	case varExpr:
 		g.add(storeLocalInstruction{Name: exp.id})
@@ -316,7 +316,7 @@ func (g *codeGenerator) compileIfStmt(ifCond ifCondStmt) {
 	g.endIf()
 }
 
-func (g *codeGenerator) compileExpr(exp expression) {
+func (g *codeGenerator) compileExpr(exp astExpr) {
 	switch exp := exp.(type) {
 	case varExpr:
 		g.setLineFromSpan(exp.span)
@@ -464,7 +464,7 @@ func (g *codeGenerator) compileCall(c call, spn span, caller option.Option[macro
 	g.popSpan()
 }
 
-func (g *codeGenerator) compileCallArgs(args []expression, caller option.Option[macroStmt]) uint {
+func (g *codeGenerator) compileCallArgs(args []astExpr, caller option.Option[macroStmt]) uint {
 	if caller.IsSome() {
 		return g.compileCallArgsWithCaller(args, caller.Unwrap())
 	}
@@ -474,7 +474,7 @@ func (g *codeGenerator) compileCallArgs(args []expression, caller option.Option[
 	return uint(len(args))
 }
 
-func (g *codeGenerator) compileCallArgsWithCaller(args []expression, caller macroStmt) uint {
+func (g *codeGenerator) compileCallArgsWithCaller(args []astExpr, caller macroStmt) uint {
 	injectedCaller := false
 
 	// try to add the caller to already existing keyword arguments.

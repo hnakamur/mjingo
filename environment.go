@@ -48,6 +48,17 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
+func (e *Environment) CompileExpression(expr string) (*Expression, error) {
+	ast, err := parseExpr(expr, e.syntaxConfig)
+	if err != nil {
+		return nil, err
+	}
+	gen := newCodeGenerator("<expression>", expr)
+	gen.compileExpr(ast)
+	insts, _ := gen.finish()
+	return newExpression(e, insts), nil
+}
+
 func (e *Environment) format(v Value, state *vmState, out *output) error {
 	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
 		return newError(UndefinedError, "")

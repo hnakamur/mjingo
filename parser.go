@@ -1,6 +1,7 @@
 package mjingo
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -74,7 +75,7 @@ func newParser(source string, inExpr bool, syntax *SyntaxConfig) *parser {
 	}
 }
 
-func (p *parser) parseFilterExpr(expr expression) (expression, error) {
+func (p *parser) parseFilterExpr(expr astExpr) (astExpr, error) {
 loop:
 	for {
 		tkn, _, err := p.stream.current()
@@ -92,7 +93,7 @@ loop:
 				return nil, err
 			}
 			name := tkIdent.(identToken).ident
-			var args []expression
+			var args []astExpr
 			if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
 				return nil, err
 			} else if matched {
@@ -126,7 +127,7 @@ loop:
 					name = tk.(identToken).ident
 					spn = sp
 				}
-				args := []expression{}
+				args := []astExpr{}
 				if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
 					return nil, err
 				} else if matched {
@@ -159,8 +160,8 @@ loop:
 	return expr, nil
 }
 
-func (p *parser) parseArgs() ([]expression, error) {
-	args := []expression{}
+func (p *parser) parseArgs() ([]astExpr, error) {
+	args := []astExpr{}
 	firstSpan := option.None[span]()
 	kwargs := []kwargExpr{}
 
@@ -191,7 +192,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 		}
 
 		// keyword argument
-		getVarInVarAssign := func(expr expression) (option.Option[varExpr], error) {
+		getVarInVarAssign := func(expr astExpr) (option.Option[varExpr], error) {
 			if varExp, ok := expr.(varExpr); ok {
 				if matched, err := p.skipToken(isTokenOfType[assignToken]); err != nil {
 					return option.None[varExpr](), err
@@ -230,7 +231,7 @@ func (p *parser) parseArgs() ([]expression, error) {
 	return args, nil
 }
 
-func (p *parser) parsePostfix(exp expression, spn span) (expression, error) {
+func (p *parser) parsePostfix(exp astExpr, spn span) (astExpr, error) {
 loop:
 	for {
 		nextSpan := p.stream.currentSpan()
@@ -258,9 +259,9 @@ loop:
 				return nil, err
 			}
 
-			start := option.None[expression]()
-			stop := option.None[expression]()
-			step := option.None[expression]()
+			start := option.None[astExpr]()
+			stop := option.None[astExpr]()
+			step := option.None[astExpr]()
 			isSlice := false
 
 			if matched, err := p.matchesToken(isTokenOfType[colonToken]); err != nil {
@@ -344,11 +345,11 @@ loop:
 	return exp, nil
 }
 
-func (p *parser) parsePrimary() (expression, error) {
+func (p *parser) parsePrimary() (astExpr, error) {
 	return p.withRecursionGuardExpr(p.parsePrimaryImpl)
 }
 
-func (p *parser) parsePrimaryImpl() (expression, error) {
+func (p *parser) parsePrimaryImpl() (astExpr, error) {
 	tkn, spn, err := p.stream.next()
 	if err != nil {
 		return nil, err
@@ -385,8 +386,8 @@ func (p *parser) parsePrimaryImpl() (expression, error) {
 	}
 }
 
-func (p *parser) parseListExpr(spn span) (expression, error) {
-	var items []expression
+func (p *parser) parseListExpr(spn span) (astExpr, error) {
+	var items []astExpr
 	for {
 		if matched, err := p.skipToken(isTokenOfType[bracketCloseToken]); err != nil {
 			return nil, err
@@ -412,8 +413,8 @@ func (p *parser) parseListExpr(spn span) (expression, error) {
 	return listExpr{items: items, span: p.stream.expandSpan(spn)}, nil
 }
 
-func (p *parser) parseMapExpr(spn span) (expression, error) {
-	var keys, values []expression
+func (p *parser) parseMapExpr(spn span) (astExpr, error) {
+	var keys, values []astExpr
 	for {
 		if matched, err := p.skipToken(isTokenOfType[braceCloseToken]); err != nil {
 			return nil, err
@@ -447,14 +448,14 @@ func (p *parser) parseMapExpr(spn span) (expression, error) {
 	return mapExpr{keys: keys, values: values, span: p.stream.expandSpan(spn)}, nil
 }
 
-func (p *parser) parseTupleOrExpression(spn span) (expression, error) {
+func (p *parser) parseTupleOrExpression(spn span) (astExpr, error) {
 	// MiniJinja does not really have tuples, but it treats the tuple
 	// syntax the same as lists.
 	if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
 		return nil, err
 	} else if matched {
 		return listExpr{
-			items: []expression{},
+			items: []astExpr{},
 			span:  p.stream.expandSpan(spn),
 		}, nil
 	}
@@ -465,7 +466,7 @@ func (p *parser) parseTupleOrExpression(spn span) (expression, error) {
 	if matched, err := p.matchesToken(isTokenOfType[commaToken]); err != nil {
 		return nil, err
 	} else if matched {
-		items := []expression{expr}
+		items := []astExpr{expr}
 		for {
 			if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
 				return nil, err
@@ -497,7 +498,7 @@ func (p *parser) parseTupleOrExpression(spn span) (expression, error) {
 	return expr, nil
 }
 
-func (p *parser) parseUnaryOnly() (expression, error) {
+func (p *parser) parseUnaryOnly() (astExpr, error) {
 	return p.unaryop(p.parseUnaryOnly, p.parsePrimary,
 		func(tkn token) option.Option[unaryOpType] {
 			if _, ok := tkn.(minusToken); ok {
@@ -507,7 +508,7 @@ func (p *parser) parseUnaryOnly() (expression, error) {
 		})
 }
 
-func (p *parser) parseUnary() (expression, error) {
+func (p *parser) parseUnary() (astExpr, error) {
 	spn := p.stream.currentSpan()
 	exp, err := p.parseUnaryOnly()
 	if err != nil {
@@ -520,7 +521,7 @@ func (p *parser) parseUnary() (expression, error) {
 	return p.parseFilterExpr(exp)
 }
 
-func (p *parser) parsePow() (expression, error) {
+func (p *parser) parsePow() (astExpr, error) {
 	return p.binop(p.parseUnary, func(tkn token) option.Option[binOpType] {
 		if _, ok := tkn.(powToken); ok {
 			return option.Some(binOpTypePow)
@@ -529,7 +530,7 @@ func (p *parser) parsePow() (expression, error) {
 	})
 }
 
-func (p *parser) parseMath2() (expression, error) {
+func (p *parser) parseMath2() (astExpr, error) {
 	return p.binop(p.parsePow, func(tkn token) option.Option[binOpType] {
 		switch tkn.(type) {
 		case mulToken:
@@ -546,7 +547,7 @@ func (p *parser) parseMath2() (expression, error) {
 	})
 }
 
-func (p *parser) parseConcat() (expression, error) {
+func (p *parser) parseConcat() (astExpr, error) {
 	return p.binop(p.parseMath2, func(tkn token) option.Option[binOpType] {
 		if _, ok := tkn.(tildeToken); ok {
 			return option.Some(binOpTypeConcat)
@@ -555,7 +556,7 @@ func (p *parser) parseConcat() (expression, error) {
 	})
 }
 
-func (p *parser) parseMath1() (expression, error) {
+func (p *parser) parseMath1() (astExpr, error) {
 	return p.binop(p.parseConcat, func(tkn token) option.Option[binOpType] {
 		switch tkn.(type) {
 		case plusToken:
@@ -568,7 +569,7 @@ func (p *parser) parseMath1() (expression, error) {
 	})
 }
 
-func (p *parser) parseCompare() (expression, error) {
+func (p *parser) parseCompare() (astExpr, error) {
 	spn := p.stream.lastSpan
 	exp, err := p.parseMath1()
 	if err != nil {
@@ -652,7 +653,7 @@ loop:
 	return exp, nil
 }
 
-func (p *parser) parseNot() (expression, error) {
+func (p *parser) parseNot() (astExpr, error) {
 	return p.unaryop(p.parseNot, p.parseCompare,
 		func(tkn token) option.Option[unaryOpType] {
 			if isIdentTokenWithName("not")(tkn) {
@@ -662,7 +663,7 @@ func (p *parser) parseNot() (expression, error) {
 		})
 }
 
-func (p *parser) parseAnd() (expression, error) {
+func (p *parser) parseAnd() (astExpr, error) {
 	return p.binop(p.parseNot, func(tkn token) option.Option[binOpType] {
 		if isIdentTokenWithName("and")(tkn) {
 			return option.Some(binOpTypeScAnd)
@@ -671,7 +672,7 @@ func (p *parser) parseAnd() (expression, error) {
 	})
 }
 
-func (p *parser) parseOr() (expression, error) {
+func (p *parser) parseOr() (astExpr, error) {
 	return p.binop(p.parseAnd, func(tkn token) option.Option[binOpType] {
 		if isIdentTokenWithName("or")(tkn) {
 			return option.Some(binOpTypeScOr)
@@ -680,7 +681,7 @@ func (p *parser) parseOr() (expression, error) {
 	})
 }
 
-func (p *parser) parseIfExpr() (expression, error) {
+func (p *parser) parseIfExpr() (astExpr, error) {
 	spn := p.stream.lastSpan
 	exp, err := p.parseOr()
 	if err != nil {
@@ -694,7 +695,7 @@ func (p *parser) parseIfExpr() (expression, error) {
 			if err != nil {
 				return nil, err
 			}
-			exp3 := option.None[expression]()
+			exp3 := option.None[astExpr]()
 			if matched, err := p.skipToken(isIdentTokenWithName("else")); err != nil {
 				return nil, err
 			} else if matched {
@@ -718,11 +719,11 @@ func (p *parser) parseIfExpr() (expression, error) {
 	return exp, nil
 }
 
-func (p *parser) parseExpr() (expression, error) {
+func (p *parser) parseExpr() (astExpr, error) {
 	return p.withRecursionGuardExpr(p.parseIfExpr)
 }
 
-func (p *parser) parseExprNoIf() (expression, error) {
+func (p *parser) parseExprNoIf() (astExpr, error) {
 	return p.parseOr()
 }
 
@@ -764,7 +765,7 @@ func (p *parser) skipToken(f func(token) bool) (matched bool, err error) {
 
 const parseMaxRecursion = 150
 
-func (p *parser) withRecursionGuardExpr(f func() (expression, error)) (expression, error) {
+func (p *parser) withRecursionGuardExpr(f func() (astExpr, error)) (astExpr, error) {
 	p.depth++
 	if p.depth > parseMaxRecursion {
 		return nil, syntaxError("template exceeds maximum recursion limits")
@@ -791,7 +792,7 @@ func unexpectedEOF(expected string) error {
 	return unexpected("end of input", expected)
 }
 
-func makeConst(v Value, spn span) expression {
+func makeConst(v Value, spn span) astExpr {
 	return constExpr{val: v, span: spn}
 }
 
@@ -799,7 +800,7 @@ func syntaxError(msg string) error {
 	return newError(SyntaxError, msg)
 }
 
-func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]expression) error {
+func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]astExpr) error {
 	for {
 		if matched, err := p.skipToken(isTokenOfType[parenCloseToken]); err != nil {
 			return err
@@ -838,7 +839,7 @@ func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]expression) error {
 	return nil
 }
 
-func (p *parser) parseMacroOrCallBlockBody(args, defaults []expression, name option.Option[string]) (macroStmt, error) {
+func (p *parser) parseMacroOrCallBlockBody(args, defaults []astExpr, name option.Option[string]) (macroStmt, error) {
 	if _, _, err := p.expectToken(isTokenOfType[blockEndToken], "end of block"); err != nil {
 		return macroStmt{}, err
 	}
@@ -873,7 +874,7 @@ func (p *parser) parseMacro() (macroStmt, error) {
 	if _, _, err := p.expectToken(isTokenOfType[parenOpenToken], "`(`"); err != nil {
 		return macroStmt{}, err
 	}
-	var args, defaults []expression
+	var args, defaults []astExpr
 	if err := p.parseMacroArgsAndDefaults(&args, &defaults); err != nil {
 		return macroStmt{}, err
 	}
@@ -882,7 +883,7 @@ func (p *parser) parseMacro() (macroStmt, error) {
 
 func (p *parser) parseCallBlock() (callBlockStmt, error) {
 	spn := p.stream.lastSpan
-	var args, defaults []expression
+	var args, defaults []astExpr
 	if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 		return callBlockStmt{}, err
 	} else if matched {
@@ -1103,7 +1104,7 @@ func (p *parser) parseStmtUnprotected() (statement, error) {
 
 var reservedNames = []string{"true", "True", "false", "False", "none", "None", "loop", "self"}
 
-func (p *parser) parseAssignName() (expression, error) {
+func (p *parser) parseAssignName() (astExpr, error) {
 	var id string
 	var spn span
 	if tkn, sp, err := p.expectToken(isTokenOfType[identToken], "identifier"); err != nil {
@@ -1119,9 +1120,9 @@ func (p *parser) parseAssignName() (expression, error) {
 	return varExpr{id: id, span: spn}, nil
 }
 
-func (p *parser) parseAssignment() (expression, error) {
+func (p *parser) parseAssignment() (astExpr, error) {
 	spn := p.stream.currentSpan()
-	var items []expression
+	var items []astExpr
 	isTuple := false
 
 	for {
@@ -1141,7 +1142,7 @@ func (p *parser) parseAssignment() (expression, error) {
 			break
 		}
 
-		var item expression
+		var item astExpr
 		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 			return nil, err
 		} else if matched {
@@ -1189,7 +1190,7 @@ func (p *parser) parseForStmt() (forLoopStmt, error) {
 	if err != nil {
 		return forLoopStmt{}, err
 	}
-	filterExpr := option.None[expression]()
+	filterExpr := option.None[astExpr]()
 	if matched, err := p.skipToken(isIdentTokenWithName("if")); err != nil {
 		return forLoopStmt{}, err
 	} else if matched {
@@ -1288,7 +1289,7 @@ func (p *parser) parseWithBlock() (withBlockStmt, error) {
 		} else if matched {
 			break
 		}
-		var target expression
+		var target astExpr
 		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 			return withBlockStmt{}, err
 		} else if matched {
@@ -1329,7 +1330,7 @@ func (p *parser) parseWithBlock() (withBlockStmt, error) {
 }
 
 func (p *parser) parseSet() (setParseResult, error) {
-	var target expression
+	var target astExpr
 	inParen := false
 	if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 		return nil, err
@@ -1357,7 +1358,7 @@ func (p *parser) parseSet() (setParseResult, error) {
 		}
 	}
 	if isSetBlock {
-		filter := option.None[expression]()
+		filter := option.None[astExpr]()
 		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 			return nil, err
 		} else if matched {
@@ -1461,8 +1462,8 @@ func (p *parser) parseAutoEscape() (autoEscapeStmt, error) {
 	}, nil
 }
 
-func (p *parser) parseFilterChain() (expression, error) {
-	filter := option.None[expression]()
+func (p *parser) parseFilterChain() (astExpr, error) {
+	filter := option.None[astExpr]()
 
 	for {
 		if matched, err := p.matchesToken(isTokenOfType[blockEndToken]); err != nil {
@@ -1483,7 +1484,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 			name = tkn.(identToken).ident
 			spn = s
 		}
-		args := []expression{}
+		args := []astExpr{}
 		if matched, err := p.matchesToken(isTokenOfType[parenOpenToken]); err != nil {
 			return nil, err
 		} else if matched {
@@ -1493,7 +1494,7 @@ func (p *parser) parseFilterChain() (expression, error) {
 				args = a
 			}
 		}
-		filter = option.Some[expression](filterExpr{
+		filter = option.Some[astExpr](filterExpr{
 			name: name,
 			expr: filter,
 			args: args,
@@ -1626,7 +1627,7 @@ func (p *parser) parseFromImport() (fromImportStmt, error) {
 		if err != nil {
 			return fromImportStmt{}, err
 		}
-		optAlias := option.None[expression]()
+		optAlias := option.None[astExpr]()
 		if matched, err := p.skipToken(isIdentTokenWithName("as")); err != nil {
 			return fromImportStmt{}, err
 		} else if matched {
@@ -1668,7 +1669,7 @@ func parseWithSyntax(source, filename string, syntax SyntaxConfig, keepTrailingN
 	return parser.parse()
 }
 
-func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) option.Option[binOpType]) (expression, error) {
+func (p *parser) binop(next func() (astExpr, error), matchFn func(tkn token) option.Option[binOpType]) (astExpr, error) {
 	spn := p.stream.currentSpan()
 	left, err := next()
 	if err != nil {
@@ -1703,7 +1704,7 @@ func (p *parser) binop(next func() (expression, error), matchFn func(tkn token) 
 	return left, nil
 }
 
-func (p *parser) unaryop(opFn, next func() (expression, error), matchFn func(tkn token) option.Option[unaryOpType]) (expression, error) {
+func (p *parser) unaryop(opFn, next func() (astExpr, error), matchFn func(tkn token) option.Option[unaryOpType]) (astExpr, error) {
 	spn := p.stream.currentSpan()
 	tkn, _, err := p.stream.current()
 	if err != nil {
@@ -1745,3 +1746,20 @@ const (
 	setParseResultTypeSetStmt setParseResultType = iota + 1
 	setParseResultTypeSetBlockStmt
 )
+
+func parseExpr(source string, syntax SyntaxConfig) (astExpr, error) {
+	parser := newParser(source, true, &syntax)
+	expr, err := parser.parseExpr()
+	if err == nil {
+		if tkn, _, _ := parser.stream.next(); tkn != nil {
+			err = syntaxError("unexpected input after expression")
+		} else {
+			return expr, nil
+		}
+	}
+	var err2 *Error
+	if errors.As(err, &err2) && err2.lineno == 0 {
+		err2.setFilenameAndSpan("<expression>", parser.stream.lastSpan)
+	}
+	return nil, err
+}
