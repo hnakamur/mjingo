@@ -43,8 +43,8 @@ type compiledTemplate struct {
 	syntax         *SyntaxConfig
 }
 
-func newCompiledTemplate(name, source string, syntax SyntaxConfig) (*compiledTemplate, error) {
-	st, err := parseWithSyntax(source, name, syntax)
+func newCompiledTemplate(name, source string, syntax SyntaxConfig, keepTrailingNewline bool) (*compiledTemplate, error) {
+	st, err := parseWithSyntax(source, name, syntax, keepTrailingNewline)
 	if err != nil {
 		return nil, err
 	}

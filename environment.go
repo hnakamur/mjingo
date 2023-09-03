@@ -8,7 +8,7 @@ import (
 
 type Environment struct {
 	syntaxConfig      SyntaxConfig
-	templates         map[string]*Template
+	templates         templateStore
 	filters           map[string]BoxedFilter
 	tests             map[string]BoxedTest
 	globals           map[string]Value
@@ -23,7 +23,7 @@ type formatterFunc = func(*output, *vmState, Value) error
 func NewEnvironment() *Environment {
 	return &Environment{
 		syntaxConfig:      DefaultSyntaxConfig,
-		templates:         make(map[string]*Template),
+		templates:         *newLoaderStoreDefault(),
 		filters:           getDefaultBuiltinFilters(),
 		tests:             getDefaultBuiltinTests(),
 		globals:           getDefaultGlobals(),
@@ -33,22 +33,17 @@ func NewEnvironment() *Environment {
 }
 
 func (e *Environment) AddTemplate(name, source string) error {
-	t, err := newCompiledTemplate(name, source, e.syntaxConfig)
-	if err != nil {
-		return err
-	}
-	e.templates[name] = &Template{env: e, compiled: t}
-	return nil
+	return e.templates.insert(name, source)
 }
 
 func (e *Environment) GetTemplate(name string) (*Template, error) {
-	tpl := e.templates[name]
-	if tpl == nil {
+	compiled := e.templates.get(name)
+	if compiled == nil {
 		return nil, newError(TemplateNotFound, "")
 	}
 	return &Template{
 		env:               e,
-		compiled:          tpl.compiled,
+		compiled:          compiled,
 		initialAutoEscape: e.initialAutoEscape(name),
 	}, nil
 }

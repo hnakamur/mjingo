@@ -1651,16 +1651,18 @@ func (p *parser) parse() (statement, error) {
 }
 
 func parse(source, filename string) (statement, error) {
-	return parseWithSyntax(source, filename, DefaultSyntaxConfig)
+	return parseWithSyntax(source, filename, DefaultSyntaxConfig, false)
 }
 
-func parseWithSyntax(source, filename string, syntax SyntaxConfig) (statement, error) {
+func parseWithSyntax(source, filename string, syntax SyntaxConfig, keepTrailingNewline bool) (statement, error) {
 	// we want to chop off a single newline at the end.  This means that a template
 	// by default does not end in a newline which is a useful property to allow
 	// inline templates to work.  If someone wants a trailing newline the expectation
 	// is that the user adds it themselves for achieve consistency.
-	source = strings.TrimSuffix(source, "\n")
-	source = strings.TrimSuffix(source, "\r")
+	if !keepTrailingNewline {
+		source = strings.TrimSuffix(source, "\n")
+		source = strings.TrimSuffix(source, "\r")
+	}
 
 	parser := newParser(source, false, &syntax)
 	return parser.parse()
