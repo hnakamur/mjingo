@@ -243,7 +243,7 @@ func TestSingleTemplate(t *testing.T) {
 			{
 				name:    "forStmtWithElseUsed",
 				source:  `{% for name in names %}{{ name }} {% else %}no users{% endfor %}`,
-				context: mjingo.Undefined,
+				context: nil,
 				want:    "no users",
 			},
 			{
@@ -448,7 +448,7 @@ func TestSingleTemplate(t *testing.T) {
 			source: "{% autoescape 'none' %}{% set d = \"closure\" -%}\n" +
 				"{% macro example(a, b, c=\"default\") %}{{ [a, b, c, d] }}{% endmacro -%}\n" +
 				"{{ example(\"Hello\", \"World\") }}{% endautoescape %}\n",
-			context: mjingo.Undefined,
+			context: nil,
 			want:    `["Hello", "World", "default", "closure"]`,
 		}})
 	})

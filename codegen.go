@@ -364,7 +364,7 @@ func (g *codeGenerator) compileExpr(exp astExpr) {
 		if exp.falseExpr.IsSome() {
 			g.compileExpr(exp.falseExpr.Unwrap())
 		} else {
-			g.add(loadConstInstruction{Val: Undefined})
+			g.add(loadConstInstruction{Val: undefined})
 		}
 		g.endIf()
 	case filterExpr:

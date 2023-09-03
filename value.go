@@ -81,7 +81,7 @@ const (
 	valueKindMap
 )
 
-var Undefined = undefinedValue{}
+var undefined = undefinedValue{}
 var none = noneValue{}
 
 func (t valueType) String() string {
@@ -1255,7 +1255,7 @@ func getItem(val, key Value) (Value, error) {
 	if val.isUndefined() {
 		return nil, newError(UndefinedError, "")
 	}
-	return val.getItemOpt(key).UnwrapOr(Undefined), nil
+	return val.getItemOpt(key).UnwrapOr(undefined), nil
 }
 
 func boolTryFromValue(v Value) (bool, error) {
@@ -1287,7 +1287,7 @@ func getAttr(val Value, key string) (Value, error) {
 			}
 		}
 	}
-	return Undefined, nil
+	return undefined, nil
 }
 
 func valueGetItemByIndex(val Value, idx uint) (Value, error) {

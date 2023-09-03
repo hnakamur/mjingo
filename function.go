@@ -88,7 +88,7 @@ func boxedFuncFromValArgValErrRet(f func(Value) (Value, error)) func(*vmState, [
 		if err != nil {
 			var err2 *Error
 			if errors.As(err, &err2) && err2.Type() == MissingArgument {
-				tpl1.a = Undefined
+				tpl1.a = undefined
 			} else {
 				return nil, err
 			}

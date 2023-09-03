@@ -56,7 +56,7 @@ func (o *output) beginCapture(mode captureMode) {
 // Ends capturing and returns the captured string as
 func (o *output) endCapture(escape AutoEscape) Value {
 	if len(o.captureStack) == 0 {
-		return Undefined
+		return undefined
 	}
 	w := o.captureStack[len(o.captureStack)-1]
 	o.captureStack = o.captureStack[:len(o.captureStack)-1]
@@ -68,7 +68,7 @@ func (o *output) endCapture(escape AutoEscape) Value {
 			return valueFromString(str)
 		}
 	}
-	return Undefined
+	return undefined
 }
 
 func writeString(o *output, s string) error {
