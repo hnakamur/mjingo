@@ -403,7 +403,7 @@ func TestSingleTemplate(t *testing.T) {
 				"{% endfor %}\n" +
 				"</ul>",
 			context: recurCtx,
-			want: "<ul class=\"menu\">\n\n  <li><a href=\"/menu1\">menu1 (depth=1)</a>\n" +
+			want: "<ul class=\"menu\">\n\n  <li><a href=\"&#x2f;menu1\">menu1 (depth=1)</a>\n" +
 				"  \n\t<ul class=\"submenu\">\n  <li><a href=\"\"> (depth=2)</a>\n" +
 				"  </li>\n\n  <li><a href=\"\"> (depth=2)</a>\n" +
 				"  </li>\n</ul>\n  </li>\n\n</ul>",
@@ -418,7 +418,7 @@ func TestSingleTemplate(t *testing.T) {
 				"{% endfor %}\n" +
 				"</ul>",
 			context: recurCtx,
-			want: "<ul class=\"menu\">\n\n  <li><a href=\"/menu1\">menu1 (depth=0)</a>\n" +
+			want: "<ul class=\"menu\">\n\n  <li><a href=\"&#x2f;menu1\">menu1 (depth=0)</a>\n" +
 				"  \n\t<ul class=\"submenu\">\n  <li><a href=\"\"> (depth=1)</a>\n" +
 				"  </li>\n\n  <li><a href=\"\"> (depth=1)</a>\n" +
 				"  </li>\n</ul>\n  </li>\n\n</ul>",
@@ -457,8 +457,8 @@ func TestSingleTemplate(t *testing.T) {
 			{
 				name:    "escape",
 				source:  `{{ v|escape }}`,
-				context: map[string]string{"v": "<br/>"},
-				want:    "&lt;br/&gt;",
+				context: map[string]string{"v": `'foo' & "bar/baz"<br/>`},
+				want:    "&#x27;foo&#x27; &amp; &quot;bar&#x2f;baz&quot;&lt;br&#x2f;&gt;",
 			},
 			{
 				name:    "safeEscape",

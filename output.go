@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"fmt"
-	"html"
 	"io"
 	"strings"
 )
@@ -83,10 +82,9 @@ func writeWithHTMLEscaping(o *output, val Value) error {
 		return writeString(o, val.String())
 	default:
 		if optStr := val.asStr(); optStr.IsSome() {
-			// TODO: escape single quote with `&quot;` not `&#34;`
-			return writeString(o, html.EscapeString(optStr.Unwrap()))
+			return writeString(o, htmlEscapeString(optStr.Unwrap()))
 		}
-		return writeString(o, html.EscapeString(val.String()))
+		return writeString(o, htmlEscapeString(val.String()))
 	}
 }
 
@@ -107,4 +105,17 @@ func writeEscaped(o *output, autoEscape AutoEscape, val Value) error {
 		panic(fmt.Sprintf("not implemented for custom auto escape name=%s", esc.name))
 	}
 	return nil
+}
+
+var htmlEscaper = strings.NewReplacer(
+	`&`, "&amp;",
+	`'`, "&#x27;",
+	`/`, "&#x2f;",
+	`<`, "&lt;",
+	`>`, "&gt;",
+	`"`, "&quot;",
+)
+
+func htmlEscapeString(s string) string {
+	return htmlEscaper.Replace(s)
 }
