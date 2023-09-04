@@ -70,7 +70,7 @@ func NewEnvironmentEmpty() *Environment {
 // AddTemplate loads a template from a string into the environment.
 //
 // The `name` parameter defines the name of the template which identifies
-// it.  To look up a loaded template use the `GetTemplate`
+// it.  To look up a loaded template use the [Environment.GetTemplate]
 // method.
 //
 // Note that there are situations where the interface of this method is
@@ -110,7 +110,7 @@ func (e *Environment) ClearTemplates() {
 // GetTemplate fetches a template by name.
 //
 // This requires that the template has been loaded with
-// `AddTemplate` beforehand.  If the template was
+// [Environment.AddTemplate] beforehand.  If the template was
 // not loaded an error of kind `TemplateNotFound` is returned.  If a loaded was
 // added to the engine this can also dynamically load templates.
 func (e *Environment) GetTemplate(name string) (*Template, error) {
@@ -143,7 +143,7 @@ func (e *Environment) TemplateFromNamedStr(name, source string) (*Template, erro
 
 // TemplateFromStr loads a template from a string, with name `<string>`.
 //
-// This is a shortcut to `TemplateFromNamedStr`
+// This is a shortcut to [Environment.TemplateFromNamedStr]
 // with name set to `<string>`.
 func (e *Environment) TemplateFromStr(source string) (*Template, error) {
 	return e.TemplateFromNamedStr("<string>", source)
@@ -151,10 +151,10 @@ func (e *Environment) TemplateFromStr(source string) (*Template, error) {
 
 // RenderNamedStr parses and renders a template from a string in one go with name.
 //
-// Like `RenderStr“, but provide a name for the
+// Like [Environment.RenderStr], but provide a name for the
 // template to be used instead of the default `<string>`.  This is an
-// alias for `TemplateFromNamedStr` paired with
-// `Render`.
+// alias for [Environment.TemplateFromNamedStr] paired with
+// [Environment.Render].
 func (e *Environment) RenderNamedStr(name, source string, ctx Value) (string, error) {
 	tmpl, err := e.TemplateFromNamedStr(name, source)
 	if err != nil {
@@ -168,8 +168,8 @@ func (e *Environment) RenderNamedStr(name, source string, ctx Value) (string, er
 // In some cases you really only need a template to be rendered once from
 // a string and returned.  The internal name of the template is `<string>`.
 //
-// This is an alias for `TemplateFromStr` paired with
-// `Render`.
+// This is an alias for [Environment.TemplateFromStr] paired with
+// [Environment.Render].
 func (e *Environment) RenderStr(source string, ctx Value) (string, error) {
 	tmpl, err := e.TemplateFromStr(source)
 	if err != nil {
@@ -184,7 +184,7 @@ func (e *Environment) RenderStr(source string, ctx Value) (string, error) {
 // to determine the default auto escaping behavior.  The function is
 // invoked with the name of the template and can make an initial auto
 // escaping decision based on that.  The default implementation
-// (`DefaultAutoEscapeCallback`)
+// [DefaultAutoEscapeCallback].
 // turn on escaping depending on the file extension.
 func (e *Environment) SetAutoEscapeCallback(fn AutoEscapeFunc) {
 	e.defaultAutoEscape = fn
@@ -199,7 +199,7 @@ func (e *Environment) syntaxConfig() *syntaxConfig {
 // This lets one compile an expression in the template language and
 // receive the output.  This lets one use the expressions of the language
 // be used as a minimal scripting language.  For more information and an
-// example see `Expression`.
+// example see [Expression].
 func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 	ast, err := parseExpr(expr, *e.syntaxConfig())
 	if err != nil {

@@ -6,9 +6,9 @@ func noAutoEscape(_ string) AutoEscape { return autoEscapeNone{} }
 
 // DefaultAutoEscapeCallback is the default logic for auto escaping based on file extension.
 //
-// AutoEscapeHTML: `.html`, `.htm`, `.xml`
-// AutoEscapeJSON: `.json`, `.json5`, `.js`, `.yaml`, `.yml`
-// AutoEscapeNone: all others
+//   - AutoEscapeHTML: `.html`, `.htm`, `.xml`
+//   - AutoEscapeJSON: `.json`, `.json5`, `.js`, `.yaml`, `.yml`
+//   - AutoEscapeNone: all others
 func DefaultAutoEscapeCallback(name string) AutoEscape {
 	_, suffix, found := strings.Cut(name, ".")
 	if found {
