@@ -61,7 +61,7 @@ func (c *context) store(key string, val Value) {
 func (c *context) enclose(env *Environment, key string) {
 	cl := c.closure()
 	cl.storeIfMissing(key, func() Value {
-		return c.load(env, key).UnwrapOr(undefined)
+		return c.load(env, key).UnwrapOr(Undefined)
 	})
 }
 
@@ -171,5 +171,5 @@ func newFrame(ctx Value) *frame {
 }
 
 func newFrameDefault() *frame {
-	return newFrame(undefined)
+	return newFrame(Undefined)
 }

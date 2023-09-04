@@ -81,8 +81,17 @@ const (
 	valueKindMap
 )
 
-var undefined = undefinedValue{}
+// Undefined is the undefined value.
+//
+// This constant variable exists because the undefined type does not exist in Go
+// and this is the only way to construct it.
+var Undefined Value
+
 var none = noneValue{}
+
+func init() {
+	Undefined = undefinedValue{}
+}
 
 func (t valueType) String() string {
 	switch t {
@@ -1255,7 +1264,7 @@ func getItem(val, key Value) (Value, error) {
 	if val.isUndefined() {
 		return nil, newError(UndefinedError, "")
 	}
-	return val.getItemOpt(key).UnwrapOr(undefined), nil
+	return val.getItemOpt(key).UnwrapOr(Undefined), nil
 }
 
 func boolTryFromValue(v Value) (bool, error) {
@@ -1287,7 +1296,7 @@ func getAttr(val Value, key string) (Value, error) {
 			}
 		}
 	}
-	return undefined, nil
+	return Undefined, nil
 }
 
 func valueGetItemByIndex(val Value, idx uint) (Value, error) {

@@ -65,7 +65,7 @@ const (
 func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (Value, error) {
 	switch {
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
-		return undefined, nil
+		return Undefined, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
 		return nil, newError(UndefinedError, "")
 	default:

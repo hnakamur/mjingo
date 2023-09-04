@@ -566,7 +566,7 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 	for iter.Next().UnwrapTo(&key) {
 		val, err := getItem(v, key)
 		if err != nil {
-			val = undefined
+			val = Undefined
 		}
 		entries = append(entries, keyAndValue{Key: key, Value: val})
 	}
@@ -722,7 +722,7 @@ func items(v Value) (Value, error) {
 	for iter.Next().UnwrapTo(&key) {
 		val, err := getItem(v, key)
 		if err != nil {
-			val = undefined
+			val = Undefined
 		}
 		item := valueFromSlice([]Value{key, val})
 		items = append(items, item)
@@ -871,7 +871,7 @@ func first(val Value) (Value, error) {
 	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		if rest == "" {
-			return undefined, nil
+			return Undefined, nil
 		}
 		var b strings.Builder
 		r, _ := utf8.DecodeRuneInString(rest)
@@ -880,7 +880,7 @@ func first(val Value) (Value, error) {
 	}
 	if optValSeq := val.asSeq(); optValSeq.IsSome() {
 		valSeq := optValSeq.Unwrap()
-		return valSeq.GetItem(0).UnwrapOr(undefined), nil
+		return valSeq.GetItem(0).UnwrapOr(Undefined), nil
 	}
 	return nil, newError(InvalidOperation, "cannot get first item from value")
 }
@@ -889,7 +889,7 @@ func last(val Value) (Value, error) {
 	if optValStr := val.asStr(); optValStr.IsSome() {
 		rest := optValStr.Unwrap()
 		if rest == "" {
-			return undefined, nil
+			return Undefined, nil
 		}
 		var b strings.Builder
 		r, _ := utf8.DecodeLastRuneInString(rest)
@@ -900,9 +900,9 @@ func last(val Value) (Value, error) {
 		valSeq := optValSeq.Unwrap()
 		n := valSeq.ItemCount()
 		if n == 0 {
-			return undefined, nil
+			return Undefined, nil
 		}
-		return valSeq.GetItem(n - 1).UnwrapOr(undefined), nil
+		return valSeq.GetItem(n - 1).UnwrapOr(Undefined), nil
 	}
 	return nil, newError(InvalidOperation, "cannot get last item from value")
 }
@@ -912,7 +912,7 @@ func minFilter(state *vmState, val Value) (Value, error) {
 	if err != nil {
 		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
-	return iter.Min().UnwrapOr(undefined), nil
+	return iter.Min().UnwrapOr(Undefined), nil
 }
 
 func maxFilter(state *vmState, val Value) (Value, error) {
@@ -920,7 +920,7 @@ func maxFilter(state *vmState, val Value) (Value, error) {
 	if err != nil {
 		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
-	return iter.Max().UnwrapOr(undefined), nil
+	return iter.Max().UnwrapOr(Undefined), nil
 }
 
 func listFilter(state *vmState, val Value) (Value, error) {
@@ -1211,7 +1211,7 @@ func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 		if len(args) != 0 {
 			return nil, newError(TooManyArguments, "")
 		}
-		defVal := kwargs.GetValue("default").UnwrapOr(undefined)
+		defVal := kwargs.GetValue("default").UnwrapOr(Undefined)
 		iter, err := state.undefinedBehavior().tryIter(val)
 		if err != nil {
 			return nil, err

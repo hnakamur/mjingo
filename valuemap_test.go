@@ -8,13 +8,13 @@ func TestValueMap(t *testing.T) {
 	t.Run("strKeyRef", func(t *testing.T) {
 		m := newValueMap()
 
-		m.Set(keyRefFromString("foo"), undefined)
+		m.Set(keyRefFromString("foo"), Undefined)
 		{
 			got, ok := m.Get(keyRefFromString("foo"))
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			if got != undefined {
+			if got != Undefined {
 				t.Error("value mismatch")
 			}
 		}
@@ -36,7 +36,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := undefined
+			wantVal := Undefined
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
@@ -94,13 +94,13 @@ func TestValueMap(t *testing.T) {
 	t.Run("ValueKeyRef", func(t *testing.T) {
 		m := newValueMap()
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, undefined)
+		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, Undefined)
 		{
 			got, ok := m.Get(valueKeyRef{val: f64Value{F: 0.5}})
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			if got != undefined {
+			if got != Undefined {
 				t.Error("value mismatch")
 			}
 		}
@@ -122,7 +122,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := undefined
+			wantVal := Undefined
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
@@ -180,13 +180,13 @@ func TestValueMap(t *testing.T) {
 	t.Run("mixOfStrAndValueKeyRef", func(t *testing.T) {
 		m := newValueMap()
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, undefined)
+		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, Undefined)
 		{
 			got, ok := m.Get(valueKeyRef{val: f64Value{F: 0.5}})
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			if got != undefined {
+			if got != Undefined {
 				t.Error("value mismatch")
 			}
 		}
@@ -208,7 +208,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := undefined
+			wantVal := Undefined
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}

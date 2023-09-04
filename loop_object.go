@@ -37,7 +37,7 @@ func (l *loopObject) CallMethod(state *vmState, name string, args []Value) (Valu
 		if idx < uint(len(args)) {
 			return args[idx].clone(), nil
 		}
-		return undefined, nil
+		return Undefined, nil
 	}
 	return nil, newError(UnknownMethod, fmt.Sprintf("loop object has no method named %s", name))
 }
@@ -66,7 +66,7 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 	// this can happen in some rare circumstances where the engine
 	// did not manage to iterate
 	if idx == ^uint(0) {
-		return option.Some[Value](undefined)
+		return option.Some[Value](Undefined)
 	}
 	switch name {
 	case "index0":
@@ -88,9 +88,9 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 	case "depth0":
 		return option.Some[Value](valueFromI64(int64(l.depth)))
 	case "previtem":
-		return option.Some[Value](l.valueTriple[0].UnwrapOr(undefined).clone())
+		return option.Some[Value](l.valueTriple[0].UnwrapOr(Undefined).clone())
 	case "nextitem":
-		return option.Some[Value](l.valueTriple[2].UnwrapOr(undefined).clone())
+		return option.Some[Value](l.valueTriple[2].UnwrapOr(Undefined).clone())
 	}
 	return option.None[Value]()
 }

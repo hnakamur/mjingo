@@ -62,7 +62,7 @@ func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 			kwargsUsed.Add(name)
 			arg = kwarg.clone()
 		default:
-			arg = undefined
+			arg = Undefined
 		}
 		argValues = append(argValues, arg)
 	}
@@ -71,7 +71,7 @@ func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 	if m.data.callerReference {
 		kwargsUsed.Add("caller")
 		// option.AndThen(kwargs)
-		caller = option.Some[Value](undefined)
+		caller = option.Some[Value](Undefined)
 		if kwargs != nil {
 			if v, ok := kwargs.Get(keyRefFromString("caller")); ok {
 				caller = option.Some(v)

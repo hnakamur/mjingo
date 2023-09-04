@@ -146,7 +146,7 @@ loop:
 			if val := state.lookup(inst.Name); val.IsSome() {
 				v = val.Unwrap()
 			} else {
-				v = undefined
+				v = Undefined
 			}
 			stack.Push(v)
 		case getAttrInstruction:
@@ -711,7 +711,7 @@ func (m *virtualMachine) performSuper(state *vmState, out *output, capture bool)
 	if capture {
 		return out.endCapture(state.autoEscape), nil
 	}
-	return undefined, nil
+	return Undefined, nil
 }
 
 func untrustedSizeHint(val uint) uint {
