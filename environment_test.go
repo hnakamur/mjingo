@@ -934,3 +934,27 @@ func TestSetAutoEscapeCallback(t *testing.T) {
 		t.Errorf("result mismatch, source=%s,\n got=%q,\nwant=%q", source, got, want)
 	}
 }
+
+func TestSetUndefinedBehavior(t *testing.T) {
+	env := mjingo.NewEnvironment()
+	env.SetUndefinedBehavior(mjingo.UndefinedBehaviorChainable)
+	const templateName = "test.html"
+	const source = "Hello {{ name }}"
+	err := env.AddTemplate(templateName, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl, err := env.GetTemplate(templateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	context := mjingo.ValueFromGoValue(map[string]any{})
+	got, err := tpl.Render(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "Hello "
+	if got != want {
+		t.Errorf("result mismatch, source=%s,\n got=%q,\nwant=%q", source, got, want)
+	}
+}

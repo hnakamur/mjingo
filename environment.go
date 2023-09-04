@@ -190,6 +190,23 @@ func (e *Environment) SetAutoEscapeCallback(fn AutoEscapeFunc) {
 	e.defaultAutoEscape = fn
 }
 
+// SetUndefinedBehavior changes the undefined behavior.
+//
+// This changes the runtime behavior of [Undefined] values in
+// the template engine.  For more information see [UndefinedBehavior].  The
+// default is [UndefinedBehaviorLenient].
+func (e *Environment) SetUndefinedBehavior(behavior UndefinedBehavior) {
+	e.undefinedBehavior = behavior
+}
+
+// UndefinedBehavior returns the current undefined behavior.
+//
+// This is particularly useful if a filter function or similar wants to change its
+// behavior with regards to undefined values.
+func (e *Environment) UndefinedBehavior() UndefinedBehavior {
+	return e.undefinedBehavior
+}
+
 func (e *Environment) syntaxConfig() *syntaxConfig {
 	return &e.templates.SyntaxConfig
 }
