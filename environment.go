@@ -124,6 +124,59 @@ func (e *Environment) GetTemplate(name string) (*Template, error) {
 	}, nil
 }
 
+// TemplateFromNamedStr loads a template from a string.
+//
+// In some cases you really only need to work with (eg: render) a template to be
+// rendered once only.
+func (e *Environment) TemplateFromNamedStr(name, source string) (*Template, error) {
+	compiled, err := newCompiledTemplate(name, source, *e.syntaxConfig(), e.KeepTrailingNewline())
+	if err != nil {
+		return nil, err
+	}
+	return &Template{
+		env:               e,
+		compiled:          compiled,
+		initialAutoEscape: e.initialAutoEscape(name),
+	}, nil
+}
+
+// TemplateFromStr loads a template from a string, with name `<string>`.
+//
+// This is a shortcut to `TemplateFromNamedStr`
+// with name set to `<string>`.
+func (e *Environment) TemplateFromStr(source string) (*Template, error) {
+	return e.TemplateFromNamedStr("<string>", source)
+}
+
+// RenderNamedStr parses and renders a template from a string in one go with name.
+//
+// Like `RenderStr“, but provide a name for the
+// template to be used instead of the default `<string>`.  This is an
+// alias for `TemplateFromNamedStr` paired with
+// `Render`.
+func (e *Environment) RenderNamedStr(name, source string, ctx Value) (string, error) {
+	tmpl, err := e.TemplateFromNamedStr(name, source)
+	if err != nil {
+		return "", err
+	}
+	return tmpl.Render(ctx)
+}
+
+// RenderStr parses and renders a template from a string in one go.
+//
+// In some cases you really only need a template to be rendered once from
+// a string and returned.  The internal name of the template is `<string>`.
+//
+// This is an alias for `TemplateFromStr` paired with
+// `Render`.
+func (e *Environment) RenderStr(source string, ctx Value) (string, error) {
+	tmpl, err := e.TemplateFromStr(source)
+	if err != nil {
+		return "", err
+	}
+	return tmpl.Render(ctx)
+}
+
 func (e *Environment) syntaxConfig() *syntaxConfig {
 	return &e.templates.SyntaxConfig
 }

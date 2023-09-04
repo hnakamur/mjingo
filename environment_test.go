@@ -882,3 +882,29 @@ func TestKeepTrailingNewline(t *testing.T) {
 		t.Errorf("result mismatch, source=%s,\n got=%q,\nwant=%q", source, got, want)
 	}
 }
+
+func TestRenderNamedStr(t *testing.T) {
+	env := mjingo.NewEnvironment()
+	context := mjingo.ValueFromGoValue(map[string]any{"name": "World"}, mjingo.WithStructTag("json"))
+	got, err := env.RenderNamedStr("hello", "Hello {{ name }}\n", context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "Hello World"
+	if got != want {
+		t.Errorf("result mismatch, got=%q, want=%q", got, want)
+	}
+}
+
+func TestRenderStr(t *testing.T) {
+	env := mjingo.NewEnvironment()
+	context := mjingo.ValueFromGoValue(map[string]any{"name": "World"}, mjingo.WithStructTag("json"))
+	got, err := env.RenderStr("Hello {{ name }}\n", context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "Hello World"
+	if got != want {
+		t.Errorf("result mismatch, got=%q, want=%q", got, want)
+	}
+}
