@@ -75,3 +75,59 @@ func TestFilterReflect(t *testing.T) {
 		}
 	})
 }
+
+func TestCallFiltersWithReflect(t *testing.T) {
+	v := reflect.ValueOf(lower)
+	arg := reflect.ValueOf("Hello")
+	out := v.Call([]reflect.Value{arg})
+	if got, want := len(out), 1; got != want {
+		t.Errorf("out parameter count mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := out[0].Interface(), "hello"; got != want {
+		t.Errorf("out parameter #1 mismatch, got=%v, want=%v", got, want)
+	}
+}
+
+func TestReflectCallSlice(t *testing.T) {
+	sum := func(s string, values ...int) int {
+		var ret int
+		for _, v := range values {
+			ret += v
+		}
+		return ret
+	}
+
+	v := reflect.ValueOf(sum)
+	s := reflect.ValueOf("Hello")
+	values := reflect.ValueOf([]int{1, 2, 3})
+	out := v.CallSlice([]reflect.Value{s, values})
+	if got, want := len(out), 1; got != want {
+		t.Errorf("out parameter count mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := out[0].Interface(), 6; got != want {
+		t.Errorf("out parameter #1 mismatch, got=%v, want=%v", got, want)
+	}
+}
+
+func TestReflectCallVaradic(t *testing.T) {
+	sum := func(s string, values ...int) int {
+		var ret int
+		for _, v := range values {
+			ret += v
+		}
+		return ret
+	}
+
+	v := reflect.ValueOf(sum)
+	s := reflect.ValueOf("Hello")
+	v1 := reflect.ValueOf(int(1))
+	v2 := reflect.ValueOf(int(2))
+	v3 := reflect.ValueOf(int(3))
+	out := v.Call([]reflect.Value{s, v1, v2, v3})
+	if got, want := len(out), 1; got != want {
+		t.Errorf("out parameter count mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := out[0].Interface(), 6; got != want {
+		t.Errorf("out parameter #1 mismatch, got=%v, want=%v", got, want)
+	}
+}
