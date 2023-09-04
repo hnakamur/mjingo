@@ -474,9 +474,9 @@ func escape(state *vmState, v Value) (Value, error) {
 	// of the initial state and if that is also not set it falls back
 	// to HTML.
 	autoEscape := state.autoEscape
-	if _, ok := state.autoEscape.(AutoEscapeNone); ok {
-		if _, ok := state.env.initialAutoEscape(state.name()).(AutoEscapeNone); ok {
-			autoEscape = AutoEscapeHTML{}
+	if _, ok := state.autoEscape.(autoEscapeNone); ok {
+		if _, ok := state.env.initialAutoEscape(state.name()).(autoEscapeNone); ok {
+			autoEscape = autoEscapeHTML{}
 		}
 	}
 	var b strings.Builder

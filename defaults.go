@@ -1,5 +1,27 @@
 package mjingo
 
+import "strings"
+
+func noAutoEscape(_ string) AutoEscape { return autoEscapeNone{} }
+
+// DefaultAutoEscapeCallback is the default logic for auto escaping based on file extension.
+//
+// AutoEscapeHTML: `.html`, `.htm`, `.xml`
+// AutoEscapeJSON: `.json`, `.json5`, `.js`, `.yaml`, `.yml`
+// AutoEscapeNone: all others
+func DefaultAutoEscapeCallback(name string) AutoEscape {
+	_, suffix, found := strings.Cut(name, ".")
+	if found {
+		switch suffix {
+		case "html", "htm", "xml":
+			return AutoEscapeHTML
+		case "json", "json5", "js", "yaml", "yml":
+			return AutoEscapeJSON
+		}
+	}
+	return AutoEscapeNone
+}
+
 func escapeFormatter(out *output, state *vmState, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }

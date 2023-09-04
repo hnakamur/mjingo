@@ -6,25 +6,37 @@ type AutoEscape interface {
 	isNone() bool
 }
 
-type AutoEscapeNone struct{}
-type AutoEscapeHTML struct{}
-type AutoEscapeJSON struct{}
-type AutoEscapeCustom struct{ name string }
+var AutoEscapeNone AutoEscape
 
-func (AutoEscapeNone) typ() autoEscapeType   { return autoEscapeTypeNone }
-func (AutoEscapeHTML) typ() autoEscapeType   { return autoEscapeTypeHTML }
-func (AutoEscapeJSON) typ() autoEscapeType   { return autoEscapeTypeJSON }
-func (AutoEscapeCustom) typ() autoEscapeType { return autoEscapeTypeCustom }
+var AutoEscapeHTML AutoEscape
 
-func (AutoEscapeNone) isNone() bool   { return true }
-func (AutoEscapeHTML) isNone() bool   { return false }
-func (AutoEscapeJSON) isNone() bool   { return false }
-func (AutoEscapeCustom) isNone() bool { return false }
+var AutoEscapeJSON AutoEscape
 
-var _ = (AutoEscape)(AutoEscapeNone{})
-var _ = (AutoEscape)(AutoEscapeHTML{})
-var _ = (AutoEscape)(AutoEscapeJSON{})
-var _ = (AutoEscape)(AutoEscapeCustom{})
+func init() {
+	AutoEscapeNone = autoEscapeNone{}
+	AutoEscapeHTML = autoEscapeHTML{}
+	AutoEscapeJSON = autoEscapeJSON{}
+}
+
+type autoEscapeNone struct{}
+type autoEscapeHTML struct{}
+type autoEscapeJSON struct{}
+type autoEscapeCustom struct{ name string }
+
+func (autoEscapeNone) typ() autoEscapeType   { return autoEscapeTypeNone }
+func (autoEscapeHTML) typ() autoEscapeType   { return autoEscapeTypeHTML }
+func (autoEscapeJSON) typ() autoEscapeType   { return autoEscapeTypeJSON }
+func (autoEscapeCustom) typ() autoEscapeType { return autoEscapeTypeCustom }
+
+func (autoEscapeNone) isNone() bool   { return true }
+func (autoEscapeHTML) isNone() bool   { return false }
+func (autoEscapeJSON) isNone() bool   { return false }
+func (autoEscapeCustom) isNone() bool { return false }
+
+var _ = (AutoEscape)(autoEscapeNone{})
+var _ = (AutoEscape)(autoEscapeHTML{})
+var _ = (AutoEscape)(autoEscapeJSON{})
+var _ = (AutoEscape)(autoEscapeCustom{})
 
 type autoEscapeType uint
 

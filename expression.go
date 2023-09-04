@@ -13,7 +13,7 @@ func newExpression(env *Environment, insts instructions) *Expression {
 
 func (e *Expression) Eval(root Value) (Value, error) {
 	vm := newVirtualMachine(e.env)
-	optVal, err := vm.eval(e.insts, root, make(map[string]instructions), newOutputNull(), AutoEscapeNone{})
+	optVal, err := vm.eval(e.insts, root, make(map[string]instructions), newOutputNull(), autoEscapeNone{})
 	if err != nil {
 		return nil, err
 	}

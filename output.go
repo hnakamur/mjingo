@@ -62,7 +62,7 @@ func (o *output) endCapture(escape AutoEscape) Value {
 	o.captureStack = o.captureStack[:len(o.captureStack)-1]
 	if builder, ok := w.(*strings.Builder); ok {
 		str := builder.String()
-		if _, ok := escape.(AutoEscapeNone); !ok {
+		if _, ok := escape.(autoEscapeNone); !ok {
 			return ValueFromSafeString(str)
 		} else {
 			return valueFromString(str)
@@ -95,13 +95,13 @@ func writeEscaped(o *output, autoEscape AutoEscape, val Value) error {
 	}
 
 	switch esc := autoEscape.(type) {
-	case AutoEscapeNone:
+	case autoEscapeNone:
 		return writeString(o, val.String())
-	case AutoEscapeHTML:
+	case autoEscapeHTML:
 		return writeWithHTMLEscaping(o, val)
-	case AutoEscapeJSON:
+	case autoEscapeJSON:
 		panic("not implemented")
-	case AutoEscapeCustom:
+	case autoEscapeCustom:
 		panic(fmt.Sprintf("not implemented for custom auto escape name=%s", esc.name))
 	}
 	return nil

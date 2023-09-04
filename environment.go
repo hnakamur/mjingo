@@ -1,8 +1,6 @@
 package mjingo
 
 import (
-	"strings"
-
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
@@ -26,12 +24,15 @@ type Environment struct {
 	filters           map[string]BoxedFilter
 	tests             map[string]BoxedTest
 	globals           map[string]Value
-	defaultAutoEscape autoEscapeFunc
+	defaultAutoEscape AutoEscapeFunc
 	undefinedBehavior UndefinedBehavior
 	formatter         formatterFunc
 }
 
-type autoEscapeFunc func(name string) AutoEscape
+// AutoEscapeFunc is the type of the function called by an Environment to
+// determine the escaping behavior for the template of the specified name.
+type AutoEscapeFunc func(name string) AutoEscape
+
 type formatterFunc = func(*output, *vmState, Value) error
 
 // NewEnvironment creates a new environment with sensible defaults.
@@ -46,7 +47,7 @@ func NewEnvironment() *Environment {
 		filters:           getDefaultBuiltinFilters(),
 		tests:             getDefaultBuiltinTests(),
 		globals:           getDefaultGlobals(),
-		defaultAutoEscape: defaultAutoEscapeCallback,
+		defaultAutoEscape: DefaultAutoEscapeCallback,
 		formatter:         escapeFormatter,
 	}
 }
@@ -177,6 +178,18 @@ func (e *Environment) RenderStr(source string, ctx Value) (string, error) {
 	return tmpl.Render(ctx)
 }
 
+// SetAutoEscapeCallback sets a new function to select the default auto escaping.
+//
+// This function is invoked when templates are loaded from the environment
+// to determine the default auto escaping behavior.  The function is
+// invoked with the name of the template and can make an initial auto
+// escaping decision based on that.  The default implementation
+// (`DefaultAutoEscapeCallback`)
+// turn on escaping depending on the file extension.
+func (e *Environment) SetAutoEscapeCallback(fn AutoEscapeFunc) {
+	e.defaultAutoEscape = fn
+}
+
 func (e *Environment) syntaxConfig() *syntaxConfig {
 	return &e.templates.SyntaxConfig
 }
@@ -229,19 +242,4 @@ func (e *Environment) getTest(name string) option.Option[BoxedTest] {
 		return option.Some(f)
 	}
 	return option.None[BoxedTest]()
-}
-
-func noAutoEscape(_ string) AutoEscape { return AutoEscapeNone{} }
-
-func defaultAutoEscapeCallback(name string) AutoEscape {
-	_, suffix, found := strings.Cut(name, ".")
-	if found {
-		switch suffix {
-		case "html", "htm", "xml":
-			return AutoEscapeHTML{}
-		case "json", "json5", "js", "yaml", "yml":
-			return AutoEscapeJSON{}
-		}
-	}
-	return AutoEscapeNone{}
 }

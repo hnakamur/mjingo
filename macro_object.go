@@ -103,7 +103,7 @@ func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 		return nil, err
 	}
 
-	if _, ok := state.autoEscape.(AutoEscapeNone); !ok {
+	if _, ok := state.autoEscape.(autoEscapeNone); !ok {
 		return ValueFromSafeString(b.String()), nil
 	}
 	return valueFromString(b.String()), nil

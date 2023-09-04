@@ -121,7 +121,7 @@ loop:
 			} else {
 				break loop
 			}
-			out.endCapture(AutoEscapeNone{})
+			out.endCapture(autoEscapeNone{})
 			pc = 0
 			continue
 		}
@@ -779,15 +779,15 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 	if strVal.IsSome() {
 		switch strVal.Unwrap() {
 		case "html":
-			return AutoEscapeHTML{}, nil
+			return autoEscapeHTML{}, nil
 		case "json":
-			return AutoEscapeJSON{}, nil
+			return autoEscapeJSON{}, nil
 		case "none":
-			return AutoEscapeNone{}, nil
+			return autoEscapeNone{}, nil
 		}
 	} else if v, ok := val.(boolValue); ok && v.B {
-		if _, ok := initialAutoEscape.(AutoEscapeNone); ok {
-			return AutoEscapeHTML{}, nil
+		if _, ok := initialAutoEscape.(autoEscapeNone); ok {
+			return autoEscapeHTML{}, nil
 		}
 		return initialAutoEscape, nil
 	}

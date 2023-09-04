@@ -908,3 +908,29 @@ func TestRenderStr(t *testing.T) {
 		t.Errorf("result mismatch, got=%q, want=%q", got, want)
 	}
 }
+
+func TestSetAutoEscapeCallback(t *testing.T) {
+	env := mjingo.NewEnvironment()
+	env.SetAutoEscapeCallback(func(_name string) mjingo.AutoEscape {
+		return mjingo.AutoEscapeNone
+	})
+	const templateName = "test.html"
+	const source = "Hello {{ name }}"
+	err := env.AddTemplate(templateName, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl, err := env.GetTemplate(templateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	context := mjingo.ValueFromGoValue(map[string]any{"name": "A & B"}, mjingo.WithStructTag("json"))
+	got, err := tpl.Render(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "Hello A & B"
+	if got != want {
+		t.Errorf("result mismatch, source=%s,\n got=%q,\nwant=%q", source, got, want)
+	}
+}
