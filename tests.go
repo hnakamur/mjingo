@@ -10,36 +10,49 @@ import (
 type BoxedTest = func(*vmState, []Value) (bool, error)
 
 func boxedTestFromFunc(fn any) BoxedTest {
-	ty := reflect.TypeOf(fn)
-	if ty.Kind() != reflect.Func {
+	fnType := reflect.TypeOf(fn)
+	if fnType.Kind() != reflect.Func {
 		panic("argument must be a function")
 	}
 
-	numOut := ty.NumOut()
+	numOut := fnType.NumOut()
 	if numOut != 1 && numOut != 2 {
 		panic("return value count must be 1 or 2")
 	}
-	assertType(ty.Out(0), (*bool)(nil), "type of first return value must be bool")
+	assertType(fnType.Out(0), (*bool)(nil), "type of first return value must be bool")
 	if numOut == 2 {
-		assertType(ty.Out(1), (*error)(nil), "type of seond return value must be error")
+		assertType(fnType.Out(1), (*error)(nil), "type of seond return value must be error")
 	}
 
-	numIn := ty.NumIn()
-	if numIn != 1 {
-		panic("only function with one argument is supported")
+	numIn := fnType.NumIn()
+	if numIn < 1 && numIn > 3 {
+		panic("only functions with argument count between 1 and 3 are supported")
 	}
-	assertType(ty.In(0), (*Value)(nil), "type of first argument must be Value")
+	assertFuncArgTypes(fnType)
 
 	fnVal := reflect.ValueOf(fn)
-	return func(_state *vmState, values []Value) (bool, error) {
-		if len(values) < numIn {
+	return func(state *vmState, values []Value) (bool, error) {
+		reflectVals := make([]reflect.Value, 0, numIn)
+		inOffset := 0
+		if fnType.In(0) == typeFromPtr((**vmState)(nil)) {
+			reflectVals = append(reflectVals, reflect.ValueOf(state))
+			inOffset++
+		}
+		wantValuesLen := numIn - inOffset
+		if len(values) < wantValuesLen {
 			return false, newError(MissingArgument, "")
 		}
-		if len(values) > numIn {
+		if len(values) > wantValuesLen {
 			return false, newError(TooManyArguments, "")
 		}
-
-		ret := fnVal.Call([]reflect.Value{reflect.ValueOf(values[0])})
+		for i, val := range values {
+			goVal, err := goValueFromValue(val, fnType.In(i+inOffset))
+			if err != nil {
+				return false, err
+			}
+			reflectVals = append(reflectVals, reflect.ValueOf(goVal))
+		}
+		ret := fnVal.Call(reflectVals)
 		switch len(ret) {
 		case 1:
 			return ret[0].Interface().(bool), nil
@@ -47,58 +60,6 @@ func boxedTestFromFunc(fn any) BoxedTest {
 			return ret[0].Interface().(bool), ret[1].Interface().(error)
 		}
 		panic("unreachable")
-	}
-}
-
-func boxedTestFromPredicateWithValueArg(f func(val Value) bool) func(*vmState, []Value) (bool, error) {
-	return func(state *vmState, values []Value) (bool, error) {
-		tpl, err := tuple1FromValues(state, values)
-		if err != nil {
-			return false, err
-		}
-		return f(tpl.a), nil
-	}
-}
-
-func boxedTestFromPredicateWithValValArgs(f func(val, other Value) bool) func(*vmState, []Value) (bool, error) {
-	return func(state *vmState, values []Value) (bool, error) {
-		tpl, err := tuple2FromValues(state, values)
-		if err != nil {
-			return false, err
-		}
-		return f(tpl.a, tpl.b), nil
-	}
-}
-
-func boxedTestFromPredicateWithStateStrArgs(f func(state *vmState, name string) bool) func(*vmState, []Value) (bool, error) {
-	return func(state *vmState, values []Value) (bool, error) {
-		tpl, err := tuple1FromValues(state, values)
-		if err != nil {
-			return false, err
-		}
-		a, err := stringFromValue(option.Some(tpl.a))
-		if err != nil {
-			return false, err
-		}
-		return f(state, a), nil
-	}
-}
-
-func boxedTestFromPredicateWithStringStringArgs(f func(a, b string) bool) func(*vmState, []Value) (bool, error) {
-	return func(state *vmState, values []Value) (bool, error) {
-		tpl, err := tuple2FromValues(state, values)
-		if err != nil {
-			return false, err
-		}
-		a, err := stringFromValue(option.Some(tpl.a))
-		if err != nil {
-			return false, err
-		}
-		b, err := stringFromValue(option.Some(tpl.b))
-		if err != nil {
-			return false, err
-		}
-		return f(a, b), nil
 	}
 }
 
