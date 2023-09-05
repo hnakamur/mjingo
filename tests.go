@@ -28,7 +28,7 @@ func boxedTestFromFunc(fn any) BoxedTest {
 	if numIn < 1 && numIn > 3 {
 		panic("only functions with argument count between 1 and 3 are supported")
 	}
-	assertFuncArgTypes(fnType)
+	checkFuncArgTypes(fnType)
 
 	fnVal := reflect.ValueOf(fn)
 	return func(state *vmState, values []Value) (bool, error) {

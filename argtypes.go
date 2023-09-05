@@ -140,3 +140,7 @@ func (a *kwArgs) AssertAllUsed() error {
 	}
 	return nil
 }
+
+func uintTryFromValue(val Value) (uint, error) {
+	return val.tryToUint()
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"reflect"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -12,6 +13,73 @@ import (
 )
 
 type BoxedFilter = func(*vmState, []Value) (Value, error)
+
+func boxedFilterFromFunc(fn any) BoxedFilter {
+	fnType := reflect.TypeOf(fn)
+	if fnType.Kind() != reflect.Func {
+		panic("argument must be a function")
+	}
+
+	numOut := fnType.NumOut()
+	if numOut != 1 && numOut != 2 {
+		panic("return value count must be 1 or 2")
+	}
+	if numOut == 2 {
+		assertType(fnType.Out(1), (*error)(nil), "type of seond return value must be error")
+	}
+
+	numIn := fnType.NumIn()
+	if numIn < 1 && numIn > 5 {
+		panic("only functions with argument count between 1 and 5 are supported")
+	}
+	optCount := checkFuncArgTypes(fnType)
+
+	fnVal := reflect.ValueOf(fn)
+	return func(state *vmState, values []Value) (Value, error) {
+		reflectVals := make([]reflect.Value, 0, numIn)
+		inOffset := 0
+		if fnType.In(0) == typeFromPtr((**vmState)(nil)) {
+			reflectVals = append(reflectVals, reflect.ValueOf(state))
+			inOffset++
+		}
+		wantValuesLen := numIn - inOffset
+		if len(values) < wantValuesLen-optCount {
+			return nil, newError(MissingArgument, "")
+		}
+		if len(values) > wantValuesLen {
+			return nil, newError(TooManyArguments, "")
+		}
+		var inValues []Value
+		if len(inValues) == wantValuesLen {
+			inValues = values
+		} else {
+			inValues = slices.Clone(values)
+			for i := len(inValues); i < wantValuesLen; i++ {
+				inValues = append(inValues, nil)
+			}
+		}
+		for i, val := range inValues {
+			goVal, err := goValueFromValue(val, fnType.In(i+inOffset))
+			if err != nil {
+				return nil, err
+			}
+			reflectVals = append(reflectVals, reflect.ValueOf(goVal))
+		}
+		retVals := fnVal.Call(reflectVals)
+		switch len(retVals) {
+		case 1:
+			return ValueFromGoValue(retVals[0].Interface()), nil
+		case 2:
+			retVal0 := ValueFromGoValue(retVals[0].Interface())
+			retVal1 := retVals[1].Interface()
+			if retVal1 != nil {
+				return retVal0, retVal1.(error)
+			}
+			return retVal0, nil
+		}
+		panic("unreachable")
+	}
+}
 
 func boxedFilterFromFilterWithStrArgValRet(f func(val string) Value) func(*vmState, []Value) (Value, error) {
 	return func(state *vmState, values []Value) (Value, error) {
