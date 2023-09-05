@@ -1,12 +1,54 @@
 package mjingo
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
 type BoxedTest = func(*vmState, []Value) (bool, error)
+
+func boxedTestFromFunc(fn any) BoxedTest {
+	ty := reflect.TypeOf(fn)
+	if ty.Kind() != reflect.Func {
+		panic("argument must be a function")
+	}
+
+	numOut := ty.NumOut()
+	if numOut != 1 && numOut != 2 {
+		panic("return value count must be 1 or 2")
+	}
+	assertType(ty.Out(0), (*bool)(nil), "type of first return value must be bool")
+	if numOut == 2 {
+		assertType(ty.Out(1), (*error)(nil), "type of seond return value must be error")
+	}
+
+	numIn := ty.NumIn()
+	if numIn != 1 {
+		panic("only function with one argument is supported")
+	}
+	assertType(ty.In(0), (*Value)(nil), "type of first argument must be Value")
+
+	fnVal := reflect.ValueOf(fn)
+	return func(_state *vmState, values []Value) (bool, error) {
+		if len(values) < numIn {
+			return false, newError(MissingArgument, "")
+		}
+		if len(values) > numIn {
+			return false, newError(TooManyArguments, "")
+		}
+
+		ret := fnVal.Call([]reflect.Value{reflect.ValueOf(values[0])})
+		switch len(ret) {
+		case 1:
+			return ret[0].Interface().(bool), nil
+		case 2:
+			return ret[0].Interface().(bool), ret[1].Interface().(error)
+		}
+		panic("unreachable")
+	}
+}
 
 func boxedTestFromPredicateWithValueArg(f func(val Value) bool) func(*vmState, []Value) (bool, error) {
 	return func(state *vmState, values []Value) (bool, error) {

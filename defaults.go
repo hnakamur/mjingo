@@ -71,7 +71,8 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 
 func getDefaultBuiltinTests() map[string]BoxedTest {
 	rv := make(map[string]BoxedTest)
-	rv["undefined"] = boxedTestFromPredicateWithValueArg(isUndefined)
+	// rv["undefined"] = boxedTestFromPredicateWithValueArg(isUndefined)
+	rv["undefined"] = boxedTestFromFunc(isUndefined)
 	rv["defined"] = boxedTestFromPredicateWithValueArg(isDefined)
 	rv["none"] = boxedTestFromPredicateWithValueArg(isNone)
 	rv["safe"] = boxedTestFromPredicateWithValueArg(isSafe)
