@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/internal/datast/slicex"
 )
 
 func serializeBool(v bool) (Value, error) {
@@ -169,6 +170,10 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return v
 	case []Value:
 		return valueFromSlice(v)
+	case []uint32:
+		return valueFromSlice(slicex.Map(v, func(n uint32) Value {
+			return valueFromGoValueHelper(n, config, level+1)
+		}))
 	default:
 		ty := reflect.TypeOf(v)
 		k := ty.Kind()

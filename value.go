@@ -856,6 +856,14 @@ func i32TryFromValue(val Value) (int32, error) {
 	return int32(n), nil
 }
 
+func u32TryFromValue(val Value) (uint32, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < 0 || n > math.MaxUint32 {
+		return 0, unsupportedConversion(val.typ(), "u32")
+	}
+	return uint32(n), nil
+}
+
 type iterator struct {
 	iterState valueIteratorState
 	len       uint

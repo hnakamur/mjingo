@@ -113,7 +113,7 @@ func getDefaultBuiltinTests() map[string]BoxedTest {
 
 func getDefaultGlobals() map[string]Value {
 	rv := make(map[string]Value)
-	rv["range"] = valueFromFunc(boxedFuncFromU32OptU32OptU32ArgU32SliceAndErrRet(rangeFunc))
-	rv["dict"] = valueFromFunc(boxedFuncFromValArgValErrRet(dictFunc))
+	rv["range"] = valueFromFunc(boxedFuncFromFunc(rangeFunc))
+	rv["dict"] = valueFromFunc(boxedFuncFromFunc(dictFunc))
 	return rv
 }

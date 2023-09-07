@@ -34,10 +34,11 @@ func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional boo
 	case typeFromPtr((**vmState)(nil)):
 		return argPos == 0, false
 	case typeFromPtr((*Value)(nil)), typeFromPtr((*string)(nil)), typeFromPtr((*uint)(nil)),
-		typeFromPtr((*int32)(nil)), typeFromPtr((*bool)(nil)):
+		typeFromPtr((*uint32)(nil)), typeFromPtr((*int32)(nil)), typeFromPtr((*bool)(nil)):
 		return true, false
 	case typeFromPtr((*option.Option[Value])(nil)), typeFromPtr((*option.Option[string])(nil)),
-		typeFromPtr((*option.Option[int32])(nil)), typeFromPtr((*option.Option[bool])(nil)),
+		typeFromPtr((*option.Option[int32])(nil)), typeFromPtr((*option.Option[uint32])(nil)),
+		typeFromPtr((*option.Option[bool])(nil)),
 		typeFromPtr((*kwArgs)(nil)):
 		return true, true
 	}
@@ -54,6 +55,8 @@ func goValueFromValue(val Value, destType reflect.Type) (any, error) {
 		return uintTryFromValue(val)
 	case typeFromPtr((*int32)(nil)):
 		return i32TryFromValue(val)
+	case typeFromPtr((*uint32)(nil)):
+		return u32TryFromValue(val)
 	case typeFromPtr((*bool)(nil)):
 		return boolTryFromValue(val)
 	case typeFromPtr((*kwArgs)(nil)):
@@ -69,6 +72,8 @@ func goValueFromValue(val Value, destType reflect.Type) (any, error) {
 		})
 	case typeFromPtr((*option.Option[int32])(nil)):
 		return goOptValueFromValue(val, i32TryFromValue)
+	case typeFromPtr((*option.Option[uint32])(nil)):
+		return goOptValueFromValue(val, u32TryFromValue)
 	case typeFromPtr((*option.Option[bool])(nil)):
 		return goOptValueFromValue(val, boolTryFromValue)
 	case typeFromPtr((*[]Value)(nil)):

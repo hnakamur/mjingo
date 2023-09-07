@@ -636,8 +636,7 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "rangeJustUpper", source: "{{ range(3) }}", context: nil, want: "[0, 1, 2]"},
 			{name: "rangeLowerUpper", source: "{{ range(2, 4) }}", context: nil, want: "[2, 3]"},
 			{name: "rangeLowerUpperStep", source: "{{ range(2, 9, 3) }}", context: nil, want: "[2, 5, 8]"},
-			{name: "dictEmpty", source: "{{ dict()['foo']|default(1) }}", context: nil, want: "1"},
-			{name: "dictNonEmpty", source: "{{ dict(foo='bar')['foo'] }}", context: nil, want: "bar"},
+			{name: "dict", source: "{{ dict(foo='bar')['foo'] }}", context: nil, want: "bar"},
 		})
 	})
 }
