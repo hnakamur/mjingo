@@ -43,14 +43,17 @@ func boxedFilterFromFunc(fn any) BoxedFilter {
 			inOffset++
 		}
 		wantValuesLen := numIn - inOffset
+		if fnType.IsVariadic() {
+			wantValuesLen--
+		}
 		if len(values) < wantValuesLen-optCount {
 			return nil, newError(MissingArgument, "")
 		}
-		if len(values) > wantValuesLen {
+		if len(values) > wantValuesLen && !fnType.IsVariadic() {
 			return nil, newError(TooManyArguments, "")
 		}
 		var inValues []Value
-		if len(inValues) == wantValuesLen {
+		if len(inValues) >= wantValuesLen {
 			inValues = values
 		} else {
 			inValues = slices.Clone(values)

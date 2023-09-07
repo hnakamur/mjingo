@@ -167,6 +167,8 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return mapErrToInvalidValue(serializeNone())
 	case Value:
 		return v
+	case []Value:
+		return valueFromSlice(v)
 	default:
 		ty := reflect.TypeOf(v)
 		k := ty.Kind()
