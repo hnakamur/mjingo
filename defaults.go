@@ -53,7 +53,7 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	rv["last"] = boxedFilterFromFunc(last)
 	rv["min"] = boxedFilterFromFunc(minFilter)
 	rv["max"] = boxedFilterFromFunc(maxFilter)
-	rv["sort"] = boxedFilterFromWithStateValKwargsArgValErrRet(sortFilter)
+	rv["sort"] = boxedFilterFromFunc(sortFilter)
 	rv["list"] = boxedFilterFromFunc(listFilter)
 	rv["bool"] = boxedFilterFromFunc(boolFilter)
 	rv["batch"] = boxedFilterFromFunc(batchFilter)
@@ -63,8 +63,8 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	rv["reject"] = boxedFilterFromFilterWithStateValOptStrValVarArgValSliceErrRet(rejectFilter)
 	rv["selectattr"] = boxedFilterFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(selectAttrFilter)
 	rv["rejectattr"] = boxedFilterFromFilterWithStateValStrOptStrValVarArgValSliceErrRet(rejectAttrFilter)
-	rv["map"] = boxedFilterFromFilterWithStateValValVarArgValSliceErrRet(mapFilter)
-	rv["unique"] = boxedFilterFromFilterWithValSliceArgValRet(uniqueFilter)
+	rv["map"] = boxedFilterFromFunc(mapFilter)
+	rv["unique"] = boxedFilterFromFunc(uniqueFilter)
 
 	return rv
 }

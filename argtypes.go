@@ -96,6 +96,9 @@ func newKwArgs(m valueMap) kwArgs {
 }
 
 func kwArgsTryFromValue(val Value) (kwArgs, error) {
+	if val == nil {
+		return newKwArgs(*newValueMap()), nil
+	}
 	switch v := val.(type) {
 	case undefinedValue:
 		return newKwArgs(*newValueMap()), nil
@@ -143,4 +146,12 @@ func (a *kwArgs) AssertAllUsed() error {
 
 func uintTryFromValue(val Value) (uint, error) {
 	return val.tryToUint()
+}
+
+func valueSliceTryFromValue(val Value) ([]Value, error) {
+	iter, err := val.tryIter()
+	if err != nil {
+		return nil, err
+	}
+	return iter.Collect(), nil
 }

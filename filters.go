@@ -58,8 +58,15 @@ func boxedFilterFromFunc(fn any) BoxedFilter {
 				inValues = append(inValues, nil)
 			}
 		}
+
 		for i, val := range inValues {
-			goVal, err := goValueFromValue(val, fnType.In(i+inOffset))
+			var argType reflect.Type
+			if fnType.IsVariadic() && i+inOffset >= numIn-1 {
+				argType = fnType.In(numIn - 1).Elem()
+			} else {
+				argType = fnType.In(i + inOffset)
+			}
+			goVal, err := goValueFromValue(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -1267,11 +1274,17 @@ func uniqueFilter(values []Value) Value {
 // ```
 func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 	rv := make([]Value, 0, val.len().UnwrapOr(0))
-	kwargs, err := kwArgsTryFromValue(args[len(args)-1])
-	if err != nil {
+	var kwargs kwArgs
+	var err error
+	if len(args) == 0 {
 		kwargs = newKwArgs(*newValueMap())
 	} else {
-		args = args[:len(args)-1]
+		kwargs, err = kwArgsTryFromValue(args[len(args)-1])
+		if err != nil {
+			kwargs = newKwArgs(*newValueMap())
+		} else {
+			args = args[:len(args)-1]
+		}
 	}
 
 	if optAttr := kwargs.GetValue("attribute"); optAttr.IsSome() {

@@ -530,7 +530,7 @@ func TestSingleTemplate(t *testing.T) {
 			{name: "rejectattrCase2", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|rejectattr("id", "even") }}{% endautoescape %}`, context: nil, want: `[{"name": "John", "id": 1}]`},
 			{name: "unique", source: `{% autoescape 'none' %}{{ ['foo', 'bar', 'foobar', 'foobar']|unique }}{% endautoescape %}`, context: nil, want: `["foo", "bar", "foobar"]`},
 			{name: "mapCase1", source: `{% autoescape 'none' %}{{ [{"name": "John", "id": 1}, {"name": "Paul", "id": 2}]|map(attribute="name")|join(', ') }}{% endautoescape %}`, context: nil, want: `John, Paul`},
-			{name: "mapCase2", source: `{% autoescape 'none' %}{{ [-1, -2, 3, 4, -5]|map("abs") }}{% endautoescape %}`, context: nil, want: `[1, 2, 3, 4, 5]`},
+			{name: "mapCase2", source: `{% autoescape 'none' %}{{ [-1, -2, 3, 4, -5]|map("abs")|join(", ") }}{% endautoescape %}`, context: nil, want: `1, 2, 3, 4, 5`},
 		})
 	})
 	t.Run("test", func(t *testing.T) {
