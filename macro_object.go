@@ -91,8 +91,8 @@ func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 	}
 
 	instsAndOffset := state.macros[m.data.macroRefID]
-	insts := instsAndOffset.a
-	offset := instsAndOffset.b
+	insts := instsAndOffset.insts
+	offset := instsAndOffset.offset
 	vm := newVirtualMachine(state.env)
 	var b strings.Builder
 	out := newOutput(&b)

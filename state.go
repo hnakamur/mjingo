@@ -14,7 +14,7 @@ type vmState struct {
 	instructions    instructions
 	blocks          map[string]*blockStack
 	loadedTemplates hashset.StrHashSet
-	macros          stackpkg.Stack[tuple2[instructions, uint]]
+	macros          stackpkg.Stack[macroStackElem]
 }
 
 type locals = map[string]Value
@@ -22,6 +22,11 @@ type locals = map[string]Value
 type blockStack struct {
 	instrs []instructions
 	depth  uint
+}
+
+type macroStackElem struct {
+	insts  instructions
+	offset uint
 }
 
 func (s *vmState) name() string {

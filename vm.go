@@ -866,7 +866,7 @@ func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *vmState
 	}
 	closure := stack.Pop()
 	macroRefID := uint(len(state.macros))
-	state.macros.Push(tuple2[instructions, uint]{a: state.instructions, b: offset})
+	state.macros.Push(macroStackElem{insts: state.instructions, offset: offset})
 	macro := &macro{
 		data: macroData{
 			name:            name,
