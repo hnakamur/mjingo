@@ -263,7 +263,43 @@ func (v mapValue) String() string {
 	b.WriteString("}")
 	return b.String()
 }
-func (v dynamicValue) String() string { return fmt.Sprintf("%s", v.Dy) }
+func (v dynamicValue) String() string {
+	switch v.Dy.Kind() {
+	case objectKindPlain:
+		return fmt.Sprintf("%+v", v.Dy)
+	case objectKindSeq:
+		seq := v.Dy.(seqObject)
+		var b strings.Builder
+		b.WriteString("[")
+		l := seq.ItemCount()
+		for i := uint(0); i < l; i++ {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			item := seq.GetItem(i).Unwrap()
+			b.WriteString(item.debugString())
+		}
+		b.WriteString("]")
+		return b.String()
+	case objectKindStruct:
+		obj := v.Dy.(structObject)
+		fields := staticOrDynamicFields(obj)
+		var b strings.Builder
+		b.WriteString("{")
+		for i, field := range fields {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(field)
+			b.WriteString(": ")
+			b.WriteString(obj.GetField(field).Unwrap().String())
+		}
+		b.WriteString("}")
+		return b.String()
+	default:
+		panic("unreachable")
+	}
+}
 
 func (v undefinedValue) debugString() string { return "Undefined" }
 func (v boolValue) debugString() string      { return strconv.FormatBool(v.B) }
@@ -322,7 +358,7 @@ func (v mapValue) debugString() string {
 	b.WriteString("}")
 	return b.String()
 }
-func (v dynamicValue) debugString() string { return fmt.Sprintf("%s", v.Dy) }
+func (v dynamicValue) debugString() string { return v.String() }
 
 func (undefinedValue) typ() valueType { return valueTypeUndefined }
 func (boolValue) typ() valueType      { return valueTypeBool }
@@ -834,10 +870,8 @@ func (v dynamicValue) tryIter() (iterator, error) {
 		return iterator{iterState: &dynSeqValueIteratorState{obj: seqObj}, len: seqObj.ItemCount()}, nil
 	case objectKindStruct:
 		obj := v.Dy.(structObject)
-		if optFields := obj.StaticFields(); optFields.IsSome() {
-			return iterator{iterState: &stringsValueIteratorState{items: optFields.Unwrap()}}, nil
-		}
-		return iterator{iterState: &stringsValueIteratorState{items: obj.Fields()}}, nil
+		fields := staticOrDynamicFields(obj)
+		return iterator{iterState: &stringsValueIteratorState{items: fields}}, nil
 	default:
 		panic("unreachable")
 	}
