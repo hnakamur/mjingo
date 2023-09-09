@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/option"
@@ -178,6 +179,9 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		case reflect.Array, reflect.Slice:
 			return valueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
 		case reflect.Map:
+			if ty.Key() == reflectType[string]() {
+				return valueFromObject(structObjectWithStrKeyMapReflect(reflect.ValueOf(v), config, level))
+			}
 			return valueFromGoMapReflect(reflect.ValueOf(v), config, level)
 		case reflect.Ptr:
 			return valueFromGoValueHelper(reflect.ValueOf(v).Elem().Interface(), config, level+1)
@@ -191,6 +195,54 @@ func mapErrToInvalidValue(val Value, err error) Value {
 		return invalidValue{Detail: err.Error()}
 	}
 	return val
+}
+
+type reflectStrKeyMapObject struct {
+	val        reflect.Value
+	config     *valueFromGoValueConfig
+	level      uint
+	fieldNames []string
+}
+
+var _ = (object)((*reflectStrKeyMapObject)(nil))
+var _ = (structObject)((*reflectStrKeyMapObject)(nil))
+
+func (*reflectStrKeyMapObject) Kind() objectKind { return objectKindStruct }
+
+func structObjectWithStrKeyMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectStrKeyMapObject {
+	return &reflectStrKeyMapObject{
+		val:    val,
+		config: config,
+		level:  level,
+	}
+}
+
+func (o *reflectStrKeyMapObject) GetField(name string) option.Option[Value] {
+	o.collectFieldNames()
+	if !slices.Contains(o.fieldNames, name) {
+		return option.None[Value]()
+	}
+	fv := o.val.MapIndex(reflect.ValueOf(name))
+	val := valueFromGoValueHelper(fv.Interface(), o.config, o.level+1)
+	return option.Some(val)
+}
+
+func (o *reflectStrKeyMapObject) StaticFields() option.Option[[]string] {
+	o.collectFieldNames()
+	return option.Some(o.fieldNames)
+}
+
+func (o *reflectStrKeyMapObject) Fields() []string { return nil }
+
+func (o *reflectStrKeyMapObject) collectFieldNames() {
+	if o.fieldNames == nil {
+		fieldNames := make([]string, 0, o.val.Len())
+		iter := o.val.MapRange()
+		for iter.Next() {
+			fieldNames = append(fieldNames, iter.Key().Interface().(string))
+		}
+		o.fieldNames = fieldNames
+	}
 }
 
 func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
