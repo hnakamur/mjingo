@@ -236,10 +236,9 @@ func (o *reflectStrKeyMapObject) Fields() []string { return nil }
 
 func (o *reflectStrKeyMapObject) collectFieldNames() {
 	if o.fieldNames == nil {
-		fieldNames := make([]string, 0, o.val.Len())
-		iter := o.val.MapRange()
-		for iter.Next() {
-			fieldNames = append(fieldNames, iter.Key().Interface().(string))
+		fieldNames := make([]string, o.val.Len())
+		for i, key := range o.val.MapKeys() {
+			fieldNames[i] = key.Interface().(string)
 		}
 		o.fieldNames = fieldNames
 	}
