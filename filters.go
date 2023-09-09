@@ -195,8 +195,7 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	var key Value
-	for iter.Next().UnwrapTo(&key) {
+	for key := Value(nil); iter.Next().UnwrapTo(&key); {
 		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
@@ -351,8 +350,7 @@ func items(v Value) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	var key Value
-	for iter.Next().UnwrapTo(&key) {
+	for key := Value(nil); iter.Next().UnwrapTo(&key); {
 		val, err := getItem(v, key)
 		if err != nil {
 			val = Undefined
@@ -603,8 +601,7 @@ func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[V
 	if err != nil {
 		return nil, err
 	}
-	var item Value
-	for iter.Next().UnwrapTo(&item) {
+	for item := Value(nil); iter.Next().UnwrapTo(&item); {
 		if uint(len(tmp)) == count {
 			rv = append(rv, valueFromSlice(tmp))
 			tmp = make([]Value, 0, count)
@@ -733,8 +730,7 @@ func selectOrReject(state *vmState, invert bool, val Value, attr, testName optio
 	if err != nil {
 		return nil, err
 	}
-	var item Value
-	for iter.Next().UnwrapTo(&item) {
+	for item := Value(nil); iter.Next().UnwrapTo(&item); {
 		var testVal Value
 		if attr.IsSome() {
 			testVal, err = getAttr(item, attr.Unwrap())
@@ -855,8 +851,7 @@ func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		var item Value
-		for iter.Next().UnwrapTo(&item) {
+		for item := Value(nil); iter.Next().UnwrapTo(&item); {
 			var subVal Value
 			if optAttrStr := attrVal.asStr(); optAttrStr.IsSome() {
 				path := optAttrStr.Unwrap()
@@ -896,8 +891,7 @@ func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	var item Value
-	for iter.Next().UnwrapTo(&item) {
+	for item := Value(nil); iter.Next().UnwrapTo(&item); {
 		iter2, _ := valueFromSlice([]Value{item.clone()}).tryIter()
 		iter3, _ := valueFromSlice(args[1:]).tryIter()
 		iter4 := iter2.Chain(iter3.Cloned())

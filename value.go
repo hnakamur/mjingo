@@ -994,8 +994,7 @@ func (i *iterator) Len() uint {
 // All returns if every element of the iterator matches a predicate.
 // An empty iterator returns true.
 func (i *iterator) All(f func(Value) bool) bool {
-	var item Value
-	for i.Next().UnwrapTo(&item) {
+	for item := Value(nil); i.Next().UnwrapTo(&item); {
 		if !f(item) {
 			return false
 		}
@@ -1060,8 +1059,7 @@ func (i *iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 
 func (i *iterator) Collect() []Value {
 	items := make([]Value, 0, i.Len())
-	var item Value
-	for i.Next().UnwrapTo(&item) {
+	for item := Value(nil); i.Next().UnwrapTo(&item); {
 		items = append(items, item)
 	}
 	return items
@@ -1462,8 +1460,7 @@ func valueHash(val Value, h hash.Hash) {
 		case objectKindPlain:
 			h.Write([]byte{0})
 		case objectKindSeq:
-			var item Value
-			for iter := iteratorFromSeqObject(v.Dy.(seqObject)); iter.Next().UnwrapTo(&item); {
+			for iter, item := iteratorFromSeqObject(v.Dy.(seqObject)), Value(nil); iter.Next().UnwrapTo(&item); {
 				valueHash(item, h)
 			}
 		case objectKindStruct:
