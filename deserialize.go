@@ -31,15 +31,15 @@ func checkFuncArgTypes(fnType reflect.Type) (optionCount int) {
 
 func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional bool) {
 	switch argType {
-	case typeFromPtr((**vmState)(nil)):
+	case reflectType[*vmState]():
 		return argPos == 0, false
-	case typeFromPtr((*Value)(nil)), typeFromPtr((*string)(nil)), typeFromPtr((*uint)(nil)),
-		typeFromPtr((*uint32)(nil)), typeFromPtr((*int32)(nil)), typeFromPtr((*bool)(nil)):
+	case reflectType[Value](), reflectType[string](), reflectType[uint](),
+		reflectType[uint32](), reflectType[int32](), reflectType[bool]():
 		return true, false
-	case typeFromPtr((*option.Option[Value])(nil)), typeFromPtr((*option.Option[string])(nil)),
-		typeFromPtr((*option.Option[int32])(nil)), typeFromPtr((*option.Option[uint32])(nil)),
-		typeFromPtr((*option.Option[bool])(nil)),
-		typeFromPtr((*kwArgs)(nil)):
+	case reflectType[option.Option[Value]](), reflectType[option.Option[string]](),
+		reflectType[option.Option[int32]](), reflectType[option.Option[uint32]](),
+		reflectType[option.Option[bool]](),
+		reflectType[kwArgs]():
 		return true, true
 	}
 	return false, false
@@ -47,36 +47,36 @@ func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional boo
 
 func goValueFromValue(val Value, destType reflect.Type) (any, error) {
 	switch destType {
-	case typeFromPtr((*Value)(nil)):
+	case reflectType[Value]():
 		return val, nil
-	case typeFromPtr((*string)(nil)):
+	case reflectType[string]():
 		return stringFromValue(option.Some(val))
-	case typeFromPtr((*uint)(nil)):
+	case reflectType[uint]():
 		return uintTryFromValue(val)
-	case typeFromPtr((*int32)(nil)):
+	case reflectType[int32]():
 		return i32TryFromValue(val)
-	case typeFromPtr((*uint32)(nil)):
+	case reflectType[uint32]():
 		return u32TryFromValue(val)
-	case typeFromPtr((*bool)(nil)):
+	case reflectType[bool]():
 		return boolTryFromValue(val)
-	case typeFromPtr((*kwArgs)(nil)):
+	case reflectType[kwArgs]():
 		return kwArgsTryFromValue(val)
-	case typeFromPtr((*option.Option[Value])(nil)):
+	case reflectType[option.Option[Value]]():
 		if val == nil {
 			return option.None[Value](), nil
 		}
 		return option.Some(val), nil
-	case typeFromPtr((*option.Option[string])(nil)):
+	case reflectType[option.Option[string]]():
 		return goOptValueFromValue(val, func(val Value) (string, error) {
 			return stringFromValue(option.Some(val))
 		})
-	case typeFromPtr((*option.Option[int32])(nil)):
+	case reflectType[option.Option[int32]]():
 		return goOptValueFromValue(val, i32TryFromValue)
-	case typeFromPtr((*option.Option[uint32])(nil)):
+	case reflectType[option.Option[uint32]]():
 		return goOptValueFromValue(val, u32TryFromValue)
-	case typeFromPtr((*option.Option[bool])(nil)):
+	case reflectType[option.Option[bool]]():
 		return goOptValueFromValue(val, boolTryFromValue)
-	case typeFromPtr((*[]Value)(nil)):
+	case reflectType[[]Value]():
 		return valueSliceTryFromValue(val)
 	}
 	panic("unsupported destination type")

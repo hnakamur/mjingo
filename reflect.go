@@ -2,12 +2,12 @@ package mjingo
 
 import "reflect"
 
-func assertType(ty reflect.Type, nilPtrOfType any, errMsg string) {
-	if got, want := ty, typeFromPtr(nilPtrOfType); got != want {
+func assertType[T any](ty reflect.Type, errMsg string) {
+	if got, want := ty, reflectType[T](); got != want {
 		panic(errMsg)
 	}
 }
 
-func typeFromPtr(nilPtrOfType any) reflect.Type {
-	return reflect.TypeOf(nilPtrOfType).Elem()
+func reflectType[T any]() reflect.Type {
+	return reflect.TypeOf((*T)(nil)).Elem()
 }

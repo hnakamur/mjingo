@@ -139,8 +139,8 @@ func TestVaradicFunc(t *testing.T) {
 		t.Errorf("in parameter count mismatch, got=%d, want=%d", got, want)
 	}
 	arg2Ty := ty.In(2)
-	assertType(arg2Ty, (*[]Value)(nil), "arg 2 must be []Value")
-	assertType(arg2Ty.Elem(), (*Value)(nil), "arg 2 elem must be Value")
+	assertType[[]Value](arg2Ty, "arg 2 must be []Value")
+	assertType[Value](arg2Ty.Elem(), "arg 2 elem must be Value")
 	if got, want := ty.IsVariadic(), true; got != want {
 		t.Errorf("arg 2 variadic mismatch, got=%v, want=%v", got, want)
 	}

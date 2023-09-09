@@ -17,9 +17,9 @@ func boxedTestFromFunc(fn any) BoxedTest {
 	if numOut != 1 && numOut != 2 {
 		panic("return value count must be 1 or 2")
 	}
-	assertType(fnType.Out(0), (*bool)(nil), "type of first return value must be bool")
+	assertType[bool](fnType.Out(0), "type of first return value must be bool")
 	if numOut == 2 {
-		assertType(fnType.Out(1), (*error)(nil), "type of seond return value must be error")
+		assertType[error](fnType.Out(1), "type of seond return value must be error")
 	}
 
 	numIn := fnType.NumIn()
@@ -32,7 +32,7 @@ func boxedTestFromFunc(fn any) BoxedTest {
 	return func(state *vmState, values []Value) (bool, error) {
 		reflectVals := make([]reflect.Value, 0, numIn)
 		inOffset := 0
-		if fnType.In(0) == typeFromPtr((**vmState)(nil)) {
+		if fnType.In(0) == reflectType[*vmState]() {
 			reflectVals = append(reflectVals, reflect.ValueOf(state))
 			inOffset++
 		}
