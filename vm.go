@@ -75,7 +75,7 @@ func (m *virtualMachine) evalState(state *vmState, out *output) (option.Option[V
 
 func (m *virtualMachine) evalImpl(state *vmState, out *output, stack *stackpkg.Stack[Value], pc uint) (option.Option[Value], error) {
 	initialAutoEscape := state.autoEscape
-	undefinedBehavior := state.undefinedBehavior()
+	undefinedBehavior := state.UndefinedBehavior()
 	var autoEscapeStack stackpkg.Stack[AutoEscape]
 	nextRecursionJump := option.None[recursionJump]()
 	loadedFilters := [maxLocals]option.Option[BoxedFilter]{}
@@ -330,7 +330,7 @@ loop:
 			b = stack.Pop()
 			// the in-operator can fail if the value is undefined and
 			// we are in strict mode.
-			if err := state.undefinedBehavior().assertIterable(a); err != nil {
+			if err := state.UndefinedBehavior().assertIterable(a); err != nil {
 				return option.None[Value](), err
 			}
 			rv, err := opContains(a, b)
@@ -796,7 +796,7 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 
 func (m *virtualMachine) pushLoop(state *vmState, iterable Value,
 	flags uint8, pc uint, currentRecursionJump option.Option[recursionJump]) error {
-	it, err := state.undefinedBehavior().tryIter(iterable)
+	it, err := state.UndefinedBehavior().tryIter(iterable)
 	if err != nil {
 		return err
 	}

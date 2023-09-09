@@ -12,7 +12,7 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type BoxedFilter = func(*vmState, []Value) (Value, error)
+type BoxedFilter = func(State, []Value) (Value, error)
 
 func boxedFilterFromFunc(fn any) BoxedFilter {
 	fnType := reflect.TypeOf(fn)
@@ -38,10 +38,10 @@ func boxedFilterFromFunc(fn any) BoxedFilter {
 	optCount := checkFuncArgTypes(fnType)
 
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (Value, error) {
+	return func(state State, values []Value) (Value, error) {
 		reflectVals := make([]reflect.Value, 0, numIn)
 		inOffset := 0
-		if fnType.In(0) == reflectType[*vmState]() {
+		if fnType.In(0) == reflectType[State]() {
 			reflectVals = append(reflectVals, reflect.ValueOf(state))
 			inOffset++
 		}
@@ -98,7 +98,7 @@ func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
 
-func escape(state *vmState, v Value) (Value, error) {
+func escape(state State, v Value) (Value, error) {
 	if v.isSafe() {
 		return v, nil
 	}
@@ -106,9 +106,9 @@ func escape(state *vmState, v Value) (Value, error) {
 	// this tries to use the escaping flag of the current scope, then
 	// of the initial state and if that is also not set it falls back
 	// to HTML.
-	autoEscape := state.autoEscape
-	if _, ok := state.autoEscape.(autoEscapeNone); ok {
-		if _, ok := state.env.initialAutoEscape(state.name()).(autoEscapeNone); ok {
+	autoEscape := state.AutoEscape()
+	if _, ok := state.AutoEscape().(autoEscapeNone); ok {
+		if _, ok := state.Env().initialAutoEscape(state.Name()).(autoEscapeNone); ok {
 			autoEscape = autoEscapeHTML{}
 		}
 	}
@@ -152,7 +152,7 @@ func capitalize(s string) string {
 //	-> Goodbye World
 //
 // ```
-func replace(_ *vmState, v, from, to string) string {
+func replace(_ State, v, from, to string) string {
 	r := strings.NewReplacer(from, to)
 	return r.Replace(v)
 }
@@ -260,8 +260,8 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 	return valueFromSlice(items), nil
 }
 
-func sortFilter(state *vmState, val Value, kwargs kwArgs) (Value, error) {
-	iter, err := state.undefinedBehavior().tryIter(val)
+func sortFilter(state State, val Value, kwargs kwArgs) (Value, error) {
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, newError(InvalidOperation, "cannot convert value to list").withSource(err)
 	}
@@ -538,24 +538,24 @@ func last(val Value) (Value, error) {
 	return nil, newError(InvalidOperation, "cannot get last item from value")
 }
 
-func minFilter(state *vmState, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().tryIter(val)
+func minFilter(state State, val Value) (Value, error) {
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Min().UnwrapOr(Undefined), nil
 }
 
-func maxFilter(state *vmState, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().tryIter(val)
+func maxFilter(state State, val Value) (Value, error) {
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Max().UnwrapOr(Undefined), nil
 }
 
-func listFilter(state *vmState, val Value) (Value, error) {
-	iter, err := state.undefinedBehavior().tryIter(val)
+func listFilter(state State, val Value) (Value, error) {
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
@@ -589,7 +589,7 @@ func boolFilter(val Value) bool {
 //
 // </table>
 // ```
-func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func batchFilter(state State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
 		return nil, newError(InvalidOperation, "count cannot be 0")
 	}
@@ -597,7 +597,7 @@ func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[V
 	rv := make([]Value, 0, val.len().UnwrapOr(0)/count)
 	tmp := make([]Value, 0, count)
 
-	iter, err := state.undefinedBehavior().tryIter(val)
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
@@ -644,12 +644,12 @@ func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[V
 //
 // If you pass it a second argument it’s used to fill missing values on the
 // last iteration.
-func sliceFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func sliceFilter(state State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
 		return nil, newError(InvalidOperation, "count cannot be 0")
 	}
 
-	iter, err := state.undefinedBehavior().tryIter(val)
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
@@ -717,16 +717,16 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 	return rv
 }
 
-func selectOrReject(state *vmState, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectOrReject(state State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
 	var rv []Value
 	test := option.None[BoxedTest]()
 	if testName.IsSome() {
-		test = state.env.getTest(testName.Unwrap())
+		test = state.Env().getTest(testName.Unwrap())
 		if test.IsNone() {
 			return nil, newError(UnknownTest, "")
 		}
 	}
-	iter, err := state.undefinedBehavior().tryIter(val)
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}
@@ -760,19 +760,19 @@ func selectOrReject(state *vmState, invert bool, val Value, attr, testName optio
 	return rv, nil
 }
 
-func selectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectFilter(state State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.None[string](), testName, args...)
 }
 
-func selectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectAttrFilter(state State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.Some(attr), testName, args...)
 }
 
-func rejectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectFilter(state State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.None[string](), testName, args...)
 }
 
-func rejectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectAttrFilter(state State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.Some(attr), testName, args...)
 }
 
@@ -826,7 +826,7 @@ func uniqueFilter(values []Value) Value {
 // ```jinja
 // Users on this page: {{ titles|map('lower')|join(', ') }}
 // ```
-func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
+func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 	rv := make([]Value, 0, val.len().UnwrapOr(0))
 	var kwargs kwArgs
 	var err error
@@ -847,7 +847,7 @@ func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 			return nil, newError(TooManyArguments, "")
 		}
 		defVal := kwargs.GetValue("default").UnwrapOr(Undefined)
-		iter, err := state.undefinedBehavior().tryIter(val)
+		iter, err := state.UndefinedBehavior().tryIter(val)
 		if err != nil {
 			return nil, err
 		}
@@ -882,12 +882,12 @@ func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
 		return nil, newError(InvalidOperation, "filter name must be a string")
 	}
 	filterName := optFilterName.Unwrap()
-	optFilter := state.env.getFilter(filterName)
+	optFilter := state.Env().getFilter(filterName)
 	if optFilter.IsNone() {
 		return nil, newError(UnknownFilter, "")
 	}
 	filter := optFilter.Unwrap()
-	iter, err := state.undefinedBehavior().tryIter(val)
+	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, err
 	}

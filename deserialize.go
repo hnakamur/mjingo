@@ -31,7 +31,7 @@ func checkFuncArgTypes(fnType reflect.Type) (optionCount int) {
 
 func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional bool) {
 	switch argType {
-	case reflectType[*vmState]():
+	case reflectType[State]():
 		return argPos == 0, false
 	case reflectType[Value](), reflectType[string](), reflectType[uint](),
 		reflectType[uint32](), reflectType[int32](), reflectType[bool]():

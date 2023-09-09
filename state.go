@@ -6,6 +6,13 @@ import (
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
 )
 
+type State interface {
+	Env() *Environment
+	Name() string
+	AutoEscape() AutoEscape
+	UndefinedBehavior() UndefinedBehavior
+}
+
 type vmState struct {
 	env             *Environment
 	ctx             context
@@ -16,6 +23,8 @@ type vmState struct {
 	loadedTemplates hashset.StrHashSet
 	macros          stackpkg.Stack[macroStackElem]
 }
+
+var _ State = ((*vmState)(nil))
 
 type locals = map[string]Value
 
@@ -29,11 +38,15 @@ type macroStackElem struct {
 	offset uint
 }
 
-func (s *vmState) name() string {
+func (s *vmState) Env() *Environment { return s.env }
+
+func (s *vmState) AutoEscape() AutoEscape { return s.autoEscape }
+
+func (s *vmState) Name() string {
 	return s.instructions.Name()
 }
 
-func (s *vmState) undefinedBehavior() UndefinedBehavior {
+func (s *vmState) UndefinedBehavior() UndefinedBehavior {
 	return s.env.undefinedBehavior
 }
 

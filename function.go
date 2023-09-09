@@ -7,7 +7,7 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type boxedFunc = func(*vmState, []Value) (Value, error)
+type boxedFunc = func(State, []Value) (Value, error)
 
 type funcObject struct{ f boxedFunc }
 
@@ -39,10 +39,10 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 	optCount := checkFuncArgTypes(fnType)
 
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (Value, error) {
+	return func(state State, values []Value) (Value, error) {
 		reflectVals := make([]reflect.Value, 0, numIn)
 		inOffset := 0
-		if fnType.In(0) == reflectType[*vmState]() {
+		if fnType.In(0) == reflectType[State]() {
 			reflectVals = append(reflectVals, reflect.ValueOf(state))
 			inOffset++
 		}

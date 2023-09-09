@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type BoxedTest = func(*vmState, []Value) (bool, error)
+type BoxedTest = func(State, []Value) (bool, error)
 
 func boxedTestFromFunc(fn any) BoxedTest {
 	fnType := reflect.TypeOf(fn)
@@ -29,10 +29,10 @@ func boxedTestFromFunc(fn any) BoxedTest {
 	checkFuncArgTypes(fnType)
 
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (bool, error) {
+	return func(state State, values []Value) (bool, error) {
 		reflectVals := make([]reflect.Value, 0, numIn)
 		inOffset := 0
-		if fnType.In(0) == reflectType[*vmState]() {
+		if fnType.In(0) == reflectType[State]() {
 			reflectVals = append(reflectVals, reflect.ValueOf(state))
 			inOffset++
 		}
@@ -176,10 +176,10 @@ func isFalse(val Value) bool {
 	return ok && !boolVal.B
 }
 
-func isFilter(state *vmState, name string) bool {
-	return state.env.getFilter(name).IsSome()
+func isFilter(state State, name string) bool {
+	return state.Env().getFilter(name).IsSome()
 }
 
-func isTest(state *vmState, name string) bool {
-	return state.env.getTest(name).IsSome()
+func isTest(state State, name string) bool {
+	return state.Env().getTest(name).IsSome()
 }
