@@ -12,9 +12,13 @@ import (
 	"github.com/hnakamur/mjingo/internal/datast/option"
 )
 
-type BoxedFilter = func(State, []Value) (Value, error)
+type boxedFilter = func(State, []Value) (Value, error)
 
-func boxedFilterFromFunc(fn any) BoxedFilter {
+func boxedFilterFromFunc(fn any) boxedFilter {
+	if bf, ok := fn.(boxedFilter); ok {
+		return bf
+	}
+
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
 		panic("argument must be a function")
@@ -719,7 +723,7 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 
 func selectOrReject(state State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
 	var rv []Value
-	test := option.None[BoxedTest]()
+	test := option.None[boxedTest]()
 	if testName.IsSome() {
 		test = state.Env().getTest(testName.Unwrap())
 		if test.IsNone() {

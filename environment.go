@@ -21,8 +21,8 @@ import (
 //   - [`NewEnvironmentEmpty`] creates a completely blank environment.
 type Environment struct {
 	templates         templateStore
-	filters           map[string]BoxedFilter
-	tests             map[string]BoxedTest
+	filters           map[string]boxedFilter
+	tests             map[string]boxedTest
 	globals           map[string]Value
 	defaultAutoEscape AutoEscapeFunc
 	undefinedBehavior UndefinedBehavior
@@ -59,8 +59,8 @@ func NewEnvironment() *Environment {
 func NewEnvironmentEmpty() *Environment {
 	return &Environment{
 		templates:         *newLoaderStoreDefault(),
-		filters:           make(map[string]BoxedFilter),
-		tests:             make(map[string]BoxedTest),
+		filters:           make(map[string]boxedFilter),
+		tests:             make(map[string]boxedTest),
 		globals:           make(map[string]Value),
 		defaultAutoEscape: noAutoEscape,
 		formatter:         escapeFormatter,
@@ -228,6 +228,44 @@ func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 	return newExpression(e, insts), nil
 }
 
+// AddFilter adds a new filter function.
+func (e *Environment) AddFilter(name string, filter any) {
+	e.filters[name] = boxedFilterFromFunc(filter)
+}
+
+// RemoveFilter removes a filter by name.
+func (e *Environment) RemoveFilter(name string) {
+	delete(e.filters, name)
+}
+
+// AddTest adds a new test function.
+//
+// Test functions are similar to filters but perform a check on a value
+// where the return value is always true or false.
+func (e *Environment) AddTest(name string, Test any) {
+	e.tests[name] = boxedTestFromFunc(Test)
+}
+
+// RemoveTest removes a test by name.
+func (e *Environment) RemoveTest(name string) {
+	delete(e.tests, name)
+}
+
+// AddFunction adds a new global function.
+func (e *Environment) AddFunction(name string, fn any) {
+	e.globals[name] = valueFromFunc(boxedFuncFromFunc(fn))
+}
+
+// AddGlobal adds a new global variable.
+func (e *Environment) AddGlobal(name string, val Value) {
+	e.globals[name] = val
+}
+
+// RemoveGlobal a global function or variable by name.
+func (e *Environment) RemoveGlobal(name string) {
+	delete(e.globals, name)
+}
+
 func (e *Environment) format(v Value, state *vmState, out *output) error {
 	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
 		return newError(UndefinedError, "")
@@ -247,16 +285,16 @@ func (e *Environment) initialAutoEscape(name string) AutoEscape {
 	return e.defaultAutoEscape(name)
 }
 
-func (e *Environment) getFilter(name string) option.Option[BoxedFilter] {
+func (e *Environment) getFilter(name string) option.Option[boxedFilter] {
 	if f, ok := e.filters[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[BoxedFilter]()
+	return option.None[boxedFilter]()
 }
 
-func (e *Environment) getTest(name string) option.Option[BoxedTest] {
+func (e *Environment) getTest(name string) option.Option[boxedTest] {
 	if f, ok := e.tests[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[BoxedTest]()
+	return option.None[boxedTest]()
 }

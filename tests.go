@@ -5,9 +5,13 @@ import (
 	"strings"
 )
 
-type BoxedTest = func(State, []Value) (bool, error)
+type boxedTest = func(State, []Value) (bool, error)
 
-func boxedTestFromFunc(fn any) BoxedTest {
+func boxedTestFromFunc(fn any) boxedTest {
+	if bt, ok := fn.(boxedTest); ok {
+		return bt
+	}
+
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
 		panic("argument must be a function")

@@ -26,8 +26,8 @@ func escapeFormatter(out *output, state *vmState, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }
 
-func getDefaultBuiltinFilters() map[string]BoxedFilter {
-	rv := make(map[string]BoxedFilter)
+func getDefaultBuiltinFilters() map[string]boxedFilter {
+	rv := make(map[string]boxedFilter)
 	rv["safe"] = boxedFilterFromFunc(safe)
 	rv["escape"] = boxedFilterFromFunc(escape)
 	rv["e"] = boxedFilterFromFunc(escape)
@@ -69,8 +69,8 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	return rv
 }
 
-func getDefaultBuiltinTests() map[string]BoxedTest {
-	rv := make(map[string]BoxedTest)
+func getDefaultBuiltinTests() map[string]boxedTest {
+	rv := make(map[string]boxedTest)
 	rv["undefined"] = boxedTestFromFunc(isUndefined)
 	rv["defined"] = boxedTestFromFunc(isDefined)
 	rv["none"] = boxedTestFromFunc(isNone)

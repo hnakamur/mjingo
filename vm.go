@@ -78,8 +78,8 @@ func (m *virtualMachine) evalImpl(state *vmState, out *output, stack *stackpkg.S
 	undefinedBehavior := state.UndefinedBehavior()
 	var autoEscapeStack stackpkg.Stack[AutoEscape]
 	nextRecursionJump := option.None[recursionJump]()
-	loadedFilters := [maxLocals]option.Option[BoxedFilter]{}
-	loadedTests := [maxLocals]option.Option[BoxedTest]{}
+	loadedFilters := [maxLocals]option.Option[boxedFilter]{}
+	loadedTests := [maxLocals]option.Option[boxedTest]{}
 
 	// If we are extending we are holding the instructions of the target parent
 	// template here.  This is used to detect multiple extends and the evaluation
@@ -454,8 +454,8 @@ loop:
 		case endCaptureInstruction:
 			stack.Push(out.endCapture(state.autoEscape))
 		case applyFilterInstruction:
-			f := func() option.Option[BoxedFilter] { return state.env.getFilter(inst.Name) }
-			var tf BoxedFilter
+			f := func() option.Option[boxedFilter] { return state.env.getFilter(inst.Name) }
+			var tf boxedFilter
 			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
@@ -470,8 +470,8 @@ loop:
 				stack.Push(rv)
 			}
 		case performTestInstruction:
-			f := func() option.Option[BoxedTest] { return state.env.getTest(inst.Name) }
-			var tf BoxedTest
+			f := func() option.Option[boxedTest] { return state.env.getTest(inst.Name) }
+			var tf boxedTest
 			if optVal := getOrLookupLocal(loadedTests[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
