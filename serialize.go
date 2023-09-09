@@ -115,6 +115,20 @@ func ValueFromGoValue(val any, opts ...ValueFromGoValueOption) Value {
 
 const maxNestLevelForValueFromGoValue = 100
 
+func canConvertibleToValue(ty reflect.Type) bool {
+	switch ty.Kind() {
+	case reflect.Bool, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Uint, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Int, reflect.Float32, reflect.Float64, reflect.String,
+		reflect.Struct, reflect.Array, reflect.Slice, reflect.Map, reflect.Ptr:
+		return true
+	case reflect.Interface:
+		return ty == reflectType[Value]()
+	default:
+		return false
+	}
+}
+
 func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint) Value {
 	if level >= maxNestLevelForValueFromGoValue {
 		return invalidValue{Detail: "nested level too deep"}

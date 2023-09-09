@@ -25,8 +25,11 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 	if numOut != 1 && numOut != 2 {
 		panic("return value count must be 1 or 2")
 	}
+	if !canConvertibleToValue(fnType.Out(0)) {
+		panic("first return value type is unsupported")
+	}
 	if numOut == 2 {
-		assertType[error](fnType.Out(1), "type of seond return value must be error")
+		assertType[error](fnType.Out(1), "type of second return value must be error")
 	}
 
 	numIn := fnType.NumIn()
