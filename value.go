@@ -882,6 +882,22 @@ func unsupportedConversion(kind valueType, target string) error {
 		fmt.Sprintf("cannot convert %s to %s", kind, target))
 }
 
+func i8TryFromValue(val Value) (int8, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < math.MinInt8 || n > math.MaxInt8 {
+		return 0, unsupportedConversion(val.typ(), "i8")
+	}
+	return int8(n), nil
+}
+
+func i16TryFromValue(val Value) (int16, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < math.MinInt16 || n > math.MaxInt16 {
+		return 0, unsupportedConversion(val.typ(), "i16")
+	}
+	return int16(n), nil
+}
+
 func i32TryFromValue(val Value) (int32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt32 || n > math.MaxInt32 {
@@ -890,12 +906,46 @@ func i32TryFromValue(val Value) (int32, error) {
 	return int32(n), nil
 }
 
+func i64TryFromValue(val Value) (int64, error) { return val.tryToI64() }
+
+func intTryFromValue(val Value) (int, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < math.MinInt || n > math.MaxInt8 {
+		return 0, unsupportedConversion(val.typ(), "int")
+	}
+	return int(n), nil
+}
+
+func u8TryFromValue(val Value) (uint8, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < 0 || n > math.MaxUint8 {
+		return 0, unsupportedConversion(val.typ(), "u8")
+	}
+	return uint8(n), nil
+}
+
+func u16TryFromValue(val Value) (uint16, error) {
+	n, err := val.tryToI64()
+	if err != nil || n < 0 || n > math.MaxUint16 {
+		return 0, unsupportedConversion(val.typ(), "u16")
+	}
+	return uint16(n), nil
+}
+
 func u32TryFromValue(val Value) (uint32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint32 {
 		return 0, unsupportedConversion(val.typ(), "u32")
 	}
 	return uint32(n), nil
+}
+
+func u64TryFromValue(val Value) (uint64, error) {
+	n, err := val.tryToI128()
+	if err != nil || !n.IsUint64() {
+		return 0, unsupportedConversion(val.typ(), "u64")
+	}
+	return n.Uint64(), nil
 }
 
 type iterator struct {
