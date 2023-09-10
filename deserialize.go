@@ -118,6 +118,22 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	panic("unsupported destination type")
 }
 
+func valueTryToGoStringWithAsStr(val Value) (string, error) {
+	optStr := val.asStr()
+	if optStr.IsSome() {
+		return optStr.Unwrap(), nil
+	}
+	return "", NewError(InvalidOperation, "value is not a string")
+}
+
+func valueTryToGoString(val Value) (string, error) {
+	// TODO: compare benchmark with implementation using asStr().
+	if v, ok := val.(stringValue); ok {
+		return v.Str, nil
+	}
+	return "", NewError(InvalidOperation, "value is not a string")
+}
+
 func valueTryToOption[T any](val Value, fn func(val Value) (T, error)) (option.Option[T], error) {
 	if val == nil {
 		return option.None[T](), nil

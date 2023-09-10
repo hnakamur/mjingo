@@ -76,14 +76,6 @@ func stringFromValue(val option.Option[Value]) (string, error) {
 	return "", NewError(MissingArgument, "")
 }
 
-func valueTryToGoString(val Value) (string, error) {
-	// TODO: compare benchmark with implementation using asStr().
-	if v, ok := val.(stringValue); ok {
-		return v.Str, nil
-	}
-	return "", NewError(InvalidOperation, "value is not a string")
-}
-
 type kwArgs struct {
 	Values valueMap
 	Used   hashset.StrHashSet
