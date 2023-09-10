@@ -628,11 +628,11 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 	l := choices.ItemCount()
 	for i := uint(0); i < l; i++ {
 		choice := choices.GetItem(i).Unwrap()
-		optName := choice.asStr()
-		if optName.IsNone() {
+		name, err := valueTryToGoString(choice)
+		if err != nil {
 			return NewError(InvalidOperation, "template name was not a string")
 		}
-		tmpl, err := m.env.GetTemplate(optName.Unwrap())
+		tmpl, err := m.env.GetTemplate(name)
 		if err != nil {
 			var er *Error
 			if errors.As(err, &er) && er.Type() == TemplateNotFound {
@@ -730,11 +730,10 @@ func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
 }
 
 func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, error) {
-	optName := name.asStr()
-	if optName.IsNone() {
+	strName, err := valueTryToGoString(name)
+	if err != nil {
 		return instructions{}, NewError(InvalidOperation, "template name was not a string")
 	}
-	strName := optName.Unwrap()
 	if state.loadedTemplates.Contains(strName) {
 		return instructions{}, NewError(InvalidOperation,
 			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
@@ -775,9 +774,9 @@ func (m *virtualMachine) callBlock(name string, state *vmState, out *output) (op
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
-	strVal := val.asStr()
-	if strVal.IsSome() {
-		switch strVal.Unwrap() {
+	strVal, err := valueTryToGoString(val)
+	if err == nil {
+		switch strVal {
 		case "html":
 			return autoEscapeHTML{}, nil
 		case "json":

@@ -249,12 +249,9 @@ func opContains(container Value, val Value) (Value, error) {
 		return valueFromBool(false), nil
 	}
 	var rv bool
-	if optContainerStr := container.asStr(); optContainerStr.IsSome() {
-		containerStr := optContainerStr.Unwrap()
-		var valStr string
-		if optValStr := val.asStr(); optValStr.IsSome() {
-			valStr = optValStr.Unwrap()
-		} else {
+	if containerStr, err := valueTryToGoString(container); err == nil {
+		valStr, err := valueTryToGoString(val)
+		if err != nil {
 			valStr = val.String()
 		}
 		rv = strings.Contains(containerStr, valStr)

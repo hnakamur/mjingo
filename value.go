@@ -28,7 +28,6 @@ type Value interface {
 	isTrue() bool
 	getAttrFast(key string) option.Option[Value]
 	getItemOpt(key Value) option.Option[Value]
-	asStr() option.Option[string]
 	tryToI128() (big.Int, error)
 	tryToI64() (int64, error)
 	tryToUint() (uint, error)
@@ -534,8 +533,8 @@ func (v dynamicValue) getItemOpt(key Value) option.Option[Value] {
 	case ObjectKindSeq:
 		return getItemOptFromSeq(v.Dy.(SeqObject), key)
 	case ObjectKindStruct:
-		if optKey := key.asStr(); optKey.IsSome() {
-			return v.Dy.(StructObject).GetField(optKey.Unwrap())
+		if strKey, err := valueTryToGoString(key); err == nil {
+			return v.Dy.(StructObject).GetField(strKey)
 		}
 		return option.None[Value]()
 	default:
@@ -564,21 +563,6 @@ func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
 	}
 	return option.None[Value]()
 }
-
-func (undefinedValue) asStr() option.Option[string] { return option.None[string]() }
-func (boolValue) asStr() option.Option[string]      { return option.None[string]() }
-func (u64Value) asStr() option.Option[string]       { return option.None[string]() }
-func (i64Value) asStr() option.Option[string]       { return option.None[string]() }
-func (f64Value) asStr() option.Option[string]       { return option.None[string]() }
-func (noneValue) asStr() option.Option[string]      { return option.None[string]() }
-func (invalidValue) asStr() option.Option[string]   { return option.None[string]() }
-func (u128Value) asStr() option.Option[string]      { return option.None[string]() }
-func (i128Value) asStr() option.Option[string]      { return option.None[string]() }
-func (v stringValue) asStr() option.Option[string]  { return option.Some(v.Str) }
-func (bytesValue) asStr() option.Option[string]     { return option.None[string]() }
-func (seqValue) asStr() option.Option[string]       { return option.None[string]() }
-func (v mapValue) asStr() option.Option[string]     { return option.None[string]() }
-func (dynamicValue) asStr() option.Option[string]   { return option.None[string]() }
 
 func (v undefinedValue) tryToI128() (big.Int, error) {
 	return big.Int{}, unsupportedConversion(v.typ(), "i128")

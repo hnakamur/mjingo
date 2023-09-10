@@ -116,14 +116,6 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	panic("unsupported destination type")
 }
 
-func valueTryToGoStringWithAsStr(val Value) (string, error) {
-	optStr := val.asStr()
-	if optStr.IsSome() {
-		return optStr.Unwrap(), nil
-	}
-	return "", NewError(InvalidOperation, "value is not a string")
-}
-
 func valueTryToValue(val Value) (Value, error) { return val, nil }
 
 func valueTryToGoString(val Value) (string, error) {
