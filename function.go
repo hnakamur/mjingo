@@ -100,7 +100,7 @@ var _ = (caller)(funcObject{})
 
 func (funcObject) Kind() objectKind { return objectKindPlain }
 
-func (f funcObject) Call(state *vmState, args []Value) (Value, error) {
+func (f funcObject) Call(state State, args []Value) (Value, error) {
 	return f.f(state, args)
 }
 
