@@ -55,7 +55,7 @@ func CheckArgumentCount(values []Value, minCount, maxCount int) error {
 	return nil
 }
 
-func GoValueFromValue[T any](val Value) (T, error) {
+func ValueToGoValue[T any](val Value) (T, error) {
 	goVal, err := goValueFromValueReflect(val, reflectType[T]())
 	if err != nil {
 		var zero T

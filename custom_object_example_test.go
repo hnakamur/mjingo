@@ -48,7 +48,7 @@ func (s *Magic) CallMethod(_state mjingo.State, name string, args []mjingo.Value
 	if err := mjingo.CheckArgumentCount(args, 1, 1); err != nil {
 		return nil, err
 	}
-	tag, err := mjingo.GoValueFromValue[string](args[0])
+	tag, err := mjingo.ValueToGoValue[string](args[0])
 	if err != nil {
 		return nil, err
 	}
