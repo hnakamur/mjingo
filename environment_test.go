@@ -965,7 +965,7 @@ func TestEnvironment_AddFilter_withStateArg(t *testing.T) {
 	}
 
 	env := mjingo.NewEnvironment()
-	env.AddFilter("slugify", slugify)
+	env.AddFilter("slugify", mjingo.BoxedFilterFromFunc(slugify))
 	const templateName = "test.txt"
 	err := env.AddTemplate(templateName, `{{ title|slugify }}`)
 	if err != nil {

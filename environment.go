@@ -21,8 +21,8 @@ import (
 //   - [NewEnvironmentEmpty] creates a completely blank environment.
 type Environment struct {
 	templates         templateStore
-	filters           map[string]boxedFilter
-	tests             map[string]boxedTest
+	filters           map[string]BoxedFilter
+	tests             map[string]BoxedTest
 	globals           map[string]Value
 	defaultAutoEscape AutoEscapeFunc
 	undefinedBehavior UndefinedBehavior
@@ -59,8 +59,8 @@ func NewEnvironment() *Environment {
 func NewEnvironmentEmpty() *Environment {
 	return &Environment{
 		templates:         *newLoaderStoreDefault(),
-		filters:           make(map[string]boxedFilter),
-		tests:             make(map[string]boxedTest),
+		filters:           make(map[string]BoxedFilter),
+		tests:             make(map[string]BoxedTest),
 		globals:           make(map[string]Value),
 		defaultAutoEscape: noAutoEscape,
 		formatter:         escapeFormatter,
@@ -229,8 +229,8 @@ func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 }
 
 // AddFilter adds a new filter function.
-func (e *Environment) AddFilter(name string, filter any) {
-	e.filters[name] = boxedFilterFromFunc(filter)
+func (e *Environment) AddFilter(name string, filter BoxedFilter) {
+	e.filters[name] = filter
 }
 
 // RemoveFilter removes a filter by name.
@@ -242,8 +242,8 @@ func (e *Environment) RemoveFilter(name string) {
 //
 // Test functions are similar to filters but perform a check on a value
 // where the return value is always true or false.
-func (e *Environment) AddTest(name string, Test any) {
-	e.tests[name] = boxedTestFromFunc(Test)
+func (e *Environment) AddTest(name string, test BoxedTest) {
+	e.tests[name] = test
 }
 
 // RemoveTest removes a test by name.
@@ -252,8 +252,8 @@ func (e *Environment) RemoveTest(name string) {
 }
 
 // AddFunction adds a new global function.
-func (e *Environment) AddFunction(name string, fn any) {
-	e.globals[name] = valueFromBoxedFunc(boxedFuncFromFunc(fn))
+func (e *Environment) AddFunction(name string, fn BoxedFunc) {
+	e.globals[name] = valueFromBoxedFunc(fn)
 }
 
 // AddGlobal adds a new global variable.
@@ -285,16 +285,16 @@ func (e *Environment) initialAutoEscape(name string) AutoEscape {
 	return e.defaultAutoEscape(name)
 }
 
-func (e *Environment) getFilter(name string) option.Option[boxedFilter] {
+func (e *Environment) getFilter(name string) option.Option[BoxedFilter] {
 	if f, ok := e.filters[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[boxedFilter]()
+	return option.None[BoxedFilter]()
 }
 
-func (e *Environment) getTest(name string) option.Option[boxedTest] {
+func (e *Environment) getTest(name string) option.Option[BoxedTest] {
 	if f, ok := e.tests[name]; ok {
 		return option.Some(f)
 	}
-	return option.None[boxedTest]()
+	return option.None[BoxedTest]()
 }

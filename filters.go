@@ -12,10 +12,10 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type boxedFilter = func(State, []Value) (Value, error)
+type BoxedFilter = func(State, []Value) (Value, error)
 
-func boxedFilterFromFunc(fn any) boxedFilter {
-	if bf, ok := fn.(boxedFilter); ok {
+func BoxedFilterFromFunc(fn any) BoxedFilter {
+	if bf, ok := fn.(BoxedFilter); ok {
 		return bf
 	}
 
@@ -76,7 +76,7 @@ func boxedFilterFromFunc(fn any) boxedFilter {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := goValueFromValueReflect(val, argType)
+			goVal, err := valueToGoValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -723,7 +723,7 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 
 func selectOrReject(state State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
 	var rv []Value
-	test := option.None[boxedTest]()
+	test := option.None[BoxedTest]()
 	if testName.IsSome() {
 		test = state.Env().getTest(testName.Unwrap())
 		if test.IsNone() {

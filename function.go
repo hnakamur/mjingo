@@ -7,9 +7,9 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type boxedFunc = func(State, []Value) (Value, error)
+type BoxedFunc = func(State, []Value) (Value, error)
 
-func boxedFuncFromFunc(fn any) boxedFunc {
+func BoxedFuncFromFunc(fn any) BoxedFunc {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
 		panic("argument must be a function")
@@ -67,7 +67,7 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := goValueFromValueReflect(val, argType)
+			goVal, err := valueToGoValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -89,11 +89,11 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 	}
 }
 
-func valueFromBoxedFunc(f boxedFunc) Value {
+func valueFromBoxedFunc(f BoxedFunc) Value {
 	return valueFromObject(funcObject{f: f})
 }
 
-type funcObject struct{ f boxedFunc }
+type funcObject struct{ f BoxedFunc }
 
 var _ = (Object)(funcObject{})
 var _ = (Caller)(funcObject{})

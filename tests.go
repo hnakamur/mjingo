@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-type boxedTest = func(State, []Value) (bool, error)
+type BoxedTest = func(State, []Value) (bool, error)
 
-func boxedTestFromFunc(fn any) boxedTest {
-	if bt, ok := fn.(boxedTest); ok {
+func BoxedTestFromFunc(fn any) BoxedTest {
+	if bt, ok := fn.(BoxedTest); ok {
 		return bt
 	}
 
@@ -48,7 +48,7 @@ func boxedTestFromFunc(fn any) boxedTest {
 			return false, NewError(TooManyArguments, "")
 		}
 		for i, val := range values {
-			goVal, err := goValueFromValueReflect(val, fnType.In(i+inOffset))
+			goVal, err := valueToGoValueReflect(val, fnType.In(i+inOffset))
 			if err != nil {
 				return false, err
 			}

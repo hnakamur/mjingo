@@ -44,10 +44,13 @@ func (s *Magic) CallMethod(_state mjingo.State, name string, args []mjingo.Value
 			fmt.Sprintf("object has no method named %s!!!", name))
 	}
 
-	// single string argument
-	if err := mjingo.CheckArgumentCount(args, 1, 1); err != nil {
-		return nil, err
+	if len(args) < 1 {
+		return nil, mjingo.NewError(mjingo.MissingArgument, "")
 	}
+	if len(args) > 1 {
+		return nil, mjingo.NewError(mjingo.TooManyArguments, "")
+	}
+	// single string argument
 	tag, err := mjingo.ValueToGoValue[string](args[0])
 	if err != nil {
 		return nil, err
@@ -82,7 +85,7 @@ const templateSource = `{%- with next_class = cycler(["odd", "even"]) %}
 func ExampleObject() {
 	env := mjingo.NewEnvironment()
 	const templateName = "test.html"
-	env.AddFunction("cycler", makeCycler)
+	env.AddFunction("cycler", mjingo.BoxedFuncFromFunc(makeCycler))
 	env.AddGlobal("magic", mjingo.ValueFromGoValue(&Magic{}))
 	env.AddGlobal("seq", mjingo.ValueFromGoValue(&SimpleDynamicSec{}))
 	err := env.AddTemplate(templateName, templateSource)

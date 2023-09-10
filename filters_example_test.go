@@ -14,7 +14,7 @@ func ExampleEnvironment_AddFilter() {
 	}
 
 	env := mjingo.NewEnvironment()
-	env.AddFilter("slugify", slugify)
+	env.AddFilter("slugify", mjingo.BoxedFilterFromFunc(slugify))
 	const templateName = "test.txt"
 	err := env.AddTemplate(templateName, `{{ title|slugify }}`)
 	if err != nil {
