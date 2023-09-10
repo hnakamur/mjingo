@@ -45,8 +45,8 @@ func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional boo
 	return false, false
 }
 
-func ValueToGoValue[T any](val Value) (T, error) {
-	goVal, err := valueToGoValueReflect(val, reflectType[T]())
+func ValueTryToGoValue[T any](val Value) (T, error) {
+	goVal, err := valueTryToGoValueReflect(val, reflectType[T]())
 	if err != nil {
 		var zero T
 		return zero, err
@@ -54,71 +54,71 @@ func ValueToGoValue[T any](val Value) (T, error) {
 	return goVal.(T), nil
 }
 
-func valueToGoValueReflect(val Value, destType reflect.Type) (any, error) {
+func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	switch destType {
 	case reflectType[Value]():
 		return val, nil
 	case reflectType[bool]():
-		return boolTryFromValue(val)
+		return valueTryToGoBool(val)
 	case reflectType[int8]():
-		return i8TryFromValue(val)
+		return valueTryToGoInt8(val)
 	case reflectType[int16]():
-		return i16TryFromValue(val)
+		return valueTryToGoInt16(val)
 	case reflectType[int32]():
-		return i32TryFromValue(val)
+		return valueTryToGoInt32(val)
 	case reflectType[int64]():
-		return i64TryFromValue(val)
+		return valueTryToGoInt64(val)
 	case reflectType[int]():
-		return intTryFromValue(val)
+		return valueTryToGoInt(val)
 	case reflectType[uint8]():
-		return u8TryFromValue(val)
+		return valueTryToGoUint8(val)
 	case reflectType[uint16]():
-		return u16TryFromValue(val)
+		return valueTryToGoUint16(val)
 	case reflectType[uint32]():
-		return u32TryFromValue(val)
+		return valueTryToGoUint32(val)
 	case reflectType[uint64]():
-		return u64TryFromValue(val)
+		return valueTryToGoUint64(val)
 	case reflectType[uint]():
-		return uintTryFromValue(val)
+		return valueTryToGoUint(val)
 	case reflectType[string]():
 		return stringFromValue(option.Some(val))
 	case reflectType[kwArgs]():
-		return kwArgsTryFromValue(val)
+		return valueTryToKwArgs(val)
 	case reflectType[option.Option[Value]]():
-		return goOptValueFromValue(val, func(val Value) (Value, error) { return val, nil })
+		return valueTryToOption(val, func(val Value) (Value, error) { return val, nil })
 	case reflectType[option.Option[bool]]():
-		return goOptValueFromValue(val, boolTryFromValue)
+		return valueTryToOption(val, valueTryToGoBool)
 	case reflectType[option.Option[int8]]():
-		return goOptValueFromValue(val, i8TryFromValue)
+		return valueTryToOption(val, valueTryToGoInt8)
 	case reflectType[option.Option[int16]]():
-		return goOptValueFromValue(val, i16TryFromValue)
+		return valueTryToOption(val, valueTryToGoInt16)
 	case reflectType[option.Option[int32]]():
-		return goOptValueFromValue(val, i32TryFromValue)
+		return valueTryToOption(val, valueTryToGoInt32)
 	case reflectType[option.Option[int64]]():
-		return goOptValueFromValue(val, i64TryFromValue)
+		return valueTryToOption(val, valueTryToGoInt64)
 	case reflectType[option.Option[int]]():
-		return goOptValueFromValue(val, intTryFromValue)
+		return valueTryToOption(val, valueTryToGoInt)
 	case reflectType[option.Option[uint]]():
-		return goOptValueFromValue(val, uintTryFromValue)
+		return valueTryToOption(val, valueTryToGoUint)
 	case reflectType[option.Option[uint8]]():
-		return goOptValueFromValue(val, u8TryFromValue)
+		return valueTryToOption(val, valueTryToGoUint8)
 	case reflectType[option.Option[uint16]]():
-		return goOptValueFromValue(val, u16TryFromValue)
+		return valueTryToOption(val, valueTryToGoUint16)
 	case reflectType[option.Option[uint32]]():
-		return goOptValueFromValue(val, u32TryFromValue)
+		return valueTryToOption(val, valueTryToGoUint32)
 	case reflectType[option.Option[uint64]]():
-		return goOptValueFromValue(val, u64TryFromValue)
+		return valueTryToOption(val, valueTryToGoUint64)
 	case reflectType[option.Option[string]]():
-		return goOptValueFromValue(val, func(val Value) (string, error) {
+		return valueTryToOption(val, func(val Value) (string, error) {
 			return stringFromValue(option.Some(val))
 		})
 	case reflectType[[]Value]():
-		return valueSliceTryFromValue(val)
+		return valueTryToValueSlice(val)
 	}
 	panic("unsupported destination type")
 }
 
-func goOptValueFromValue[T any](val Value, fn func(val Value) (T, error)) (any, error) {
+func valueTryToOption[T any](val Value, fn func(val Value) (T, error)) (option.Option[T], error) {
 	if val == nil {
 		return option.None[T](), nil
 	}

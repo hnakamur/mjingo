@@ -882,7 +882,7 @@ func unsupportedConversion(kind valueType, target string) error {
 		fmt.Sprintf("cannot convert %s to %s", kind, target))
 }
 
-func i8TryFromValue(val Value) (int8, error) {
+func valueTryToGoInt8(val Value) (int8, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt8 || n > math.MaxInt8 {
 		return 0, unsupportedConversion(val.typ(), "i8")
@@ -890,7 +890,7 @@ func i8TryFromValue(val Value) (int8, error) {
 	return int8(n), nil
 }
 
-func i16TryFromValue(val Value) (int16, error) {
+func valueTryToGoInt16(val Value) (int16, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt16 || n > math.MaxInt16 {
 		return 0, unsupportedConversion(val.typ(), "i16")
@@ -898,7 +898,7 @@ func i16TryFromValue(val Value) (int16, error) {
 	return int16(n), nil
 }
 
-func i32TryFromValue(val Value) (int32, error) {
+func valueTryToGoInt32(val Value) (int32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt32 || n > math.MaxInt32 {
 		return 0, unsupportedConversion(val.typ(), "i32")
@@ -906,9 +906,9 @@ func i32TryFromValue(val Value) (int32, error) {
 	return int32(n), nil
 }
 
-func i64TryFromValue(val Value) (int64, error) { return val.tryToI64() }
+func valueTryToGoInt64(val Value) (int64, error) { return val.tryToI64() }
 
-func intTryFromValue(val Value) (int, error) {
+func valueTryToGoInt(val Value) (int, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt || n > math.MaxInt8 {
 		return 0, unsupportedConversion(val.typ(), "int")
@@ -916,7 +916,7 @@ func intTryFromValue(val Value) (int, error) {
 	return int(n), nil
 }
 
-func u8TryFromValue(val Value) (uint8, error) {
+func valueTryToGoUint8(val Value) (uint8, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint8 {
 		return 0, unsupportedConversion(val.typ(), "u8")
@@ -924,7 +924,7 @@ func u8TryFromValue(val Value) (uint8, error) {
 	return uint8(n), nil
 }
 
-func u16TryFromValue(val Value) (uint16, error) {
+func valueTryToGoUint16(val Value) (uint16, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint16 {
 		return 0, unsupportedConversion(val.typ(), "u16")
@@ -932,7 +932,7 @@ func u16TryFromValue(val Value) (uint16, error) {
 	return uint16(n), nil
 }
 
-func u32TryFromValue(val Value) (uint32, error) {
+func valueTryToGoUint32(val Value) (uint32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint32 {
 		return 0, unsupportedConversion(val.typ(), "u32")
@@ -940,7 +940,7 @@ func u32TryFromValue(val Value) (uint32, error) {
 	return uint32(n), nil
 }
 
-func u64TryFromValue(val Value) (uint64, error) {
+func valueTryToGoUint64(val Value) (uint64, error) {
 	n, err := val.tryToI128()
 	if err != nil || !n.IsUint64() {
 		return 0, unsupportedConversion(val.typ(), "u64")
@@ -1357,7 +1357,7 @@ func getItem(val, key Value) (Value, error) {
 	return val.getItemOpt(key).UnwrapOr(Undefined), nil
 }
 
-func boolTryFromValue(v Value) (bool, error) {
+func valueTryToGoBool(v Value) (bool, error) {
 	if boolVal, ok := v.(boolValue); ok {
 		return boolVal.B, nil
 	}
@@ -1368,7 +1368,7 @@ func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 	if v.IsNone() {
 		return false, NewError(MissingArgument, "")
 	}
-	return boolTryFromValue(v.Unwrap())
+	return valueTryToGoBool(v.Unwrap())
 }
 
 func getAttr(val Value, key string) (Value, error) {

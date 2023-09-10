@@ -48,7 +48,7 @@ func BoxedTestFromFunc(fn any) BoxedTest {
 			return false, NewError(TooManyArguments, "")
 		}
 		for i, val := range values {
-			goVal, err := valueToGoValueReflect(val, fnType.In(i+inOffset))
+			goVal, err := valueTryToGoValueReflect(val, fnType.In(i+inOffset))
 			if err != nil {
 				return false, err
 			}

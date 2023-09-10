@@ -76,7 +76,8 @@ func stringFromValue(val option.Option[Value]) (string, error) {
 	return "", NewError(MissingArgument, "")
 }
 
-func stringTryFromValue(val Value) (string, error) {
+func valueTryToGoString(val Value) (string, error) {
+	// TODO: compare benchmark with implementation using asStr().
 	if v, ok := val.(stringValue); ok {
 		return v.Str, nil
 	}
@@ -95,7 +96,7 @@ func newKwArgs(m valueMap) kwArgs {
 	}
 }
 
-func kwArgsTryFromValue(val Value) (kwArgs, error) {
+func valueTryToKwArgs(val Value) (kwArgs, error) {
 	if val == nil {
 		return newKwArgs(*newValueMap()), nil
 	}
@@ -144,11 +145,11 @@ func (a *kwArgs) AssertAllUsed() error {
 	return nil
 }
 
-func uintTryFromValue(val Value) (uint, error) {
+func valueTryToGoUint(val Value) (uint, error) {
 	return val.tryToUint()
 }
 
-func valueSliceTryFromValue(val Value) ([]Value, error) {
+func valueTryToValueSlice(val Value) ([]Value, error) {
 	iter, err := val.tryIter()
 	if err != nil {
 		return nil, err

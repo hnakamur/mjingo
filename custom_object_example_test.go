@@ -51,7 +51,7 @@ func (s *Magic) CallMethod(_state mjingo.State, name string, args []mjingo.Value
 		return nil, mjingo.NewError(mjingo.TooManyArguments, "")
 	}
 	// single string argument
-	tag, err := mjingo.ValueToGoValue[string](args[0])
+	tag, err := mjingo.ValueTryToGoValue[string](args[0])
 	if err != nil {
 		return nil, err
 	}

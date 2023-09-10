@@ -67,7 +67,7 @@ func BoxedFuncFromFunc(fn any) BoxedFunc {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := valueToGoValueReflect(val, argType)
+			goVal, err := valueTryToGoValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}

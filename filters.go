@@ -76,7 +76,7 @@ func BoxedFilterFromFunc(fn any) BoxedFilter {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := valueToGoValueReflect(val, argType)
+			goVal, err := valueTryToGoValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -837,7 +837,7 @@ func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 	if len(args) == 0 {
 		kwargs = newKwArgs(*newValueMap())
 	} else {
-		kwargs, err = kwArgsTryFromValue(args[len(args)-1])
+		kwargs, err = valueTryToKwArgs(args[len(args)-1])
 		if err != nil {
 			kwargs = newKwArgs(*newValueMap())
 		} else {
