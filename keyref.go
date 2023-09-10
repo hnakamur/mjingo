@@ -30,14 +30,8 @@ type strKeyRef struct{ str string }
 func (valueKeyRef) typ() keyRefType { return keyRefTypeValue }
 func (strKeyRef) typ() keyRefType   { return keyRefTypeStr }
 
-func (k valueKeyRef) AsStr() option.Option[string] {
-	s, err := valueTryToGoString(k.val)
-	if err != nil {
-		return option.Option[string]{}
-	}
-	return option.Some(s)
-}
-func (k strKeyRef) AsStr() option.Option[string] { return option.Some(k.str) }
+func (k valueKeyRef) AsStr() option.Option[string] { return valueAsOptionString(k.val) }
+func (k strKeyRef) AsStr() option.Option[string]   { return option.Some(k.str) }
 
 func (k valueKeyRef) AsI64() option.Option[int64] {
 	if i, err := k.val.tryToI64(); err != nil {

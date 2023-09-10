@@ -533,7 +533,7 @@ func (v dynamicValue) getItemOpt(key Value) option.Option[Value] {
 	case ObjectKindSeq:
 		return getItemOptFromSeq(v.Dy.(SeqObject), key)
 	case ObjectKindStruct:
-		if strKey, err := valueTryToGoString(key); err == nil {
+		if strKey := ""; valueAsOptionString(key).UnwrapTo(&strKey) {
 			return v.Dy.(StructObject).GetField(strKey)
 		}
 		return option.None[Value]()

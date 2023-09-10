@@ -628,8 +628,8 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 	l := choices.ItemCount()
 	for i := uint(0); i < l; i++ {
 		choice := choices.GetItem(i).Unwrap()
-		name, err := valueTryToGoString(choice)
-		if err != nil {
+		var name string
+		if !valueAsOptionString(choice).UnwrapTo(&name) {
 			return NewError(InvalidOperation, "template name was not a string")
 		}
 		tmpl, err := m.env.GetTemplate(name)
@@ -730,8 +730,8 @@ func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
 }
 
 func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, error) {
-	strName, err := valueTryToGoString(name)
-	if err != nil {
+	var strName string
+	if !valueAsOptionString(name).UnwrapTo(&strName) {
 		return instructions{}, NewError(InvalidOperation, "template name was not a string")
 	}
 	if state.loadedTemplates.Contains(strName) {
@@ -774,8 +774,8 @@ func (m *virtualMachine) callBlock(name string, state *vmState, out *output) (op
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
-	strVal, err := valueTryToGoString(val)
-	if err == nil {
+	var strVal string
+	if valueAsOptionString(val).UnwrapTo(&strVal) {
 		switch strVal {
 		case "html":
 			return autoEscapeHTML{}, nil

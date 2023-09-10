@@ -81,8 +81,8 @@ func writeWithHTMLEscaping(o *output, val Value) error {
 	case valueKindUndefined, valueKindNone, valueKindBool, valueKindNumber:
 		return writeString(o, val.String())
 	default:
-		str, err := valueTryToGoString(val)
-		if err != nil {
+		var str string
+		if !valueAsOptionString(val).UnwrapTo(&str) {
 			str = val.String()
 		}
 		return writeString(o, htmlEscapeString(str))

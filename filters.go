@@ -117,8 +117,8 @@ func escape(state State, v Value) (Value, error) {
 		}
 	}
 	var b strings.Builder
-	if s, ok := valueAsGoString(v); ok {
-		b.Grow(len(s))
+	if str := ""; valueAsOptionString(v).UnwrapTo(&str) {
+		b.Grow(len(str))
 	}
 	out := newOutput(&b)
 	if err := writeEscaped(out, autoEscape, v); err != nil {
@@ -162,17 +162,15 @@ func replace(_ State, v, from, to string) string {
 }
 
 func length(val Value) (uint, error) {
-	if optLen := val.len(); optLen.IsSome() {
-		return optLen.Unwrap(), nil
+	if l := uint(0); val.len().UnwrapTo(&l) {
+		return l, nil
 	}
 	return 0, NewError(InvalidOperation,
 		fmt.Sprintf("cannot calculate length of value of type %s", val.kind()))
 }
 
 func compareValuesCaseInsensitive(a, b Value) int {
-	strA, okA := valueAsGoString(a)
-	strB, okB := valueAsGoString(b)
-	if okA && okB {
+	if strA, strB := "", ""; valueAsOptionString(a).UnwrapTo(&strA) && valueAsOptionString(b).UnwrapTo(&strB) {
 		return strings.Compare(strings.ToLower(strA), strings.ToLower(strB))
 	}
 	return valueCmp(a, b)
@@ -374,7 +372,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 	}
 
 	joinerStr := joiner.UnwrapOr("")
-	if rest, err := valueTryToGoString(val); err == nil {
+	if rest := ""; valueAsOptionString(val).UnwrapTo(&rest) {
 		var b strings.Builder
 		for len(rest) > 0 {
 			if b.Len() != 0 {
@@ -395,7 +393,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 				b.WriteString(joinerStr)
 			}
 			item := valSeq.GetItem(i).Unwrap()
-			if itemStr, err := valueTryToGoString(item); err == nil {
+			if itemStr := ""; valueAsOptionString(item).UnwrapTo(&itemStr) {
 				b.WriteString(itemStr)
 			} else {
 				fmt.Fprintf(&b, "%s", item)
@@ -417,7 +415,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 // {% endfor %}
 // ```
 func reverse(val Value) (Value, error) {
-	if rest, err := valueTryToGoString(val); err == nil {
+	if rest := ""; valueAsOptionString(val).UnwrapTo(&rest) {
 		var b strings.Builder
 		for len(rest) > 0 {
 			r, size := utf8.DecodeLastRuneInString(rest)
@@ -503,7 +501,7 @@ func attr(val, key Value) (Value, error) {
 }
 
 func first(val Value) (Value, error) {
-	if rest, err := valueTryToGoString(val); err == nil {
+	if rest := ""; valueAsOptionString(val).UnwrapTo(&rest) {
 		if rest == "" {
 			return Undefined, nil
 		}
@@ -520,7 +518,7 @@ func first(val Value) (Value, error) {
 }
 
 func last(val Value) (Value, error) {
-	if rest, err := valueTryToGoString(val); err == nil {
+	if rest := ""; valueAsOptionString(val).UnwrapTo(&rest) {
 		if rest == "" {
 			return Undefined, nil
 		}
@@ -855,7 +853,7 @@ func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 		}
 		for item := Value(nil); iter.Next().UnwrapTo(&item); {
 			var subVal Value
-			if path, err := valueTryToGoString(attrVal); err == nil {
+			if path := ""; valueAsOptionString(attrVal).UnwrapTo(&path) {
 				subVal, err = getPath(item, path)
 			} else {
 				subVal, err = getItem(item, attrVal)
@@ -878,10 +876,11 @@ func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 		return nil, NewError(InvalidOperation, "filter name is required")
 	}
 	filterNameVal := args[0]
-	filterName, err := valueTryToGoString(filterNameVal)
-	if err != nil {
+	optFilterName := valueAsOptionString(filterNameVal)
+	if optFilterName.IsNone() {
 		return nil, NewError(InvalidOperation, "filter name must be a string")
 	}
+	filterName := optFilterName.Unwrap()
 	optFilter := state.Env().getFilter(filterName)
 	if optFilter.IsNone() {
 		return nil, NewError(UnknownFilter, "")
