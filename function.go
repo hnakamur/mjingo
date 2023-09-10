@@ -9,12 +9,6 @@ import (
 
 type boxedFunc = func(State, []Value) (Value, error)
 
-type funcObject struct{ f boxedFunc }
-
-func valueFromFunc(f boxedFunc) Value {
-	return valueFromObject(funcObject{f: f})
-}
-
 func boxedFuncFromFunc(fn any) boxedFunc {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
@@ -94,6 +88,12 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 		panic("unreachable")
 	}
 }
+
+func valueFromBoxedFunc(f boxedFunc) Value {
+	return valueFromObject(funcObject{f: f})
+}
+
+type funcObject struct{ f boxedFunc }
 
 var _ = (Object)(funcObject{})
 var _ = (Caller)(funcObject{})

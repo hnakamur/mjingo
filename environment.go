@@ -253,7 +253,7 @@ func (e *Environment) RemoveTest(name string) {
 
 // AddFunction adds a new global function.
 func (e *Environment) AddFunction(name string, fn any) {
-	e.globals[name] = valueFromFunc(boxedFuncFromFunc(fn))
+	e.globals[name] = valueFromBoxedFunc(boxedFuncFromFunc(fn))
 }
 
 // AddGlobal adds a new global variable.
