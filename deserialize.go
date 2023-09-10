@@ -118,6 +118,11 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 
 func valueTryToValue(val Value) (Value, error) { return val, nil }
 
+func valueAsGoString(val Value) (string, bool) {
+	strVal, ok := val.(stringValue)
+	return strVal.Str, ok
+}
+
 func valueTryToGoString(val Value) (string, error) {
 	// TODO: compare benchmark with implementation using asStr().
 	if v, ok := val.(stringValue); ok {
