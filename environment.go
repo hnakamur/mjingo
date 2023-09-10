@@ -15,10 +15,10 @@ import (
 //
 // There are generally two ways to construct an environment:
 //
-//   - [`NewEnvironment`] creates an environment preconfigured with sensible
+//   - [NewEnvironment] creates an environment preconfigured with sensible
 //     defaults.  It will contain all built-in filters, tests and globals as well
 //     as a callback for auto escaping based on file extension.
-//   - [`NewEnvironmentEmpty`] creates a completely blank environment.
+//   - [NewEnvironmentEmpty] creates a completely blank environment.
 type Environment struct {
 	templates         templateStore
 	filters           map[string]boxedFilter
@@ -40,7 +40,7 @@ type formatterFunc = func(*output, *vmState, Value) error
 // This environment does not yet contain any templates but it will have all
 // the default filters, tests and globals loaded.  If you do not want any
 // default configuration you can use the alternative
-// `NewEnvironmentEmpty` method.
+// [NewEnvironmentEmpty] method.
 func NewEnvironment() *Environment {
 	return &Environment{
 		templates:         *newLoaderStoreDefault(),
@@ -111,7 +111,7 @@ func (e *Environment) ClearTemplates() {
 //
 // This requires that the template has been loaded with
 // [Environment.AddTemplate] beforehand.  If the template was
-// not loaded an error of kind `TemplateNotFound` is returned.  If a loaded was
+// not loaded an error of kind [TemplateNotFound] is returned.  If a loaded was
 // added to the engine this can also dynamically load templates.
 func (e *Environment) GetTemplate(name string) (*Template, error) {
 	compiled := e.templates.get(name)
