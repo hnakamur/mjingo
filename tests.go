@@ -27,7 +27,7 @@ func boxedTestFromFunc(fn any) boxedTest {
 	}
 
 	numIn := fnType.NumIn()
-	if numIn < 1 && numIn > 3 {
+	if numIn < 1 && numIn > 5 {
 		panic("only functions with argument count between 1 and 3 are supported")
 	}
 	checkFuncArgTypes(fnType)
