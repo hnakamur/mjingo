@@ -61,7 +61,7 @@ func valueFromKwargs(a kwArgs) Value {
 	return mapValue{Map: &a.Values, Type: mapTypeKwargs}
 }
 
-func valueFromObject(dy object) Value {
+func valueFromObject(dy Object) Value {
 	return dynamicValue{Dy: dy}
 }
 

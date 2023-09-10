@@ -8,8 +8,8 @@ type closureObject struct {
 	values map[string]Value
 }
 
-var _ = (object)((*closureObject)(nil))
-var _ = (structObject)((*closureObject)(nil))
+var _ = (Object)((*closureObject)(nil))
+var _ = (StructObject)((*closureObject)(nil))
 
 func newClosure() closureObject {
 	return closureObject{values: make(map[string]Value)}
@@ -35,7 +35,7 @@ func (c *closureObject) storeIfMissing(key string, f func() Value) {
 	}
 }
 
-func (c *closureObject) Kind() objectKind { return objectKindStruct }
+func (c *closureObject) Kind() ObjectKind { return ObjectKindStruct }
 
 func (c *closureObject) StaticFields() option.Option[[]string] { return option.None[[]string]() }
 

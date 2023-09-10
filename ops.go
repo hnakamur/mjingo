@@ -75,7 +75,7 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 		}
 	}
 
-	var maybeSeq seqObject
+	var maybeSeq SeqObject
 	switch v := val.(type) {
 	case stringValue:
 		chars := []rune(v.Str)
@@ -90,7 +90,7 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	case seqValue:
 		maybeSeq = newSliceSeqObject(v.Items)
 	case dynamicValue:
-		if obj, ok := v.Dy.(seqObject); ok {
+		if obj, ok := v.Dy.(SeqObject); ok {
 			maybeSeq = obj
 		}
 	}

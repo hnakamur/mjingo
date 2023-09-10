@@ -15,11 +15,11 @@ type loopObject struct {
 	lastChangedValue []Value
 }
 
-var _ = (object)((*loopObject)(nil))
-var _ = (callMethoder)((*loopObject)(nil))
-var _ = (structObject)((*loopObject)(nil))
+var _ = (Object)((*loopObject)(nil))
+var _ = (CallMethoder)((*loopObject)(nil))
+var _ = (StructObject)((*loopObject)(nil))
 
-func (l *loopObject) Kind() objectKind { return objectKindStruct }
+func (l *loopObject) Kind() ObjectKind { return ObjectKindStruct }
 
 func (l *loopObject) CallMethod(state State, name string, args []Value) (Value, error) {
 	switch name {

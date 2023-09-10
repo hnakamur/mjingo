@@ -33,7 +33,7 @@ type Value interface {
 	tryToI64() (int64, error)
 	tryToUint() (uint, error)
 	asF64() option.Option[float64]
-	asSeq() option.Option[seqObject]
+	asSeq() option.Option[SeqObject]
 	clone() Value
 	tryIter() (iterator, error)
 	len() option.Option[uint]
@@ -171,7 +171,7 @@ type mapValue struct {
 	Type mapType
 }
 type dynamicValue struct {
-	Dy object
+	Dy Object
 }
 
 // / The type of map
@@ -265,10 +265,10 @@ func (v mapValue) String() string {
 }
 func (v dynamicValue) String() string {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		return fmt.Sprintf("%+v", v.Dy)
-	case objectKindSeq:
-		seq := v.Dy.(seqObject)
+	case ObjectKindSeq:
+		seq := v.Dy.(SeqObject)
 		var b strings.Builder
 		b.WriteString("[")
 		l := seq.ItemCount()
@@ -281,8 +281,8 @@ func (v dynamicValue) String() string {
 		}
 		b.WriteString("]")
 		return b.String()
-	case objectKindStruct:
-		obj := v.Dy.(structObject)
+	case ObjectKindStruct:
+		obj := v.Dy.(StructObject)
 		fields := staticOrDynamicFields(obj)
 		var b strings.Builder
 		b.WriteString("{")
@@ -393,12 +393,12 @@ func (seqValue) kind() valueKind    { return valueKindSeq }
 func (mapValue) kind() valueKind    { return valueKindMap }
 func (v dynamicValue) kind() valueKind {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		// XXX: basic objects should probably not report as map
 		return valueKindMap
-	case objectKindSeq:
+	case ObjectKindSeq:
 		return valueKindSeq
-	case objectKindStruct:
+	case ObjectKindStruct:
 		return valueKindMap
 	default:
 		panic("unreachable")
@@ -471,12 +471,12 @@ func (v seqValue) isTrue() bool    { return len(v.Items) != 0 }
 func (v mapValue) isTrue() bool    { return v.Map.Len() != 0 }
 func (v dynamicValue) isTrue() bool {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		return true
-	case objectKindSeq:
-		return v.Dy.(seqObject).ItemCount() != 0
-	case objectKindStruct:
-		return fieldCount(v.Dy.(structObject)) != 0
+	case ObjectKindSeq:
+		return v.Dy.(SeqObject).ItemCount() != 0
+	case ObjectKindStruct:
+		return fieldCount(v.Dy.(StructObject)) != 0
 	default:
 		panic("unreachable")
 	}
@@ -501,7 +501,7 @@ func (v mapValue) getAttrFast(key string) option.Option[Value] {
 	return option.None[Value]()
 }
 func (v dynamicValue) getAttrFast(key string) option.Option[Value] {
-	if s, ok := v.Dy.(structObject); ok {
+	if s, ok := v.Dy.(StructObject); ok {
 		return s.GetField(key)
 	}
 	return option.None[Value]()
@@ -529,13 +529,13 @@ func (v mapValue) getItemOpt(key Value) option.Option[Value] {
 }
 func (v dynamicValue) getItemOpt(key Value) option.Option[Value] {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		return option.None[Value]()
-	case objectKindSeq:
-		return getItemOptFromSeq(v.Dy.(seqObject), key)
-	case objectKindStruct:
+	case ObjectKindSeq:
+		return getItemOptFromSeq(v.Dy.(SeqObject), key)
+	case ObjectKindStruct:
 		if optKey := key.asStr(); optKey.IsSome() {
-			return v.Dy.(structObject).GetField(optKey.Unwrap())
+			return v.Dy.(StructObject).GetField(optKey.Unwrap())
 		}
 		return option.None[Value]()
 	default:
@@ -543,7 +543,7 @@ func (v dynamicValue) getItemOpt(key Value) option.Option[Value] {
 	}
 }
 
-func getItemOptFromSeq(seq seqObject, key Value) option.Option[Value] {
+func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
 	keyRf := valueKeyRef{val: key}
 	if optIdx := keyRf.AsI64(); optIdx.IsSome() {
 		idx := optIdx.Unwrap()
@@ -760,26 +760,26 @@ func (seqValue) asF64() option.Option[float64]     { return option.None[float64]
 func (mapValue) asF64() option.Option[float64]     { return option.None[float64]() }
 func (dynamicValue) asF64() option.Option[float64] { return option.None[float64]() }
 
-func (undefinedValue) asSeq() option.Option[seqObject] { return option.None[seqObject]() }
-func (boolValue) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
-func (u64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
-func (i64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
-func (f64Value) asSeq() option.Option[seqObject]       { return option.None[seqObject]() }
-func (noneValue) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
-func (invalidValue) asSeq() option.Option[seqObject]   { return option.None[seqObject]() }
-func (u128Value) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
-func (i128Value) asSeq() option.Option[seqObject]      { return option.None[seqObject]() }
-func (stringValue) asSeq() option.Option[seqObject]    { return option.None[seqObject]() }
-func (bytesValue) asSeq() option.Option[seqObject]     { return option.None[seqObject]() }
-func (v seqValue) asSeq() option.Option[seqObject] {
+func (undefinedValue) asSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
+func (boolValue) asSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
+func (u64Value) asSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
+func (i64Value) asSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
+func (f64Value) asSeq() option.Option[SeqObject]       { return option.None[SeqObject]() }
+func (noneValue) asSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
+func (invalidValue) asSeq() option.Option[SeqObject]   { return option.None[SeqObject]() }
+func (u128Value) asSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
+func (i128Value) asSeq() option.Option[SeqObject]      { return option.None[SeqObject]() }
+func (stringValue) asSeq() option.Option[SeqObject]    { return option.None[SeqObject]() }
+func (bytesValue) asSeq() option.Option[SeqObject]     { return option.None[SeqObject]() }
+func (v seqValue) asSeq() option.Option[SeqObject] {
 	return option.Some(newSliceSeqObject(v.Items))
 }
-func (mapValue) asSeq() option.Option[seqObject] { return option.None[seqObject]() }
-func (v dynamicValue) asSeq() option.Option[seqObject] {
-	if seq, ok := v.Dy.(seqObject); ok {
+func (mapValue) asSeq() option.Option[SeqObject] { return option.None[SeqObject]() }
+func (v dynamicValue) asSeq() option.Option[SeqObject] {
+	if seq, ok := v.Dy.(SeqObject); ok {
 		return option.Some(seq)
 	}
-	return option.None[seqObject]()
+	return option.None[SeqObject]()
 }
 
 func (v undefinedValue) clone() Value { return v }
@@ -863,13 +863,13 @@ func (v mapValue) tryIter() (iterator, error) {
 }
 func (v dynamicValue) tryIter() (iterator, error) {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		return iterator{iterState: &emptyValueIteratorState{}}, nil
-	case objectKindSeq:
-		seqObj := v.Dy.(seqObject)
+	case ObjectKindSeq:
+		seqObj := v.Dy.(SeqObject)
 		return iterator{iterState: &dynSeqValueIteratorState{obj: seqObj}, len: seqObj.ItemCount()}, nil
-	case objectKindStruct:
-		obj := v.Dy.(structObject)
+	case ObjectKindStruct:
+		obj := v.Dy.(StructObject)
 		fields := staticOrDynamicFields(obj)
 		return iterator{iterState: &stringsValueIteratorState{items: fields}}, nil
 	default:
@@ -953,7 +953,7 @@ type iterator struct {
 	len       uint
 }
 
-func iteratorFromSeqObject(s seqObject) *iterator {
+func iteratorFromSeqObject(s SeqObject) *iterator {
 	return &iterator{iterState: &dynSeqValueIteratorState{obj: s}}
 }
 
@@ -1084,7 +1084,7 @@ type stringsValueIteratorState struct {
 }
 type dynSeqValueIteratorState struct {
 	idx uint
-	obj seqObject
+	obj SeqObject
 }
 type mapValueIteratorState struct {
 	idx  uint
@@ -1196,12 +1196,12 @@ func (v seqValue) len() option.Option[uint] { return option.Some(uint(len(v.Item
 func (v mapValue) len() option.Option[uint] { return option.Some(v.Map.Len()) }
 func (v dynamicValue) len() option.Option[uint] {
 	switch v.Dy.Kind() {
-	case objectKindPlain:
+	case ObjectKindPlain:
 		return option.None[uint]()
-	case objectKindSeq:
-		return option.Some(v.Dy.(seqObject).ItemCount())
-	case objectKindStruct:
-		return option.Some(fieldCount(v.Dy.(structObject)))
+	case ObjectKindSeq:
+		return option.Some(v.Dy.(SeqObject).ItemCount())
+	case ObjectKindStruct:
+		return option.Some(fieldCount(v.Dy.(StructObject)))
 	default:
 		panic("unreachable")
 	}
@@ -1380,7 +1380,7 @@ func getAttr(val Value, key string) (Value, error) {
 			return v2.clone(), nil
 		}
 	case dynamicValue:
-		if obj, ok := v.Dy.(structObject); ok {
+		if obj, ok := v.Dy.(StructObject); ok {
 			if optField := obj.GetField(key); optField.IsSome() {
 				return optField.Unwrap(), nil
 			}
@@ -1457,14 +1457,14 @@ func valueHash(val Value, h hash.Hash) {
 		}
 	case dynamicValue:
 		switch v.Dy.Kind() {
-		case objectKindPlain:
+		case ObjectKindPlain:
 			h.Write([]byte{0})
-		case objectKindSeq:
-			for iter, item := iteratorFromSeqObject(v.Dy.(seqObject)), Value(nil); iter.Next().UnwrapTo(&item); {
+		case ObjectKindSeq:
+			for iter, item := iteratorFromSeqObject(v.Dy.(SeqObject)), Value(nil); iter.Next().UnwrapTo(&item); {
 				valueHash(item, h)
 			}
-		case objectKindStruct:
-			structObj := v.Dy.(structObject)
+		case ObjectKindStruct:
+			structObj := v.Dy.(StructObject)
 			var fields []string
 			if !structObj.StaticFields().UnwrapTo(&fields) {
 				fields = structObj.Fields()

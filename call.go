@@ -4,17 +4,17 @@ import (
 	"fmt"
 )
 
-type caller interface {
+type Caller interface {
 	Call(state State, args []Value) (Value, error)
 }
 
-type callMethoder interface {
+type CallMethoder interface {
 	CallMethod(state State, name string, args []Value) (Value, error)
 }
 
 func valueCall(receiver Value, state *vmState, args []Value) (Value, error) {
 	if dyVal, ok := receiver.(dynamicValue); ok {
-		if c, ok := dyVal.Dy.(caller); ok {
+		if c, ok := dyVal.Dy.(Caller); ok {
 			return c.Call(state, args)
 		}
 		return nil, newError(InvalidOperation, "tried to call non callable object")
@@ -32,14 +32,14 @@ func callMethod(receiver Value, state *vmState, name string, args []Value) (Valu
 	case mapValue:
 		if val, ok := v.Map.Get(keyRefFromString(name)); ok {
 			if dyVal, ok := val.(dynamicValue); ok {
-				if c, ok := dyVal.Dy.(caller); ok {
+				if c, ok := dyVal.Dy.(Caller); ok {
 					return c.Call(state, args)
 				}
 			}
 			return notCallableValueType(val)
 		}
 	case dynamicValue:
-		if c, ok := v.Dy.(callMethoder); ok {
+		if c, ok := v.Dy.(CallMethoder); ok {
 			return c.CallMethod(state, name, args)
 		}
 	}

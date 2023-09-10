@@ -7,9 +7,9 @@ import (
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
+	"github.com/hnakamur/mjingo/option"
 )
 
 // the cost of a single include against the stack limit.
@@ -617,7 +617,7 @@ loop:
 }
 
 func (m *virtualMachine) performInclude(name Value, state *vmState, out *output, ignoreMissing bool) error {
-	var choices seqObject
+	var choices SeqObject
 	if optChoices := name.asSeq(); optChoices.IsSome() {
 		choices = optChoices.Unwrap()
 	} else {
@@ -832,7 +832,7 @@ func (m *virtualMachine) pushLoop(state *vmState, iterable Value,
 
 func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) error {
 	top := stack.Pop()
-	var seq seqObject
+	var seq SeqObject
 	if optSeq := top.asSeq(); optSeq.IsSome() {
 		seq = optSeq.Unwrap()
 	} else {

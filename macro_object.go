@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type macroData struct {
@@ -21,15 +21,15 @@ type macro struct {
 	data macroData
 }
 
-var _ = (object)((*macro)(nil))
-var _ = (caller)((*macro)(nil))
-var _ = (structObject)((*macro)(nil))
+var _ = (Object)((*macro)(nil))
+var _ = (Caller)((*macro)(nil))
+var _ = (StructObject)((*macro)(nil))
 
 func (m *macro) String() string {
 	return fmt.Sprintf("<macro %s>", m.data.name)
 }
 
-func (m *macro) Kind() objectKind { return objectKindStruct }
+func (m *macro) Kind() ObjectKind { return ObjectKindStruct }
 
 func (m *macro) Call(state State, args []Value) (Value, error) {
 	var kwargs *valueMap

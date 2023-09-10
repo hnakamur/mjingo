@@ -95,10 +95,10 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 	}
 }
 
-var _ = (object)(funcObject{})
-var _ = (caller)(funcObject{})
+var _ = (Object)(funcObject{})
+var _ = (Caller)(funcObject{})
 
-func (funcObject) Kind() objectKind { return objectKindPlain }
+func (funcObject) Kind() ObjectKind { return ObjectKindPlain }
 
 func (f funcObject) Call(state State, args []Value) (Value, error) {
 	return f.f(state, args)

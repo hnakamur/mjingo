@@ -123,7 +123,7 @@ func canConvertibleToValue(ty reflect.Type) bool {
 		reflect.Struct, reflect.Array, reflect.Slice, reflect.Map, reflect.Ptr:
 		return true
 	case reflect.Interface:
-		return ty == reflectType[Value]() || ty == reflectType[object]()
+		return ty == reflectType[Value]() || ty == reflectType[Object]()
 	default:
 		return false
 	}
@@ -181,7 +181,7 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return mapErrToInvalidValue(serializeNone())
 	case Value:
 		return v
-	case object:
+	case Object:
 		return valueFromObject(v)
 	case []Value:
 		return valueFromSlice(v)
@@ -227,14 +227,14 @@ type reflectStructObject struct {
 	nameToFieldIdx map[string]int
 }
 
-var _ = (object)((*reflectStructObject)(nil))
-var _ = (structObject)((*reflectStructObject)(nil))
+var _ = (Object)((*reflectStructObject)(nil))
+var _ = (StructObject)((*reflectStructObject)(nil))
 
 func structObjectWithReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectStructObject {
 	return &reflectStructObject{val: val, config: config, level: level}
 }
 
-func (*reflectStructObject) Kind() objectKind { return objectKindStruct }
+func (*reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
 
 func (o *reflectStructObject) GetField(name string) option.Option[Value] {
 	o.collectFieldNames()
@@ -288,14 +288,14 @@ type reflectSeqObject struct {
 	level  uint
 }
 
-var _ = (object)((*reflectSeqObject)(nil))
-var _ = (seqObject)((*reflectSeqObject)(nil))
+var _ = (Object)((*reflectSeqObject)(nil))
+var _ = (SeqObject)((*reflectSeqObject)(nil))
 
 func sqeObjectFromGoReflectSeq(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectSeqObject {
 	return &reflectSeqObject{val: val, config: config, level: level}
 }
 
-func (*reflectSeqObject) Kind() objectKind { return objectKindSeq }
+func (*reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
 
 func (o *reflectSeqObject) GetItem(idx uint) option.Option[Value] {
 	if idx >= o.ItemCount() {
