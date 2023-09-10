@@ -8,11 +8,12 @@ type Option[T any] struct {
 }
 
 func Some[T any](data T) Option[T] {
-	return Option[T]{data: data, valid: true}
+	return Option[T]{valid: true, data: data}
 }
 
-func None[T any]() (none Option[T]) {
-	return
+func None[T any]() Option[T] {
+	var zero Option[T]
+	return zero
 }
 
 func (o Option[T]) Unwrap() T {
