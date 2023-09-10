@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
 )
 

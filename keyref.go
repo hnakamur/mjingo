@@ -4,7 +4,7 @@ import (
 	"hash"
 	"io"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type keyRef interface {

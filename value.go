@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type Value interface {

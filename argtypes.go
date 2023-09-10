@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 func valueFromBytes(val []byte) Value {

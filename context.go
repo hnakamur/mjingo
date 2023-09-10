@@ -1,7 +1,7 @@
 package mjingo
 
 import (
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 // The maximum recursion in the VM.  Normally each stack frame

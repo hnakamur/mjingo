@@ -4,7 +4,7 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type captureMode uint8

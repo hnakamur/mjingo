@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 func opGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint) (uint, uint) {

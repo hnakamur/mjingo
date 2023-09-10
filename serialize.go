@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 func serializeBool(v bool) (Value, error) {

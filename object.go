@@ -1,6 +1,6 @@
 package mjingo
 
-import "github.com/hnakamur/mjingo/internal/datast/option"
+import "github.com/hnakamur/mjingo/option"
 
 type object interface {
 	Kind() objectKind

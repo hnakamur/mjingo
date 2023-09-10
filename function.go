@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type boxedFunc = func(State, []Value) (Value, error)

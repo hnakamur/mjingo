@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/internal/datast/option"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type tokenStream struct {
