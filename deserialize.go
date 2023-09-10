@@ -57,7 +57,7 @@ func ValueTryToGoValue[T any](val Value) (T, error) {
 func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	switch destType {
 	case reflectType[Value]():
-		return val, nil
+		return valueTryToValue(val)
 	case reflectType[bool]():
 		return valueTryToGoBool(val)
 	case reflectType[int8]():
@@ -81,11 +81,11 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	case reflectType[uint]():
 		return valueTryToGoUint(val)
 	case reflectType[string]():
-		return stringFromValue(option.Some(val))
+		return valueTryToGoString(val)
 	case reflectType[kwArgs]():
 		return valueTryToKwArgs(val)
 	case reflectType[option.Option[Value]]():
-		return valueTryToOption(val, func(val Value) (Value, error) { return val, nil })
+		return valueTryToOption(val, valueTryToValue)
 	case reflectType[option.Option[bool]]():
 		return valueTryToOption(val, valueTryToGoBool)
 	case reflectType[option.Option[int8]]():
@@ -109,9 +109,7 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	case reflectType[option.Option[uint64]]():
 		return valueTryToOption(val, valueTryToGoUint64)
 	case reflectType[option.Option[string]]():
-		return valueTryToOption(val, func(val Value) (string, error) {
-			return stringFromValue(option.Some(val))
-		})
+		return valueTryToOption(val, valueTryToGoString)
 	case reflectType[[]Value]():
 		return valueTryToValueSlice(val)
 	}
@@ -125,6 +123,8 @@ func valueTryToGoStringWithAsStr(val Value) (string, error) {
 	}
 	return "", NewError(InvalidOperation, "value is not a string")
 }
+
+func valueTryToValue(val Value) (Value, error) { return val, nil }
 
 func valueTryToGoString(val Value) (string, error) {
 	// TODO: compare benchmark with implementation using asStr().

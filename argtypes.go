@@ -65,17 +65,6 @@ func valueFromObject(dy Object) Value {
 	return dynamicValue{Dy: dy}
 }
 
-func stringFromValue(val option.Option[Value]) (string, error) {
-	if val.IsSome() {
-		optStr := val.Unwrap().asStr()
-		if optStr.IsSome() {
-			return optStr.Unwrap(), nil
-		}
-		return "", NewError(InvalidOperation, "value is not a string")
-	}
-	return "", NewError(MissingArgument, "")
-}
-
 type kwArgs struct {
 	Values valueMap
 	Used   hashset.StrHashSet
