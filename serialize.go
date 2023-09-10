@@ -123,7 +123,7 @@ func canConvertibleToValue(ty reflect.Type) bool {
 		reflect.Struct, reflect.Array, reflect.Slice, reflect.Map, reflect.Ptr:
 		return true
 	case reflect.Interface:
-		return ty == reflectType[Value]()
+		return ty == reflectType[Value]() || ty == reflectType[object]()
 	default:
 		return false
 	}
@@ -181,6 +181,8 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return mapErrToInvalidValue(serializeNone())
 	case Value:
 		return v
+	case object:
+		return valueFromObject(v)
 	case []Value:
 		return valueFromSlice(v)
 	default:
