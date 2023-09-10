@@ -175,6 +175,8 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return mapErrToInvalidValue(serializeF32(v))
 	case float64:
 		return mapErrToInvalidValue(serializeF64(v))
+	// case rune: // Cannot do this because of "duplicate case rune in type switch"
+	// 	return mapErrToInvalidValue(serializeRune(v))
 	case string:
 		return mapErrToInvalidValue(serializeStr(v))
 	case nil:

@@ -79,7 +79,7 @@ func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (Value, erro
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
 		return Undefined, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
-		return nil, newError(UndefinedError, "")
+		return nil, NewError(UndefinedError, "")
 	default:
 		panic("unreachable")
 	}
@@ -104,7 +104,7 @@ func (b UndefinedBehavior) tryIter(val Value) (iterator, error) {
 // Are we strict on iteration?
 func (b UndefinedBehavior) assertIterable(val Value) error {
 	if b == UndefinedBehaviorStrict && val.isUndefined() {
-		return newError(UndefinedError, "")
+		return NewError(UndefinedError, "")
 	}
 	return nil
 }

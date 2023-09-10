@@ -17,13 +17,13 @@ func valueCall(receiver Value, state *vmState, args []Value) (Value, error) {
 		if c, ok := dyVal.Dy.(Caller); ok {
 			return c.Call(state, args)
 		}
-		return nil, newError(InvalidOperation, "tried to call non callable object")
+		return nil, NewError(InvalidOperation, "tried to call non callable object")
 	}
 	return notCallableValueType(receiver)
 }
 
 func notCallableValueType(v Value) (Value, error) {
-	return nil, newError(InvalidOperation,
+	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s is not callable", v.kind()))
 }
 
@@ -43,6 +43,6 @@ func callMethod(receiver Value, state *vmState, name string, args []Value) (Valu
 			return c.CallMethod(state, name, args)
 		}
 	}
-	return nil, newError(InvalidOperation,
+	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("object has no method named %s", name))
 }

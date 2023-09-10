@@ -51,10 +51,10 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 			wantValuesLen--
 		}
 		if len(values) < wantValuesLen-optCount {
-			return nil, newError(MissingArgument, "")
+			return nil, NewError(MissingArgument, "")
 		}
 		if len(values) > wantValuesLen && !fnType.IsVariadic() {
-			return nil, newError(TooManyArguments, "")
+			return nil, NewError(TooManyArguments, "")
 		}
 		var inValues []Value
 		if len(inValues) >= wantValuesLen {
@@ -73,7 +73,7 @@ func boxedFuncFromFunc(fn any) boxedFunc {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := goValueFromValue(val, argType)
+			goVal, err := goValueFromValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -117,13 +117,13 @@ func rangeFunc(lower uint32, upper, step option.Option[uint32]) ([]uint32, error
 	if step.IsSome() {
 		iStep = step.Unwrap()
 		if iStep == 0 {
-			return nil, newError(InvalidOperation, "cannot create range with step of 0")
+			return nil, NewError(InvalidOperation, "cannot create range with step of 0")
 		}
 	}
 
 	n := (iUpper - lower) / iStep
 	if n > 10000 {
-		return nil, newError(InvalidOperation, "range has too many elements")
+		return nil, NewError(InvalidOperation, "range has too many elements")
 	}
 
 	rv := make([]uint32, 0, n)
@@ -140,5 +140,5 @@ func dictFunc(val Value) (Value, error) {
 	case mapValue:
 		return valueFromIndexMap(v.Map), nil
 	}
-	return nil, newError(InvalidOperation, "")
+	return nil, NewError(InvalidOperation, "")
 }

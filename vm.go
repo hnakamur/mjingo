@@ -191,7 +191,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if a.isUndefined() && undefinedBehavior == UndefinedBehaviorStrict {
-				return option.None[Value](), processErr(newError(UndefinedError, ""), pc, state)
+				return option.None[Value](), processErr(NewError(UndefinedError, ""), pc, state)
 			}
 			if s, err := opSlice(a, b, stop, step); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
@@ -234,7 +234,7 @@ loop:
 				v.Append(a)
 				stack.Push(v)
 			} else {
-				err := newError(InvalidOperation, "cannot append to non-list")
+				err := NewError(InvalidOperation, "cannot append to non-list")
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case addInstruction:
@@ -459,7 +459,7 @@ loop:
 			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
-				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)
@@ -475,7 +475,7 @@ loop:
 			if optVal := getOrLookupLocal(loadedTests[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
-				err := newError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)
@@ -489,7 +489,7 @@ loop:
 			if inst.Name == "super" {
 				// super is a special function reserved for super-ing into blocks.
 				if inst.ArgCount != 0 {
-					err := newError(InvalidOperation, "super() takes no arguments")
+					err := NewError(InvalidOperation, "super() takes no arguments")
 					return option.None[Value](), processErr(err, pc, state)
 				}
 				val, err := m.performSuper(state, out, true)
@@ -500,7 +500,7 @@ loop:
 			} else if inst.Name == "loop" {
 				// loop is a special name which when called recurses the current loop.
 				if inst.ArgCount != 1 {
-					err := newError(InvalidOperation,
+					err := NewError(InvalidOperation,
 						fmt.Sprintf("loop() takes one argument, got %d", inst.ArgCount))
 					return option.None[Value](), processErr(err, pc, state)
 				}
@@ -519,7 +519,7 @@ loop:
 				stack.DropTop(inst.ArgCount)
 				stack.Push(a)
 			} else {
-				err := newError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
+				err := NewError(UnknownFunction, fmt.Sprintf("%s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case callMethodInstruction:
@@ -575,7 +575,7 @@ loop:
 			// create name clashes this works fine.
 			a = stack.Pop()
 			if parentInstructions.IsSome() {
-				err := newError(InvalidOperation, "tried to extend a second time in a template")
+				err := NewError(InvalidOperation, "tried to extend a second time in a template")
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			insts, err := m.loadBlocks(a, state)
@@ -630,7 +630,7 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 		choice := choices.GetItem(i).Unwrap()
 		optName := choice.asStr()
 		if optName.IsNone() {
-			return newError(InvalidOperation, "template name was not a string")
+			return NewError(InvalidOperation, "template name was not a string")
 		}
 		tmpl, err := m.env.GetTemplate(optName.Unwrap())
 		if err != nil {
@@ -664,7 +664,7 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 		state.instructions = oldInsts
 		state.blocks = oldBlocks
 		if err != nil {
-			return newError(BadInclude, fmt.Sprintf("error in \"%s\"", tmpl.name())).withSource(err)
+			return NewError(BadInclude, fmt.Sprintf("error in \"%s\"", tmpl.name())).withSource(err)
 		}
 		return nil
 	}
@@ -676,20 +676,20 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 		} else {
 			detail = fmt.Sprintf("tried to include one of multiple templates, none of which existed %s", templatesTried)
 		}
-		return newError(TemplateNotFound, detail)
+		return NewError(TemplateNotFound, detail)
 	}
 	return nil
 }
 
 func (m *virtualMachine) performSuper(state *vmState, out *output, capture bool) (Value, error) {
 	if state.currentBlock.IsNone() {
-		return nil, newError(InvalidOperation, "cannot super outside of block")
+		return nil, NewError(InvalidOperation, "cannot super outside of block")
 	}
 	name := state.currentBlock.Unwrap()
 
 	blockStack := state.blocks[name]
 	if !blockStack.push() {
-		return nil, newError(InvalidOperation, "no parent block exists")
+		return nil, NewError(InvalidOperation, "no parent block exists")
 	}
 
 	if capture {
@@ -706,7 +706,7 @@ func (m *virtualMachine) performSuper(state *vmState, out *output, capture bool)
 	state.instructions = oldInsts
 	state.blocks[name].pop()
 	if err != nil {
-		return nil, newError(EvalBlock, "error in super block").withSource(err)
+		return nil, NewError(EvalBlock, "error in super block").withSource(err)
 	}
 	if capture {
 		return out.endCapture(state.autoEscape), nil
@@ -724,19 +724,19 @@ func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
 		if loopCtx.recurseJumpTarget.IsSome() {
 			return loopCtx.recurseJumpTarget.Unwrap(), nil
 		}
-		return 0, newError(InvalidOperation, "cannot recurse outside of recursive loop")
+		return 0, NewError(InvalidOperation, "cannot recurse outside of recursive loop")
 	}
-	return 0, newError(InvalidOperation, "cannot recurse outside of loop")
+	return 0, NewError(InvalidOperation, "cannot recurse outside of loop")
 }
 
 func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, error) {
 	optName := name.asStr()
 	if optName.IsNone() {
-		return instructions{}, newError(InvalidOperation, "template name was not a string")
+		return instructions{}, NewError(InvalidOperation, "template name was not a string")
 	}
 	strName := optName.Unwrap()
 	if state.loadedTemplates.Contains(strName) {
-		return instructions{}, newError(InvalidOperation,
+		return instructions{}, NewError(InvalidOperation,
 			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
 	}
 	tmpl, err := m.env.GetTemplate(strName)
@@ -771,7 +771,7 @@ func (m *virtualMachine) callBlock(name string, state *vmState, out *output) (op
 		state.currentBlock = oldBlock
 		return rv, err
 	}
-	return option.None[Value](), newError(UnknownBlock, fmt.Sprintf("block '%s' not found", name))
+	return option.None[Value](), NewError(UnknownBlock, fmt.Sprintf("block '%s' not found", name))
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
@@ -791,7 +791,7 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 		}
 		return initialAutoEscape, nil
 	}
-	return nil, newError(InvalidOperation, "invalid value to autoescape tag")
+	return nil, NewError(InvalidOperation, "invalid value to autoescape tag")
 }
 
 func (m *virtualMachine) pushLoop(state *vmState, iterable Value,
@@ -836,10 +836,10 @@ func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) er
 	if optSeq := top.asSeq(); optSeq.IsSome() {
 		seq = optSeq.Unwrap()
 	} else {
-		return newError(CannotUnpack, "not a sequence")
+		return NewError(CannotUnpack, "not a sequence")
 	}
 	if seq.ItemCount() != count {
-		return newError(CannotUnpack,
+		return NewError(CannotUnpack,
 			fmt.Sprintf("sequence of wrong length (expected %d, got %d)", count, seq.ItemCount()))
 	}
 	for i := count - 1; ; i-- {
@@ -904,7 +904,7 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 func assertValid(v Value, pc uint, st *vmState) (Value, error) {
 	if vInvalid, ok := v.(invalidValue); ok {
 		detail := vInvalid.Detail
-		err := newError(BadSerialization, detail)
+		err := NewError(BadSerialization, detail)
 		processErr(err, pc, st)
 		return nil, err
 	}

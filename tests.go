@@ -42,13 +42,13 @@ func boxedTestFromFunc(fn any) boxedTest {
 		}
 		wantValuesLen := numIn - inOffset
 		if len(values) < wantValuesLen {
-			return false, newError(MissingArgument, "")
+			return false, NewError(MissingArgument, "")
 		}
 		if len(values) > wantValuesLen {
-			return false, newError(TooManyArguments, "")
+			return false, NewError(TooManyArguments, "")
 		}
 		for i, val := range values {
-			goVal, err := goValueFromValue(val, fnType.In(i+inOffset))
+			goVal, err := goValueFromValueReflect(val, fnType.In(i+inOffset))
 			if err != nil {
 				return false, err
 			}

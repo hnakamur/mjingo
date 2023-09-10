@@ -63,11 +63,11 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 		if s, ok := step.(i64Value); ok {
 			stepVal = s.N
 			if stepVal < 0 {
-				return nil, newError(InvalidOperation,
+				return nil, NewError(InvalidOperation,
 					"cannot slice by negative step size")
 			}
 			if stepVal == 0 {
-				return nil, newError(InvalidOperation,
+				return nil, NewError(InvalidOperation,
 					"cannot slice by step size of 0")
 			}
 		} else {
@@ -105,13 +105,13 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 		}
 		return seqValue{Items: sliced}, nil
 	}
-	return nil, newError(InvalidOperation,
+	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s cannot be sliced", val.typ()))
 }
 
 func opNeg(val Value) (Value, error) {
 	if val.kind() != valueKindNumber {
-		return nil, newError(InvalidOperation, "")
+		return nil, NewError(InvalidOperation, "")
 	}
 	if v, ok := val.(f64Value); ok {
 		return f64Value{F: -v.F}, nil
@@ -119,7 +119,7 @@ func opNeg(val Value) (Value, error) {
 
 	x, err := val.tryToI128()
 	if err != nil {
-		return nil, newError(InvalidOperation, "")
+		return nil, NewError(InvalidOperation, "")
 	}
 	x.Neg(&x)
 	return i128AsValue(&x), nil
@@ -272,7 +272,7 @@ func opContains(container Value, val Value) (Value, error) {
 		_, ok := mapVal.Map.Get(keyRefFromValue(val.clone()))
 		rv = ok
 	} else {
-		return nil, newError(InvalidOperation,
+		return nil, NewError(InvalidOperation,
 			"cannot perform a containment check on this value")
 	}
 	return valueFromBool(rv), nil
@@ -485,11 +485,11 @@ func i128CheckedPow(ret, base *big.Int, exp uint32) *big.Int {
 }
 
 func failedOp(op string, lhs, rhs Value) error {
-	return newError(InvalidOperation,
+	return NewError(InvalidOperation,
 		fmt.Sprintf("unable to calculate %s %s %s", lhs, op, rhs))
 }
 
 func impossibleOp(op string, lhs, rhs Value) error {
-	return newError(InvalidOperation,
+	return NewError(InvalidOperation,
 		fmt.Sprintf("tried to use %s operator on unsupported types %s and %s", op, lhs, rhs))
 }

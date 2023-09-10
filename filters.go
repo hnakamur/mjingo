@@ -54,10 +54,10 @@ func boxedFilterFromFunc(fn any) boxedFilter {
 			wantValuesLen--
 		}
 		if len(values) < wantValuesLen-optCount {
-			return nil, newError(MissingArgument, "")
+			return nil, NewError(MissingArgument, "")
 		}
 		if len(values) > wantValuesLen && !fnType.IsVariadic() {
-			return nil, newError(TooManyArguments, "")
+			return nil, NewError(TooManyArguments, "")
 		}
 		var inValues []Value
 		if len(inValues) >= wantValuesLen {
@@ -76,7 +76,7 @@ func boxedFilterFromFunc(fn any) boxedFilter {
 			} else {
 				argType = fnType.In(i + inOffset)
 			}
-			goVal, err := goValueFromValue(val, argType)
+			goVal, err := goValueFromValueReflect(val, argType)
 			if err != nil {
 				return nil, err
 			}
@@ -165,7 +165,7 @@ func length(val Value) (uint, error) {
 	if optLen := val.len(); optLen.IsSome() {
 		return optLen.Unwrap(), nil
 	}
-	return 0, newError(InvalidOperation,
+	return 0, NewError(InvalidOperation,
 		fmt.Sprintf("cannot calculate length of value of type %s", val.kind()))
 }
 
@@ -192,7 +192,7 @@ type keyAndValue struct {
 // * `reverse`: set to `true` to sort in reverse.
 func dictsort(v Value, kwargs kwArgs) (Value, error) {
 	if v.kind() != valueKindMap {
-		return nil, newError(InvalidOperation, "cannot convert value into pair list")
+		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
 	entries := make([]keyAndValue, 0, v.len().UnwrapOr(0))
 	iter, err := v.tryIter()
@@ -216,7 +216,7 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 			case "value":
 				byVal = true
 			default:
-				return nil, newError(InvalidOperation,
+				return nil, NewError(InvalidOperation,
 					fmt.Sprintf("invalid value '%s' for 'by' parameter", by.Str))
 			}
 		}
@@ -267,7 +267,7 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 func sortFilter(state State, val Value, kwargs kwArgs) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, newError(InvalidOperation, "cannot convert value to list").withSource(err)
+		return nil, NewError(InvalidOperation, "cannot convert value to list").withSource(err)
 	}
 	items := iter.Collect()
 	caseSensitive := false
@@ -347,7 +347,7 @@ func sortFilter(state State, val Value, kwargs kwArgs) (Value, error) {
 // ```
 func items(v Value) (Value, error) {
 	if v.kind() != valueKindMap {
-		return nil, newError(InvalidOperation, "cannot convert value into pair list")
+		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
 	items := make([]Value, 0, v.len().UnwrapOr(0))
 	iter, err := v.tryIter()
@@ -402,7 +402,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 		}
 		return b.String(), nil
 	}
-	return "", newError(InvalidOperation,
+	return "", NewError(InvalidOperation,
 		fmt.Sprintf("cannot join value of type %s", val.kind()))
 }
 
@@ -439,7 +439,7 @@ func reverse(val Value) (Value, error) {
 		}
 		return valueFromSlice(items), nil
 	}
-	return nil, newError(InvalidOperation,
+	return nil, NewError(InvalidOperation,
 		fmt.Sprintf("cannot reverse value of type %s", val.kind()))
 }
 
@@ -465,7 +465,7 @@ func round(val Value, precision option.Option[int32]) (Value, error) {
 		x := math.Pow10(int(precision.UnwrapOr(0)))
 		return valueFromF64(math.Round(x*v.F) / x), nil
 	default:
-		return nil, newError(InvalidOperation, "cannot round value")
+		return nil, NewError(InvalidOperation, "cannot round value")
 	}
 }
 
@@ -485,7 +485,7 @@ func abs(val Value) (Value, error) {
 		return f64Value{F: math.Abs(v.F)}, nil
 	default:
 		// TODO: Verify MiniJinja error message is really intentional.
-		return nil, newError(InvalidOperation, "cannot round value")
+		return nil, NewError(InvalidOperation, "cannot round value")
 	}
 }
 
@@ -517,7 +517,7 @@ func first(val Value) (Value, error) {
 		valSeq := optValSeq.Unwrap()
 		return valSeq.GetItem(0).UnwrapOr(Undefined), nil
 	}
-	return nil, newError(InvalidOperation, "cannot get first item from value")
+	return nil, NewError(InvalidOperation, "cannot get first item from value")
 }
 
 func last(val Value) (Value, error) {
@@ -539,13 +539,13 @@ func last(val Value) (Value, error) {
 		}
 		return valSeq.GetItem(n - 1).UnwrapOr(Undefined), nil
 	}
-	return nil, newError(InvalidOperation, "cannot get last item from value")
+	return nil, NewError(InvalidOperation, "cannot get last item from value")
 }
 
 func minFilter(state State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Min().UnwrapOr(Undefined), nil
 }
@@ -553,7 +553,7 @@ func minFilter(state State, val Value) (Value, error) {
 func maxFilter(state State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return iter.Max().UnwrapOr(Undefined), nil
 }
@@ -561,7 +561,7 @@ func maxFilter(state State, val Value) (Value, error) {
 func listFilter(state State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
-		return nil, newError(InvalidDelimiter, "cannot convert value to list").withSource(err)
+		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
 	}
 	return valueFromSlice(iter.Collect()), nil
 }
@@ -595,7 +595,7 @@ func boolFilter(val Value) bool {
 // ```
 func batchFilter(state State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
-		return nil, newError(InvalidOperation, "count cannot be 0")
+		return nil, NewError(InvalidOperation, "count cannot be 0")
 	}
 
 	rv := make([]Value, 0, val.len().UnwrapOr(0)/count)
@@ -650,7 +650,7 @@ func batchFilter(state State, val Value, count uint, fillWith option.Option[Valu
 // last iteration.
 func sliceFilter(state State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
-		return nil, newError(InvalidOperation, "count cannot be 0")
+		return nil, NewError(InvalidOperation, "count cannot be 0")
 	}
 
 	iter, err := state.UndefinedBehavior().tryIter(val)
@@ -727,7 +727,7 @@ func selectOrReject(state State, invert bool, val Value, attr, testName option.O
 	if testName.IsSome() {
 		test = state.Env().getTest(testName.Unwrap())
 		if test.IsNone() {
-			return nil, newError(UnknownTest, "")
+			return nil, NewError(UnknownTest, "")
 		}
 	}
 	iter, err := state.UndefinedBehavior().tryIter(val)
@@ -848,7 +848,7 @@ func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 	if optAttr := kwargs.GetValue("attribute"); optAttr.IsSome() {
 		attrVal := optAttr.Unwrap()
 		if len(args) != 0 {
-			return nil, newError(TooManyArguments, "")
+			return nil, NewError(TooManyArguments, "")
 		}
 		defVal := kwargs.GetValue("default").UnwrapOr(Undefined)
 		iter, err := state.UndefinedBehavior().tryIter(val)
@@ -878,17 +878,17 @@ func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 
 	// filter mapping
 	if len(args) == 0 {
-		return nil, newError(InvalidOperation, "filter name is required")
+		return nil, NewError(InvalidOperation, "filter name is required")
 	}
 	filterNameVal := args[0]
 	optFilterName := filterNameVal.asStr()
 	if optFilterName.IsNone() {
-		return nil, newError(InvalidOperation, "filter name must be a string")
+		return nil, NewError(InvalidOperation, "filter name must be a string")
 	}
 	filterName := optFilterName.Unwrap()
 	optFilter := state.Env().getFilter(filterName)
 	if optFilter.IsNone() {
-		return nil, newError(UnknownFilter, "")
+		return nil, NewError(UnknownFilter, "")
 	}
 	filter := optFilter.Unwrap()
 	iter, err := state.UndefinedBehavior().tryIter(val)

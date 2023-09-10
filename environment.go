@@ -116,7 +116,7 @@ func (e *Environment) ClearTemplates() {
 func (e *Environment) GetTemplate(name string) (*Template, error) {
 	compiled := e.templates.get(name)
 	if compiled == nil {
-		return nil, newError(TemplateNotFound, "")
+		return nil, NewError(TemplateNotFound, "")
 	}
 	return &Template{
 		env:               e,
@@ -268,7 +268,7 @@ func (e *Environment) RemoveGlobal(name string) {
 
 func (e *Environment) format(v Value, state *vmState, out *output) error {
 	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
-		return newError(UndefinedError, "")
+		return NewError(UndefinedError, "")
 	}
 	return e.formatter(out, state, v)
 }

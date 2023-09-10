@@ -16,7 +16,7 @@ type Error struct {
 	source error
 }
 
-func newError(typ ErrorType, detail string) *Error {
+func NewError(typ ErrorType, detail string) *Error {
 	return &Error{typ: typ, detail: detail}
 }
 

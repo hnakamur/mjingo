@@ -41,7 +41,7 @@ func (m *macro) Call(state State, args []Value) (Value, error) {
 	}
 
 	if len(args) > len(m.data.argSpec) {
-		return nil, newError(TooManyArguments, "")
+		return nil, NewError(TooManyArguments, "")
 	}
 
 	kwargsUsed := hashset.NewStrHashSet()
@@ -55,7 +55,7 @@ func (m *macro) Call(state State, args []Value) (Value, error) {
 		var arg Value
 		switch {
 		case i < len(args) && kwarg != nil:
-			return nil, newError(TooManyArguments, fmt.Sprintf("duplicate argument `%s`", name))
+			return nil, NewError(TooManyArguments, fmt.Sprintf("duplicate argument `%s`", name))
 		case i < len(args) && kwarg == nil:
 			arg = args[i].clone()
 		case i >= len(args) && kwarg != nil:
@@ -83,7 +83,7 @@ func (m *macro) Call(state State, args []Value) (Value, error) {
 		for _, keyRef := range kwargs.Keys() {
 			if optKey := keyRef.AsStr(); optKey.IsSome() {
 				if !kwargsUsed.Contains(optKey.Unwrap()) {
-					return nil, newError(TooManyArguments,
+					return nil, NewError(TooManyArguments,
 						fmt.Sprintf("unknown keyword argument `%s`", optKey.Unwrap()))
 				}
 			}

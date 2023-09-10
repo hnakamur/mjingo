@@ -45,7 +45,26 @@ func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional boo
 	return false, false
 }
 
-func goValueFromValue(val Value, destType reflect.Type) (any, error) {
+func CheckArgumentCount(values []Value, minCount, maxCount int) error {
+	if len(values) < minCount {
+		return NewError(MissingArgument, "")
+	}
+	if len(values) > maxCount {
+		return NewError(TooManyArguments, "")
+	}
+	return nil
+}
+
+func GoValueFromValue[T any](val Value) (T, error) {
+	goVal, err := goValueFromValueReflect(val, reflectType[T]())
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	return goVal.(T), nil
+}
+
+func goValueFromValueReflect(val Value, destType reflect.Type) (any, error) {
 	switch destType {
 	case reflectType[Value]():
 		return val, nil

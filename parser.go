@@ -784,7 +784,7 @@ func (p *parser) withRecursionGuardStmt(f func() (statement, error)) (statement,
 }
 
 func unexpected(unexpected any, expected string) error {
-	return newError(SyntaxError,
+	return NewError(SyntaxError,
 		fmt.Sprintf("unexpected %v, expected %s", unexpected, expected))
 }
 
@@ -797,7 +797,7 @@ func makeConst(v Value, spn span) astExpr {
 }
 
 func syntaxError(msg string) error {
-	return newError(SyntaxError, msg)
+	return NewError(SyntaxError, msg)
 }
 
 func (p *parser) parseMacroArgsAndDefaults(args, defaults *[]astExpr) error {

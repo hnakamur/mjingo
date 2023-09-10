@@ -826,34 +826,34 @@ func (undefinedValue) tryIter() (iterator, error) {
 	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v boolValue) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v u64Value) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v i64Value) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v f64Value) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (noneValue) tryIter() (iterator, error) {
 	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v invalidValue) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v u128Value) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v i128Value) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v stringValue) tryIter() (iterator, error) {
 	return iterator{iterState: &charsValueIteratorState{s: v.Str}, len: uint(utf8.RuneCountInString(v.Str))}, nil
 }
 func (v bytesValue) tryIter() (iterator, error) {
-	return iterator{}, newError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
 }
 func (v seqValue) tryIter() (iterator, error) {
 	return iterator{iterState: &seqValueIteratorState{items: v.Items}, len: uint(len(v.Items))}, nil
@@ -878,7 +878,7 @@ func (v dynamicValue) tryIter() (iterator, error) {
 }
 
 func unsupportedConversion(kind valueType, target string) error {
-	return newError(InvalidOperation,
+	return NewError(InvalidOperation,
 		fmt.Sprintf("cannot convert %s to %s", kind, target))
 }
 
@@ -1352,7 +1352,7 @@ func f64TotalCmp(left, right float64) int {
 
 func getItem(val, key Value) (Value, error) {
 	if val.isUndefined() {
-		return nil, newError(UndefinedError, "")
+		return nil, NewError(UndefinedError, "")
 	}
 	return val.getItemOpt(key).UnwrapOr(Undefined), nil
 }
@@ -1366,7 +1366,7 @@ func boolTryFromValue(v Value) (bool, error) {
 
 func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 	if v.IsNone() {
-		return false, newError(MissingArgument, "")
+		return false, NewError(MissingArgument, "")
 	}
 	return boolTryFromValue(v.Unwrap())
 }
@@ -1374,7 +1374,7 @@ func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 func getAttr(val Value, key string) (Value, error) {
 	switch v := val.(type) {
 	case undefinedValue:
-		return nil, newError(UndefinedError, "")
+		return nil, NewError(UndefinedError, "")
 	case mapValue:
 		if v2, ok := v.Map.Get(keyRefFromString(key)); ok {
 			return v2.clone(), nil

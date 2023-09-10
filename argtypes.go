@@ -71,16 +71,16 @@ func stringFromValue(val option.Option[Value]) (string, error) {
 		if optStr.IsSome() {
 			return optStr.Unwrap(), nil
 		}
-		return "", newError(InvalidOperation, "value is not a string")
+		return "", NewError(InvalidOperation, "value is not a string")
 	}
-	return "", newError(MissingArgument, "")
+	return "", NewError(MissingArgument, "")
 }
 
 func stringTryFromValue(val Value) (string, error) {
 	if v, ok := val.(stringValue); ok {
 		return v.Str, nil
 	}
-	return "", newError(InvalidOperation, "value is not a string")
+	return "", NewError(InvalidOperation, "value is not a string")
 }
 
 type kwArgs struct {
@@ -107,7 +107,7 @@ func kwArgsTryFromValue(val Value) (kwArgs, error) {
 			return newKwArgs(*v.Map.Clone()), nil
 		}
 	}
-	return kwArgs{}, newError(InvalidOperation, "")
+	return kwArgs{}, NewError(InvalidOperation, "")
 }
 
 // Get a single argument from the kwargs but don't mark it as used.
@@ -134,11 +134,11 @@ func (a *kwArgs) AssertAllUsed() error {
 		if optKey := keyRf.AsStr(); optKey.IsSome() {
 			key := optKey.Unwrap()
 			if !a.Used.Contains(key) {
-				return newError(TooManyArguments,
+				return NewError(TooManyArguments,
 					fmt.Sprintf("unknown keyword argument '%s'", key))
 			}
 		} else {
-			return newError(InvalidOperation, "non string keys passed to kwargs")
+			return NewError(InvalidOperation, "non string keys passed to kwargs")
 		}
 	}
 	return nil

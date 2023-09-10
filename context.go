@@ -156,7 +156,7 @@ func (c *context) decrDepth(delta uint) {
 
 func (c *context) checkDepth() error {
 	if c.depth() > contextStackMaxRecursion {
-		return newError(InvalidOperation, "recursion limit exceeded")
+		return NewError(InvalidOperation, "recursion limit exceeded")
 	}
 	return nil
 }
