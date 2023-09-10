@@ -117,7 +117,7 @@ func escape(state State, v Value) (Value, error) {
 		}
 	}
 	var b strings.Builder
-	if s, err := valueTryToGoString(v); err == nil {
+	if s, ok := valueAsGoString(v); ok {
 		b.Grow(len(s))
 	}
 	out := newOutput(&b)
@@ -170,9 +170,9 @@ func length(val Value) (uint, error) {
 }
 
 func compareValuesCaseInsensitive(a, b Value) int {
-	strA, errA := valueTryToGoString(a)
-	strB, errB := valueTryToGoString(b)
-	if errA == nil && errB == nil {
+	strA, okA := valueAsGoString(a)
+	strB, okB := valueAsGoString(b)
+	if okA && okB {
 		return strings.Compare(strings.ToLower(strA), strings.ToLower(strB))
 	}
 	return valueCmp(a, b)

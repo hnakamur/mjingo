@@ -1486,3 +1486,16 @@ func (v bytesValue) Equal(other any) bool     { return valueEqualAny(v, other) }
 func (v seqValue) Equal(other any) bool       { return valueEqualAny(v, other) }
 func (v mapValue) Equal(other any) bool       { return valueEqualAny(v, other) }
 func (v dynamicValue) Equal(other any) bool   { return valueEqualAny(v, other) }
+
+func valueAsGoString(val Value) (string, bool) {
+	strVal, ok := val.(stringValue)
+	return strVal.Str, ok
+}
+
+func valueAsOptionString(val Value) option.Option[string] {
+	strVal, ok := val.(stringValue)
+	if ok {
+		return option.Some(strVal.Str)
+	}
+	return option.None[string]()
+}
