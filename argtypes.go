@@ -254,9 +254,6 @@ func ArgsTo5GoValues[A any, B any, C any, D any, E any](state State, values []Va
 }
 
 func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type) ([]any, error) {
-	if err := checkArgTypes(argTypes); err != nil {
-		return nil, err
-	}
 	var goVals []any
 	i := 0
 	for _, argType := range argTypes {
