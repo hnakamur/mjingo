@@ -131,6 +131,53 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	panic("unsupported destination type")
 }
 
+func valueTryToGoValueNoReflect(val Value, destPtr any) error {
+	switch p := destPtr.(type) {
+	case *Value:
+		*p = val
+	case *bool:
+		return valueTryToGoValueHelper[bool](val, p, valueTryToGoBool)
+	case *int8:
+		return valueTryToGoValueHelper[int8](val, p, valueTryToGoInt8)
+	case *int16:
+		return valueTryToGoValueHelper[int16](val, p, valueTryToGoInt16)
+	case *int32:
+		return valueTryToGoValueHelper[int32](val, p, valueTryToGoInt32)
+	case *int64:
+		return valueTryToGoValueHelper[int64](val, p, valueTryToGoInt64)
+	case *int:
+		return valueTryToGoValueHelper[int](val, p, valueTryToGoInt)
+	case *uint8:
+		return valueTryToGoValueHelper[uint8](val, p, valueTryToGoUint8)
+	case *uint16:
+		return valueTryToGoValueHelper[uint16](val, p, valueTryToGoUint16)
+	case *uint32:
+		return valueTryToGoValueHelper[uint32](val, p, valueTryToGoUint32)
+	case *uint64:
+		return valueTryToGoValueHelper[uint64](val, p, valueTryToGoUint64)
+	case *uint:
+		return valueTryToGoValueHelper[uint](val, p, valueTryToGoUint)
+	case *float32:
+		return valueTryToGoValueHelper[float32](val, p, valueTryToGoFloat32)
+	case *float64:
+		return valueTryToGoValueHelper[float64](val, p, valueTryToGoFloat64)
+	case *string:
+		return valueTryToGoValueHelper[string](val, p, valueTryToGoString)
+	case *Kwargs:
+		return valueTryToGoValueHelper[Kwargs](val, p, valueTryToKwargs)
+	}
+	panic("unsupported destination type")
+}
+
+func valueTryToGoValueHelper[T any](val Value, dest *T, f func(Value) (T, error)) error {
+	v, err := f(val)
+	if err != nil {
+		return err
+	}
+	*dest = v
+	return nil
+}
+
 func valueSliceTryToGoSliceReflect(values []Value, destType reflect.Type) (any, error) {
 	slice := reflect.MakeSlice(destType, 0, len(values))
 	elemType := destType.Elem()
