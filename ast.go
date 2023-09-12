@@ -1,8 +1,8 @@
 package mjingo
 
 import (
-	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type statement interface {
@@ -330,7 +330,7 @@ func (e kwargsExpr) asConst() option.Option[Value] {
 			rv.Set(keyRefFromValue(valueFromString(pair.key)), v.val.clone())
 		}
 	}
-	return option.Some(valueFromKwargs(newKwArgs(*rv)))
+	return option.Some(valueFromKwargs(newKwargs(*rv)))
 }
 
 var _ = astExpr(varExpr{})

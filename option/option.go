@@ -81,6 +81,16 @@ func (o *Option[T]) AsPtr() *T {
 	return nil
 }
 
+func (o Option[T]) Equal(other Option[T], eqData func(a, b T) bool) bool {
+	if o.valid == other.valid {
+		if o.valid {
+			return eqData(o.data, other.data)
+		}
+		return true
+	}
+	return false
+}
+
 func (o Option[T]) Compare(other Option[T], cmpData func(a, b T) int) int {
 	if o.valid == other.valid {
 		if o.valid {

@@ -190,7 +190,7 @@ type keyAndValue struct {
 // * `case_sensitive`: set to `true` to make the sorting of strings case sensitive.
 // * `by`: set to `"value"` to sort by  Defaults to `"key"`.
 // * `reverse`: set to `true` to sort in reverse.
-func dictsort(v Value, kwargs kwArgs) (Value, error) {
+func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	if v.kind() != valueKindMap {
 		return nil, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
@@ -264,7 +264,7 @@ func dictsort(v Value, kwargs kwArgs) (Value, error) {
 	return valueFromSlice(items), nil
 }
 
-func sortFilter(state State, val Value, kwargs kwArgs) (Value, error) {
+func sortFilter(state State, val Value, kwargs Kwargs) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, NewError(InvalidOperation, "cannot convert value to list").withSource(err)
@@ -828,14 +828,14 @@ func uniqueFilter(values []Value) Value {
 // ```
 func mapFilter(state State, val Value, args ...Value) ([]Value, error) {
 	rv := make([]Value, 0, val.len().UnwrapOr(0))
-	var kwargs kwArgs
+	var kwargs Kwargs
 	var err error
 	if len(args) == 0 {
-		kwargs = newKwArgs(*newValueMap())
+		kwargs = newKwargs(*newValueMap())
 	} else {
-		kwargs, err = valueTryToKwArgs(args[len(args)-1])
+		kwargs, err = valueTryToKwargs(args[len(args)-1])
 		if err != nil {
-			kwargs = newKwArgs(*newValueMap())
+			kwargs = newKwargs(*newValueMap())
 		} else {
 			args = args[:len(args)-1]
 		}

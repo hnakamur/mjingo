@@ -869,7 +869,7 @@ func unsupportedConversion(kind valueType, target string) error {
 func valueTryToGoInt8(val Value) (int8, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt8 || n > math.MaxInt8 {
-		return 0, unsupportedConversion(val.typ(), "i8")
+		return 0, unsupportedConversion(val.typ(), "int8")
 	}
 	return int8(n), nil
 }
@@ -877,7 +877,7 @@ func valueTryToGoInt8(val Value) (int8, error) {
 func valueTryToGoInt16(val Value) (int16, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt16 || n > math.MaxInt16 {
-		return 0, unsupportedConversion(val.typ(), "i16")
+		return 0, unsupportedConversion(val.typ(), "int16")
 	}
 	return int16(n), nil
 }
@@ -885,7 +885,7 @@ func valueTryToGoInt16(val Value) (int16, error) {
 func valueTryToGoInt32(val Value) (int32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < math.MinInt32 || n > math.MaxInt32 {
-		return 0, unsupportedConversion(val.typ(), "i32")
+		return 0, unsupportedConversion(val.typ(), "int32")
 	}
 	return int32(n), nil
 }
@@ -903,7 +903,7 @@ func valueTryToGoInt(val Value) (int, error) {
 func valueTryToGoUint8(val Value) (uint8, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint8 {
-		return 0, unsupportedConversion(val.typ(), "u8")
+		return 0, unsupportedConversion(val.typ(), "uint8")
 	}
 	return uint8(n), nil
 }
@@ -911,7 +911,7 @@ func valueTryToGoUint8(val Value) (uint8, error) {
 func valueTryToGoUint16(val Value) (uint16, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint16 {
-		return 0, unsupportedConversion(val.typ(), "u16")
+		return 0, unsupportedConversion(val.typ(), "uint16")
 	}
 	return uint16(n), nil
 }
@@ -919,7 +919,7 @@ func valueTryToGoUint16(val Value) (uint16, error) {
 func valueTryToGoUint32(val Value) (uint32, error) {
 	n, err := val.tryToI64()
 	if err != nil || n < 0 || n > math.MaxUint32 {
-		return 0, unsupportedConversion(val.typ(), "u32")
+		return 0, unsupportedConversion(val.typ(), "uint32")
 	}
 	return uint32(n), nil
 }
@@ -927,9 +927,25 @@ func valueTryToGoUint32(val Value) (uint32, error) {
 func valueTryToGoUint64(val Value) (uint64, error) {
 	n, err := val.tryToI128()
 	if err != nil || !n.IsUint64() {
-		return 0, unsupportedConversion(val.typ(), "u64")
+		return 0, unsupportedConversion(val.typ(), "uint64")
 	}
 	return n.Uint64(), nil
+}
+
+func valueTryToGoFloat32(val Value) (float32, error) {
+	var f float64
+	if val.asF64().UnwrapTo(&f) {
+		return float32(f), nil
+	}
+	return 0, unsupportedConversion(val.typ(), "float32")
+}
+
+func valueTryToGoFloat64(val Value) (float64, error) {
+	var f float64
+	if val.asF64().UnwrapTo(&f) {
+		return f, nil
+	}
+	return 0, unsupportedConversion(val.typ(), "float64")
 }
 
 type iterator struct {
