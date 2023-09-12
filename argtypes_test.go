@@ -70,16 +70,27 @@ func TestArgsTo1GoValue(t *testing.T) {
 		}
 	})
 	t.Run("Kwargs", func(t *testing.T) {
-		kwargs, err := ArgsTo1GoValue[Kwargs](State(nil),
-			[]Value{valueFromKwargs(newKwargs(*valueMapFromEntries([]valueMapEntry{
-				{Key: keyRefFromString("a"), Value: valueFromI64(3)},
-			})))})
-		if err != nil {
-			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
-		}
-		if got, want := kwargs.PeekValue("a"), option.Some(valueFromI64(3)); got.Compare(want, valueCmp) != 0 {
-			t.Errorf("ret mismatch, got=%v (%T), want=%v (%T)", got, got, want, want)
-		}
+		t.Run("WithValue", func(t *testing.T) {
+			kwargs, err := ArgsTo1GoValue[Kwargs](State(nil),
+				[]Value{valueFromKwargs(newKwargs(*valueMapFromEntries([]valueMapEntry{
+					{Key: keyRefFromString("a"), Value: valueFromI64(3)},
+				})))})
+			if err != nil {
+				t.Errorf("err mismatch, got=%v, want=%v", err, nil)
+			}
+			if got, want := kwargs.PeekValue("a"), option.Some(valueFromI64(3)); got.Compare(want, valueCmp) != 0 {
+				t.Errorf("ret mismatch, got=%v (%T), want=%v (%T)", got, got, want, want)
+			}
+		})
+		t.Run("NoValue", func(t *testing.T) {
+			kwargs, err := ArgsTo1GoValue[Kwargs](State(nil), nil)
+			if err != nil {
+				t.Errorf("err mismatch, got=%v, want=%v", err, nil)
+			}
+			if got, want := kwargs.PeekValue("a"), option.None[Value](); got.Compare(want, valueCmp) != 0 {
+				t.Errorf("ret mismatch, got=%v (%T), want=%v (%T)", got, got, want, want)
+			}
+		})
 	})
 }
 

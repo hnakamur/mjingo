@@ -52,15 +52,6 @@ func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional boo
 	return false, false
 }
 
-func ValueTryToGoValue[T any](val Value) (T, error) {
-	goVal, err := valueTryToGoValueReflect(val, reflectType[T]())
-	if err != nil {
-		var zero T
-		return zero, err
-	}
-	return goVal.(T), nil
-}
-
 func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	switch destType {
 	case reflectType[Value]():
@@ -129,6 +120,12 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 		return valueTryToValueSlice(val)
 	}
 	panic("unsupported destination type")
+}
+
+func ValueTryToGoValue[T any](val Value) (T, error) {
+	var ret T
+	err := valueTryToGoValueNoReflect(val, &ret)
+	return ret, err
 }
 
 func valueTryToGoValueNoReflect(val Value, destPtr any) error {

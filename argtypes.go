@@ -264,7 +264,7 @@ func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type)
 		switch kind {
 		case argTypeKindState:
 			goVals = append(goVals, state)
-		case argTypeKindPrimitive, argTypeKindKwargs:
+		case argTypeKindPrimitive:
 			if i >= len(values) {
 				return nil, NewError(MissingArgument, "")
 			}
@@ -274,6 +274,19 @@ func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type)
 			}
 			goVals = append(goVals, goVal)
 			i++
+		case argTypeKindKwargs:
+			var goVal Kwargs
+			if i < len(values) {
+				var err error
+				goVal, err = valueTryToKwargs(values[i])
+				if err != nil {
+					return nil, err
+				}
+				i++
+			} else {
+				goVal = newKwargs(*newValueMap())
+			}
+			goVals = append(goVals, goVal)
 		case argTypeKindOption:
 			var goVal any
 			if i < len(values) {
