@@ -26,40 +26,40 @@ func BoxedTestFromFunc(fn any) BoxedTest {
 		assertType[error](fnType.Out(1), "type of seond return value must be error")
 	}
 
-	numIn := fnType.NumIn()
-	if numIn < 1 && numIn > 5 {
-		panic("only functions with argument count between 1 and 3 are supported")
+	argTypes := buildArgTypesOfFunc(fn)
+	if err := checkArgTypes(argTypes); err != nil {
+		panic(err.Error())
 	}
-	checkFuncArgTypes(fnType)
-
 	fnVal := reflect.ValueOf(fn)
 	return func(state State, values []Value) (bool, error) {
-		reflectVals := make([]reflect.Value, 0, numIn)
-		inOffset := 0
-		if fnType.In(0) == reflectType[State]() {
-			reflectVals = append(reflectVals, reflect.ValueOf(state))
-			inOffset++
+		goVals, err := argsToGoValuesReflect(state, values, argTypes)
+		if err != nil {
+			return false, err
 		}
-		wantValuesLen := numIn - inOffset
-		if len(values) < wantValuesLen {
-			return false, NewError(MissingArgument, "")
-		}
-		if len(values) > wantValuesLen {
-			return false, NewError(TooManyArguments, "")
-		}
-		for i, val := range values {
-			goVal, err := valueTryToGoValueReflect(val, fnType.In(i+inOffset))
-			if err != nil {
-				return false, err
+		reflectVals := make([]reflect.Value, len(goVals))
+		for i, goVal := range goVals {
+			if fnType.IsVariadic() && i == fnType.NumIn()-1 {
+				reflectVals[i] = reflect.ValueOf(goVal).Convert(sliceTypeForRestTypeReflect(argTypes[i]))
+			} else {
+				reflectVals[i] = reflect.ValueOf(goVal)
 			}
-			reflectVals = append(reflectVals, reflect.ValueOf(goVal))
 		}
-		ret := fnVal.Call(reflectVals)
-		switch len(ret) {
+		var retVals []reflect.Value
+		if fnType.IsVariadic() {
+			retVals = fnVal.CallSlice(reflectVals)
+		} else {
+			retVals = fnVal.Call(reflectVals)
+		}
+		switch len(retVals) {
 		case 1:
-			return ret[0].Interface().(bool), nil
+			return retVals[0].Interface().(bool), nil
 		case 2:
-			return ret[0].Interface().(bool), ret[1].Interface().(error)
+			retVal0 := retVals[0].Interface().(bool)
+			retVal1 := retVals[1].Interface()
+			if retVal1 != nil {
+				return retVal0, retVal1.(error)
+			}
+			return retVal0, nil
 		}
 		panic("unreachable")
 	}

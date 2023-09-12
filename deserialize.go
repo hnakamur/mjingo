@@ -1,56 +1,10 @@
 package mjingo
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/hnakamur/mjingo/option"
 )
-
-func checkFuncArgTypes(fnType reflect.Type) (optionCount int) {
-	numIn := fnType.NumIn()
-	varadic := fnType.IsVariadic()
-	for i := 0; i < numIn; i++ {
-		argType := fnType.In(i)
-		if (varadic && i == numIn-1) || argType.Kind() == reflect.Slice {
-			argType = argType.Elem()
-		}
-		supported, optional := checkFuncArgType(argType, i)
-		if !supported {
-			panic(fmt.Sprintf("unsupported type for argument %d of function", i))
-		}
-		if optionCount > 0 && !optional && !(varadic && i == numIn-1) {
-			panic(fmt.Sprintf("non optional type of argument %d after optional type of argument in function", i))
-		}
-		if optional {
-			optionCount++
-		}
-	}
-	return
-}
-
-func checkFuncArgType(argType reflect.Type, argPos int) (supported, optional bool) {
-	switch argType {
-	case reflectType[State]():
-		return argPos == 0, false
-	case reflectType[Value](), reflectType[bool](), reflectType[int8](),
-		reflectType[int16](), reflectType[int32](), reflectType[int64](),
-		reflectType[int](), reflectType[uint8](), reflectType[uint16](),
-		reflectType[uint32](), reflectType[uint64](), reflectType[uint](),
-		reflectType[float32](), reflectType[float64](), reflectType[string]():
-		return true, false
-	case reflectType[option.Option[Value]](), reflectType[option.Option[bool]](),
-		reflectType[option.Option[int8]](), reflectType[option.Option[int16]](),
-		reflectType[option.Option[int32]](), reflectType[option.Option[int64]](),
-		reflectType[option.Option[int]](), reflectType[option.Option[uint8]](),
-		reflectType[option.Option[uint16]](), reflectType[option.Option[uint32]](),
-		reflectType[option.Option[uint64]](), reflectType[option.Option[uint]](),
-		reflectType[option.Option[float32]](), reflectType[option.Option[float64]](),
-		reflectType[option.Option[string]](), reflectType[Kwargs]():
-		return true, true
-	}
-	return false, false
-}
 
 func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	switch destType {

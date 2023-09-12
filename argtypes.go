@@ -302,12 +302,19 @@ func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type)
 			}
 			goVals = append(goVals, goVal)
 		case argTypeKindSlice:
-			goVal, err := valueSliceTryToGoSliceReflect(values[i:], argType)
+			if i >= len(values) {
+				return nil, NewError(MissingArgument, "")
+			}
+			argVals, err := valueTryToValueSlice(values[i])
+			if err != nil {
+				return nil, err
+			}
+			goVal, err := valueSliceTryToGoSliceReflect(argVals, argType)
 			if err != nil {
 				return nil, err
 			}
 			goVals = append(goVals, goVal)
-			i = len(values)
+			i++
 		case argTypeKindRest:
 			sliceType := sliceTypeForRestTypeReflect(argType)
 			sliceVal, err := valueSliceTryToGoSliceReflect(values[i:], sliceType)
@@ -325,6 +332,20 @@ func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type)
 	return goVals, nil
 }
 
+func buildArgTypesOfFunc(fn any) []reflect.Type {
+	typ := reflect.TypeOf(fn)
+	numIn := typ.NumIn()
+	argTypes := make([]reflect.Type, numIn)
+	for i := 0; i < numIn; i++ {
+		if typ.IsVariadic() && i == numIn-1 {
+			argTypes[i] = restTypeFromSliceTypeReflect(typ.In(i))
+		} else {
+			argTypes[i] = typ.In(i)
+		}
+	}
+	return argTypes
+}
+
 func checkArgTypes(argTypes []reflect.Type) error {
 	seenOptional := false
 	for i, argType := range argTypes {
@@ -335,14 +356,14 @@ func checkArgTypes(argTypes []reflect.Type) error {
 				return NewError(InvalidOperation,
 					"argument of State type must be the first argument")
 			}
-		case argTypeKindPrimitive:
+		case argTypeKindPrimitive, argTypeKindSlice:
 			if seenOptional {
 				return NewError(InvalidOperation,
 					"argument of non-optional type cannot be after argument of optional type")
 			}
 		case argTypeKindOption:
 			seenOptional = true
-		case argTypeKindSlice, argTypeKindRest, argTypeKindKwargs:
+		case argTypeKindRest, argTypeKindKwargs:
 			if i != len(argTypes)-1 {
 				return NewError(InvalidOperation,
 					fmt.Sprintf("argument of %s type must be the last argument", kind))
@@ -459,6 +480,42 @@ func sliceTypeForRestTypeReflect(typ reflect.Type) reflect.Type {
 		return reflectType[[]float64]()
 	case reflectType[Rest[string]]():
 		return reflectType[[]string]()
+	}
+	panic("unreachable")
+}
+
+func restTypeFromSliceTypeReflect(typ reflect.Type) reflect.Type {
+	switch typ {
+	case reflectType[[]Value]():
+		return reflectType[Rest[Value]]()
+	case reflectType[[]bool]():
+		return reflectType[Rest[bool]]()
+	case reflectType[[]int8]():
+		return reflectType[Rest[int8]]()
+	case reflectType[[]int16]():
+		return reflectType[Rest[int16]]()
+	case reflectType[[]int32]():
+		return reflectType[Rest[int32]]()
+	case reflectType[[]int64]():
+		return reflectType[Rest[int64]]()
+	case reflectType[[]int]():
+		return reflectType[Rest[int]]()
+	case reflectType[[]uint8]():
+		return reflectType[Rest[uint8]]()
+	case reflectType[[]uint16]():
+		return reflectType[Rest[uint16]]()
+	case reflectType[[]uint32]():
+		return reflectType[Rest[uint32]]()
+	case reflectType[[]uint64]():
+		return reflectType[Rest[uint64]]()
+	case reflectType[[]uint]():
+		return reflectType[Rest[uint]]()
+	case reflectType[[]float32]():
+		return reflectType[Rest[float32]]()
+	case reflectType[[]float64]():
+		return reflectType[Rest[float64]]()
+	case reflectType[[]string]():
+		return reflectType[Rest[string]]()
 	}
 	panic("unreachable")
 }

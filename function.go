@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"reflect"
-	"slices"
 
 	"github.com/hnakamur/mjingo/option"
 )
@@ -26,54 +25,30 @@ func BoxedFuncFromFunc(fn any) BoxedFunc {
 		assertType[error](fnType.Out(1), "type of second return value must be error")
 	}
 
-	numIn := fnType.NumIn()
-	if numIn < 1 && numIn > 5 {
-		panic("only functions with argument count between 1 and 5 are supported")
+	argTypes := buildArgTypesOfFunc(fn)
+	if err := checkArgTypes(argTypes); err != nil {
+		panic(err.Error())
 	}
-	optCount := checkFuncArgTypes(fnType)
-
 	fnVal := reflect.ValueOf(fn)
 	return func(state State, values []Value) (Value, error) {
-		reflectVals := make([]reflect.Value, 0, numIn)
-		inOffset := 0
-		if fnType.In(0) == reflectType[State]() {
-			reflectVals = append(reflectVals, reflect.ValueOf(state))
-			inOffset++
+		goVals, err := argsToGoValuesReflect(state, values, argTypes)
+		if err != nil {
+			return nil, err
 		}
-		wantValuesLen := numIn - inOffset
-		if fnType.IsVariadic() {
-			wantValuesLen--
-		}
-		if len(values) < wantValuesLen-optCount {
-			return nil, NewError(MissingArgument, "")
-		}
-		if len(values) > wantValuesLen && !fnType.IsVariadic() {
-			return nil, NewError(TooManyArguments, "")
-		}
-		var inValues []Value
-		if len(inValues) >= wantValuesLen {
-			inValues = values
-		} else {
-			inValues = slices.Clone(values)
-			for i := len(inValues); i < wantValuesLen; i++ {
-				inValues = append(inValues, nil)
-			}
-		}
-
-		for i, val := range inValues {
-			var argType reflect.Type
-			if fnType.IsVariadic() && i+inOffset >= numIn-1 {
-				argType = fnType.In(numIn - 1).Elem()
+		reflectVals := make([]reflect.Value, len(goVals))
+		for i, goVal := range goVals {
+			if fnType.IsVariadic() && i == fnType.NumIn()-1 {
+				reflectVals[i] = reflect.ValueOf(goVal).Convert(sliceTypeForRestTypeReflect(argTypes[i]))
 			} else {
-				argType = fnType.In(i + inOffset)
+				reflectVals[i] = reflect.ValueOf(goVal)
 			}
-			goVal, err := valueTryToGoValueReflect(val, argType)
-			if err != nil {
-				return nil, err
-			}
-			reflectVals = append(reflectVals, reflect.ValueOf(goVal))
 		}
-		retVals := fnVal.Call(reflectVals)
+		var retVals []reflect.Value
+		if fnType.IsVariadic() {
+			retVals = fnVal.CallSlice(reflectVals)
+		} else {
+			retVals = fnVal.Call(reflectVals)
+		}
 		switch len(retVals) {
 		case 1:
 			return ValueFromGoValue(retVals[0].Interface()), nil

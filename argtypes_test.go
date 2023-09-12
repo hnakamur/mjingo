@@ -51,7 +51,8 @@ func TestArgsTo1GoValue(t *testing.T) {
 		})
 	})
 	t.Run("[]int", func(t *testing.T) {
-		slice, err := ArgsTo1GoValue[[]int](State(nil), []Value{valueFromI64(3), valueFromI64(4)})
+		slice, err := ArgsTo1GoValue[[]int](State(nil),
+			[]Value{valueFromSlice([]Value{valueFromI64(3), valueFromI64(4)})})
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 		}
@@ -138,9 +139,8 @@ func TestCheckArgTypes(t *testing.T) {
 			{reflectType[State](), reflectType[int](), reflectType[option.Option[int]](),
 				reflectType[Rest[int]]()},
 			{reflectType[State](), reflectType[int](), reflectType[option.Option[int]](),
-				reflectType[[]string]()},
-			{reflectType[State](), reflectType[int](), reflectType[option.Option[int]](),
 				reflectType[option.Option[string]](), reflectType[Kwargs]()},
+			{reflectType[[]int](), reflectType[string]()},
 		}
 		for i, tc := range testCases {
 			err := checkArgTypes(tc)
@@ -163,8 +163,10 @@ func TestCheckArgTypes(t *testing.T) {
 				detail:   "argument of non-optional type cannot be after argument of optional type",
 			},
 			{
-				argTypes: []reflect.Type{reflectType[[]int](), reflectType[string]()},
-				detail:   "argument of slice type must be the last argument",
+				argTypes: []reflect.Type{
+					reflectType[State](), reflectType[int](), reflectType[option.Option[int]](),
+					reflectType[[]string]()},
+				detail: "argument of non-optional type cannot be after argument of optional type",
 			},
 			{
 				argTypes: []reflect.Type{reflectType[Rest[int]](), reflectType[string]()},
