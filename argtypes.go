@@ -32,13 +32,13 @@ type RetValTypes interface {
 type ScalarTypes interface {
 	Value | bool | uint8 | uint16 | uint32 | uint64 | uint |
 		int8 | int16 | int32 | int64 | int | big.Int |
-		string
+		float32 | float64 | string
 }
 
 type SliceTypes interface {
 	[]Value | []bool | []uint8 | []uint16 | []uint32 | []uint64 | []uint |
 		[]int8 | []int16 | []int32 | []int64 | []int | []big.Int |
-		[]string
+		[]float32 | []float64 | []string
 }
 
 type OptionalTypes interface {
@@ -46,7 +46,8 @@ type OptionalTypes interface {
 		option.Option[uint16] | option.Option[uint32] | option.Option[uint64] |
 		option.Option[uint] | option.Option[int8] | option.Option[int16] |
 		option.Option[int32] | option.Option[int64] | option.Option[int] |
-		option.Option[big.Int] | option.Option[string]
+		option.Option[big.Int] | option.Option[float32] | option.Option[float64] |
+		option.Option[string]
 }
 
 func valueFromBytes(val []byte) Value {
@@ -186,6 +187,158 @@ func valueTryToValueSlice(val Value) ([]Value, error) {
 		return nil, err
 	}
 	return iter.Collect(), nil
+}
+
+func convertArgToGoVar(state *State, values []Value, destPtr any) ([]Value, error) {
+	switch p := destPtr.(type) {
+	case **State:
+		*p = state
+		return values, nil
+	case *Value:
+		return convertArgToGoVarHelper[Value](values, p, valueTryToValue)
+	case *bool:
+		return convertArgToGoVarHelper[bool](values, p, valueTryToGoBool)
+	case *int8:
+		return convertArgToGoVarHelper[int8](values, p, valueTryToGoInt8)
+	case *int16:
+		return convertArgToGoVarHelper[int16](values, p, valueTryToGoInt16)
+	case *int32:
+		return convertArgToGoVarHelper[int32](values, p, valueTryToGoInt32)
+	case *int64:
+		return convertArgToGoVarHelper[int64](values, p, valueTryToGoInt64)
+	case *int:
+		return convertArgToGoVarHelper[int](values, p, valueTryToGoInt)
+	case *uint8:
+		return convertArgToGoVarHelper[uint8](values, p, valueTryToGoUint8)
+	case *uint16:
+		return convertArgToGoVarHelper[uint16](values, p, valueTryToGoUint16)
+	case *uint32:
+		return convertArgToGoVarHelper[uint32](values, p, valueTryToGoUint32)
+	case *uint64:
+		return convertArgToGoVarHelper[uint64](values, p, valueTryToGoUint64)
+	case *uint:
+		return convertArgToGoVarHelper[uint](values, p, valueTryToGoUint)
+	case *float32:
+		return convertArgToGoVarHelper[float32](values, p, valueTryToGoFloat32)
+	case *float64:
+		return convertArgToGoVarHelper[float64](values, p, valueTryToGoFloat64)
+	case *string:
+		return convertArgToGoVarHelper[string](values, p, valueTryToGoString)
+	case *Kwargs:
+		return convertArgToGoVarHelper[Kwargs](values, p, valueTryToKwargs)
+	case *option.Option[Value]:
+		return convertArgToGoOptionVarHelper[Value](values, p, valueTryToValue)
+	case *option.Option[bool]:
+		return convertArgToGoOptionVarHelper[bool](values, p, valueTryToGoBool)
+	case *option.Option[int8]:
+		return convertArgToGoOptionVarHelper[int8](values, p, valueTryToGoInt8)
+	case *option.Option[int16]:
+		return convertArgToGoOptionVarHelper[int16](values, p, valueTryToGoInt16)
+	case *option.Option[int32]:
+		return convertArgToGoOptionVarHelper[int32](values, p, valueTryToGoInt32)
+	case *option.Option[int64]:
+		return convertArgToGoOptionVarHelper[int64](values, p, valueTryToGoInt64)
+	case *option.Option[int]:
+		return convertArgToGoOptionVarHelper[int](values, p, valueTryToGoInt)
+	case *option.Option[uint8]:
+		return convertArgToGoOptionVarHelper[uint8](values, p, valueTryToGoUint8)
+	case *option.Option[uint16]:
+		return convertArgToGoOptionVarHelper[uint16](values, p, valueTryToGoUint16)
+	case *option.Option[uint32]:
+		return convertArgToGoOptionVarHelper[uint32](values, p, valueTryToGoUint32)
+	case *option.Option[uint64]:
+		return convertArgToGoOptionVarHelper[uint64](values, p, valueTryToGoUint64)
+	case *option.Option[uint]:
+		return convertArgToGoOptionVarHelper[uint](values, p, valueTryToGoUint)
+	case *option.Option[float32]:
+		return convertArgToGoOptionVarHelper[float32](values, p, valueTryToGoFloat32)
+	case *option.Option[float64]:
+		return convertArgToGoOptionVarHelper[float64](values, p, valueTryToGoFloat64)
+	case *option.Option[string]:
+		return convertArgToGoOptionVarHelper[string](values, p, valueTryToGoString)
+	case *[]Value:
+		return convertArgToGoSliceVarHelper[Value](values, p, valueSliceTryToGoSlice[[]Value, Value])
+	case *[]bool:
+		return convertArgToGoSliceVarHelper[bool](values, p, valueSliceTryToGoSlice[[]bool, bool])
+	case *[]int8:
+		return convertArgToGoSliceVarHelper[int8](values, p, valueSliceTryToGoSlice[[]int8, int8])
+	case *[]int16:
+		return convertArgToGoSliceVarHelper[int16](values, p, valueSliceTryToGoSlice[[]int16, int16])
+	case *[]int32:
+		return convertArgToGoSliceVarHelper[int32](values, p, valueSliceTryToGoSlice[[]int32, int32])
+	case *[]int64:
+		return convertArgToGoSliceVarHelper[int64](values, p, valueSliceTryToGoSlice[[]int64, int64])
+	case *[]int:
+		return convertArgToGoSliceVarHelper[int](values, p, valueSliceTryToGoSlice[[]int, int])
+	case *[]uint8:
+		return convertArgToGoSliceVarHelper[uint8](values, p, valueSliceTryToGoSlice[[]uint8, uint8])
+	case *[]uint16:
+		return convertArgToGoSliceVarHelper[uint16](values, p, valueSliceTryToGoSlice[[]uint16, uint16])
+	case *[]uint32:
+		return convertArgToGoSliceVarHelper[uint32](values, p, valueSliceTryToGoSlice[[]uint32, uint32])
+	case *[]uint64:
+		return convertArgToGoSliceVarHelper[uint64](values, p, valueSliceTryToGoSlice[[]uint64, uint64])
+	case *[]uint:
+		return convertArgToGoSliceVarHelper[uint](values, p, valueSliceTryToGoSlice[[]uint, uint])
+	case *[]float32:
+		return convertArgToGoSliceVarHelper[float32](values, p, valueSliceTryToGoSlice[[]float32, float32])
+	case *[]float64:
+		return convertArgToGoSliceVarHelper[float64](values, p, valueSliceTryToGoSlice[[]float64, float64])
+	case *[]string:
+		return convertArgToGoSliceVarHelper[string](values, p, valueSliceTryToGoSlice[[]string, string])
+	}
+	panic(fmt.Sprintf("unsupported go variable type: %T", destPtr))
+}
+
+func convertArgToGoVarHelper[T any](values []Value, dest *T, f func(Value) (T, error)) ([]Value, error) {
+	if len(values) == 0 {
+		return nil, NewError(MissingArgument, "")
+	}
+	v, err := f(values[0])
+	if err != nil {
+		return nil, err
+	}
+	*dest = v
+	return values[1:], nil
+}
+
+func convertArgToGoOptionVarHelper[T any](values []Value, dest *option.Option[T], f func(Value) (T, error)) ([]Value, error) {
+	if len(values) == 0 {
+		*dest = option.None[T]()
+		return values, nil
+	}
+	v, err := f(values[0])
+	if err != nil {
+		return nil, err
+	}
+	*dest = option.Some(v)
+	return values[1:], nil
+}
+
+func convertArgToGoSliceVarHelper[T ScalarTypes](values []Value, dest *[]T, f func([]Value) ([]T, error)) ([]Value, error) {
+	if len(values) == 0 {
+		return nil, NewError(MissingArgument, "")
+	}
+	argVals, err := valueTryToValueSlice(values[0])
+	if err != nil {
+		return nil, err
+	}
+	v, err := f(argVals)
+	if err != nil {
+		return nil, err
+	}
+	*dest = v
+	return values[1:], nil
+}
+
+func valueSliceTryToGoSlice[S ~[]E, E ScalarTypes](values []Value) (S, error) {
+	slice := make(S, 0, len(values))
+	for i, val := range values {
+		if err := valueTryToGoValueNoReflect(val, &slice[i]); err != nil {
+			return nil, err
+		}
+	}
+	return slice, nil
 }
 
 func ArgsTo1GoValue[A any](state *State, values []Value) (A, error) {

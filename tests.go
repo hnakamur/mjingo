@@ -10,17 +10,31 @@ type BoxedTest = func(*State, []Value) (bool, error)
 // 1 argument functions
 
 func BoxTestFromFixedArity1ArgNoErrFunc[A JustOneArgTypes](f func(A) bool) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a), nil
 	}
 }
 
 func BoxTestFromFixedArity1ArgWithErrFunc[A JustOneArgTypes](f func(A) (bool, error)) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a)
 	}
 }
@@ -44,19 +58,41 @@ func BoxTestFromVariadic1ArgWithErrFunc[A VariadicLastArgElemTypes](f func(...A)
 // 2 argument functions
 
 func BoxTestFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) bool) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
 		var b B
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &b)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a, b), nil
 	}
 }
 
 func BoxTestFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) (bool, error)) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
 		var b B
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &b)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a, b)
 	}
 }
@@ -82,21 +118,51 @@ func BoxTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicLastArgElemTy
 // 3 argument functions
 
 func BoxTestFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) bool) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
 		var b B
 		var c C
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &b)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &c)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a, b, c), nil
 	}
 }
 
 func BoxTestFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) (bool, error)) BoxedTest {
-	return func(*State, []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		var a A
 		var b B
 		var c C
-		// TODO implement
+		var err error
+		values, err = convertArgToGoVar(state, values, &a)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &b)
+		if err != nil {
+			return false, err
+		}
+		values, err = convertArgToGoVar(state, values, &c)
+		if err != nil {
+			return false, err
+		}
+		if len(values) > 0 {
+			return false, NewError(TooManyArguments, "")
+		}
 		return f(a, b, c)
 	}
 }
