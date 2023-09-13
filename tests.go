@@ -39,7 +39,7 @@ func BoxTestFromFixedArity1ArgWithErrFunc[A JustOneArgTypes](f func(A) (bool, er
 	}
 }
 
-func BoxTestFromVariadic1ArgNoErrFunc[A VariadicLastArgElemTypes](f func(...A) bool) BoxedTest {
+func BoxTestFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes](f func(...A) bool) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a []A
 		// TODO implement
@@ -47,7 +47,7 @@ func BoxTestFromVariadic1ArgNoErrFunc[A VariadicLastArgElemTypes](f func(...A) b
 	}
 }
 
-func BoxTestFromVariadic1ArgWithErrFunc[A VariadicLastArgElemTypes](f func(...A) (bool, error)) BoxedTest {
+func BoxTestFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes](f func(...A) (bool, error)) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a []A
 		// TODO implement
@@ -97,7 +97,7 @@ func BoxTestFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTy
 	}
 }
 
-func BoxTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicLastArgElemTypes](f func(A, ...B) bool) BoxedTest {
+func BoxTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes](f func(A, ...B) bool) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a A
 		var b []B
@@ -106,7 +106,7 @@ func BoxTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicLastArgElemType
 	}
 }
 
-func BoxTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicLastArgElemTypes](f func(A, ...B) (bool, error)) BoxedTest {
+func BoxTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTypes](f func(A, ...B) (bool, error)) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a A
 		var b []B
@@ -167,7 +167,7 @@ func BoxTestFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C F
 	}
 }
 
-func BoxTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicLastArgElemTypes](f func(A, B, ...C) bool) BoxedTest {
+func BoxTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes](f func(A, B, ...C) bool) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a A
 		var b B
@@ -177,7 +177,7 @@ func BoxTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Varia
 	}
 }
 
-func BoxTestFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicLastArgElemTypes](f func(A, B, ...C) (bool, error)) BoxedTest {
+func BoxTestFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes](f func(A, B, ...C) (bool, error)) BoxedTest {
 	return func(*State, []Value) (bool, error) {
 		var a A
 		var b B

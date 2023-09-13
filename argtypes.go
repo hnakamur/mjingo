@@ -21,7 +21,7 @@ type MiddleArgTypes interface {
 type FixedArityLastArgTypes interface {
 	ScalarTypes | OptionalTypes | SliceTypes | Kwargs
 }
-type VariadicLastArgElemTypes interface {
+type VariadicArgElemTypes interface {
 	ScalarTypes
 }
 
@@ -224,8 +224,16 @@ func convertArgToGoVar(state *State, values []Value, destPtr any) ([]Value, erro
 		return convertArgToGoVarHelper[float64](values, p, valueTryToGoFloat64)
 	case *string:
 		return convertArgToGoVarHelper[string](values, p, valueTryToGoString)
-	case *Kwargs:
-		return convertArgToGoVarHelper[Kwargs](values, p, valueTryToKwargs)
+	case *Kwargs: // Kwargs are taken from the last element
+		if len(values) == 0 {
+			return nil, NewError(MissingArgument, "")
+		}
+		v, err := valueTryToKwargs(values[len(values)-1])
+		if err != nil {
+			return nil, err
+		}
+		*p = v
+		return values[:len(values)-1], nil
 	case *option.Option[Value]:
 		return convertArgToGoOptionVarHelper[Value](values, p, valueTryToValue)
 	case *option.Option[bool]:
