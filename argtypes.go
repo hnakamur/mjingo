@@ -9,6 +9,24 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+type FirstArgTypes interface {
+	MiddleArgTypes | *vmState
+}
+
+type MiddleArgTypes interface {
+	// ~Value |
+	bool | string
+}
+
+type LastArgTypes interface {
+	MiddleArgTypes | Kwargs
+}
+
+type RetValTypes interface {
+	// ~Value |
+	bool | string
+}
+
 func valueFromBytes(val []byte) Value {
 	return bytesValue{B: val}
 }
@@ -253,6 +271,70 @@ func ArgsTo5GoValues[A any, B any, C any, D any, E any](state State, values []Va
 	return a, b, c, d, e, nil
 }
 
+func argsToGoValuesNoReflect(state State, values []Value, destPtrs []any, variadic bool) error {
+	i := 0
+	for j, destPtr := range destPtrs {
+		kind := findArgTypeKindFromDestPtr(destPtr)
+		switch kind {
+		case argTypeKindState:
+			*(destPtr.(*State)) = state
+		case argTypeKindPrimitive:
+			if i >= len(values) {
+				return NewError(MissingArgument, "")
+			}
+			err := valueTryToGoValueNoReflect(values[i], destPtr)
+			if err != nil {
+				return err
+			}
+			i++
+		case argTypeKindKwargs:
+			if i < len(values) {
+				goVal, err := valueTryToKwargs(values[i])
+				if err != nil {
+					return err
+				}
+				*(destPtr.(*Kwargs)) = goVal
+				i++
+			} else {
+				*(destPtr.(*Kwargs)) = newKwargs(*newValueMap())
+			}
+		case argTypeKindOption:
+			if i < len(values) {
+				if err := valueTryToOptionValueNoReflect(values[i], destPtr); err != nil {
+					return err
+				}
+				i++
+			} else {
+				// Do nothing since None is zero value of option.Option[T].
+				// Caller must prepare zero value at destPtr.
+			}
+		case argTypeKindSlice:
+			if variadic && j == len(destPtrs)-1 {
+				if err := valueSliceTryToGoSliceTo(values[i:], destPtr); err != nil {
+					return err
+				}
+				i = len(values)
+			} else {
+				if i >= len(values) {
+					return NewError(MissingArgument, "")
+				}
+				argVals, err := valueTryToValueSlice(values[i])
+				if err != nil {
+					return err
+				}
+				if err := valueSliceTryToGoSliceTo(argVals, destPtr); err != nil {
+					return err
+				}
+				i++
+			}
+		}
+	}
+	if i < len(values) {
+		return NewError(TooManyArguments, "")
+	}
+	return nil
+}
+
 func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type) ([]any, error) {
 	var goVals []any
 	i := 0
@@ -403,6 +485,46 @@ func (k argTypeKind) String() string {
 		return "Kwargs"
 	}
 	return "unsupported"
+}
+
+func findArgTypeKindFromDestPtr(destPtr any) argTypeKind {
+	switch destPtr.(type) {
+	case *State:
+		return argTypeKindState
+	case *Value, *bool, *int8,
+		*int16, *int32, *int64,
+		*int, *uint8, *uint16,
+		*uint32, *uint64, *uint,
+		*float32, *float64, *string:
+		return argTypeKindPrimitive
+	case *[]Value, *[]bool, *[]int8,
+		*[]int16, *[]int32, *[]int64,
+		*[]int, *[]uint8, *[]uint16,
+		*[]uint32, *[]uint64, *[]uint,
+		*[]float32, *[]float64, *[]string:
+		return argTypeKindSlice
+	case *option.Option[Value], *option.Option[bool],
+		*option.Option[int8], *option.Option[int16],
+		*option.Option[int32], *option.Option[int64],
+		*option.Option[int], *option.Option[uint8],
+		*option.Option[uint16], *option.Option[uint32],
+		*option.Option[uint64], *option.Option[uint],
+		*option.Option[float32], *option.Option[float64],
+		*option.Option[string]:
+		return argTypeKindOption
+	case *Rest[Value], *Rest[bool],
+		*Rest[int8], *Rest[int16],
+		*Rest[int32], *Rest[int64],
+		*Rest[int], *Rest[uint8],
+		*Rest[uint16], *Rest[uint32],
+		*Rest[uint64], *Rest[uint],
+		*Rest[float32], *Rest[float64],
+		*Rest[string]:
+		return argTypeKindRest
+	case *Kwargs:
+		return argTypeKindKwargs
+	}
+	return argTypeKindUnsupported
 }
 
 func findArgTypeKind(argType reflect.Type) argTypeKind {

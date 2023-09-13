@@ -120,6 +120,80 @@ func valueTryToGoValueNoReflect(val Value, destPtr any) error {
 	panic("unsupported destination type")
 }
 
+func valueTryToOptionValueNoReflect(val Value, destPtr any) error {
+	switch p := destPtr.(type) {
+	case *option.Option[Value]:
+		*p = option.Some(val)
+	case *option.Option[bool]:
+		return valueTryToOptionValueHelper[bool](val, p, valueTryToGoBool)
+	case *option.Option[int8]:
+		return valueTryToOptionValueHelper[int8](val, p, valueTryToGoInt8)
+	case *option.Option[int16]:
+		return valueTryToOptionValueHelper[int16](val, p, valueTryToGoInt16)
+	case *option.Option[int32]:
+		return valueTryToOptionValueHelper[int32](val, p, valueTryToGoInt32)
+	case *option.Option[int64]:
+		return valueTryToOptionValueHelper[int64](val, p, valueTryToGoInt64)
+	case *option.Option[int]:
+		return valueTryToOptionValueHelper[int](val, p, valueTryToGoInt)
+	case *option.Option[uint8]:
+		return valueTryToOptionValueHelper[uint8](val, p, valueTryToGoUint8)
+	case *option.Option[uint16]:
+		return valueTryToOptionValueHelper[uint16](val, p, valueTryToGoUint16)
+	case *option.Option[uint32]:
+		return valueTryToOptionValueHelper[uint32](val, p, valueTryToGoUint32)
+	case *option.Option[uint64]:
+		return valueTryToOptionValueHelper[uint64](val, p, valueTryToGoUint64)
+	case *option.Option[uint]:
+		return valueTryToOptionValueHelper[uint](val, p, valueTryToGoUint)
+	case *option.Option[float32]:
+		return valueTryToOptionValueHelper[float32](val, p, valueTryToGoFloat32)
+	case *option.Option[float64]:
+		return valueTryToOptionValueHelper[float64](val, p, valueTryToGoFloat64)
+	case *option.Option[string]:
+		return valueTryToOptionValueHelper[string](val, p, valueTryToGoString)
+	case *option.Option[Kwargs]:
+		return valueTryToOptionValueHelper[Kwargs](val, p, valueTryToKwargs)
+	}
+	panic("unsupported destination type")
+}
+
+func valueSliceTryToGoSliceTo(values []Value, destPtr any) error {
+	switch p := destPtr.(type) {
+	case *[]Value:
+		*p = values
+	case *[]bool:
+		return valueSliceTryToGoSliceHelper[bool](values, p)
+	case *[]int8:
+		return valueSliceTryToGoSliceHelper[int8](values, p)
+	case *[]int16:
+		return valueSliceTryToGoSliceHelper[int16](values, p)
+	case *[]int32:
+		return valueSliceTryToGoSliceHelper[int32](values, p)
+	case *[]int64:
+		return valueSliceTryToGoSliceHelper[int64](values, p)
+	case *[]int:
+		return valueSliceTryToGoSliceHelper[int](values, p)
+	case *[]uint8:
+		return valueSliceTryToGoSliceHelper[uint8](values, p)
+	case *[]uint16:
+		return valueSliceTryToGoSliceHelper[uint16](values, p)
+	case *[]uint32:
+		return valueSliceTryToGoSliceHelper[uint32](values, p)
+	case *[]uint64:
+		return valueSliceTryToGoSliceHelper[uint64](values, p)
+	case *[]uint:
+		return valueSliceTryToGoSliceHelper[uint](values, p)
+	case *[]float32:
+		return valueSliceTryToGoSliceHelper[float32](values, p)
+	case *[]float64:
+		return valueSliceTryToGoSliceHelper[float64](values, p)
+	case *[]string:
+		return valueSliceTryToGoSliceHelper[string](values, p)
+	}
+	panic("unsupported destination type")
+}
+
 func valueTryToGoValueHelper[T any](val Value, dest *T, f func(Value) (T, error)) error {
 	v, err := f(val)
 	if err != nil {
@@ -127,6 +201,34 @@ func valueTryToGoValueHelper[T any](val Value, dest *T, f func(Value) (T, error)
 	}
 	*dest = v
 	return nil
+}
+
+func valueTryToOptionValueHelper[T any](val Value, dest *option.Option[T], f func(Value) (T, error)) error {
+	v, err := f(val)
+	if err != nil {
+		return err
+	}
+	*dest = option.Some[T](v)
+	return nil
+}
+
+func valueSliceTryToGoSliceHelper[T any](values []Value, dest *[]T) error {
+	v, err := valueSliceTryToGoSliceNoReflect[T](values)
+	if err != nil {
+		return err
+	}
+	*dest = v
+	return nil
+}
+
+func valueSliceTryToGoSliceNoReflect[T any](values []Value) ([]T, error) {
+	slice := make([]T, 0, len(values))
+	for i, val := range values {
+		if err := valueTryToGoValueNoReflect(val, &slice[i]); err != nil {
+			return nil, err
+		}
+	}
+	return slice, nil
 }
 
 func valueSliceTryToGoSliceReflect(values []Value, destType reflect.Type) (any, error) {

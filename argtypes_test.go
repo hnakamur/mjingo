@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -200,4 +201,76 @@ func TestCheckArgTypes(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestSliceOfSameType(t *testing.T) {
+	f := func(ptr any) {
+		switch p := ptr.(type) {
+		case *[]string:
+			*p = append(*p, "ab")
+			*p = append(*p, "cd")
+		}
+	}
+
+	var a []string
+	f(&a)
+	if got, want := a, []string{"ab", "cd"}; !slices.Equal(got, want) {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
+	}
+}
+
+func TestDestPtrs(t *testing.T) {
+	var a int
+	var b string
+	var c []float64
+	destPtrs := []any{&a, &b, &c}
+	for i, destPtr := range destPtrs {
+		var want string
+		switch i {
+		case 0:
+			want = "*int"
+		case 1:
+			want = "*string"
+		case 2:
+			want = "*[]float64"
+		}
+		got := fmt.Sprintf("%T", destPtr)
+		if got != want {
+			t.Errorf("pointer type mismatch, i=%d, got=%s, want=%s", i, got, want)
+		}
+	}
+}
+
+func testGenericFuncCallerNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, B) R) R {
+	var a A
+	var b B
+	return f(a, b)
+}
+
+func testGenericFuncCallerWithErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, B) (R, error)) (R, error) {
+	var a A
+	var b B
+	return f(a, b)
+}
+
+func testGenericFuncCallerVariadicNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, ...B) R) R {
+	var a A
+	var b []B
+	return f(a, b...)
+}
+
+func testGenericFuncCallerVariadicWithErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, ...B) (R, error)) (R, error) {
+	var a A
+	var b []B
+	return f(a, b...)
+}
+
+func TestCallGenericFunc(t *testing.T) {
+	got := testGenericFuncCallerNoErr[bool, string, string](func(a bool, b string) string {
+		return fmt.Sprintf("%T %T", a, b)
+	})
+	const want = "bool string"
+	if got != want {
+		t.Errorf("result mismatch, got=%s, want=%s", got, want)
+	}
 }
