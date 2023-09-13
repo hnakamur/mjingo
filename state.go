@@ -6,7 +6,7 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type vmState struct {
+type State struct {
 	env             *Environment
 	ctx             context
 	currentBlock    option.Option[string]
@@ -29,19 +29,19 @@ type macroStackElem struct {
 	offset uint
 }
 
-func (s *vmState) Env() *Environment { return s.env }
+func (s *State) Env() *Environment { return s.env }
 
-func (s *vmState) AutoEscape() AutoEscape { return s.autoEscape }
+func (s *State) AutoEscape() AutoEscape { return s.autoEscape }
 
-func (s *vmState) Name() string {
+func (s *State) Name() string {
 	return s.instructions.Name()
 }
 
-func (s *vmState) UndefinedBehavior() UndefinedBehavior {
+func (s *State) UndefinedBehavior() UndefinedBehavior {
 	return s.env.undefinedBehavior
 }
 
-func (s *vmState) lookup(name string) option.Option[Value] {
+func (s *State) lookup(name string) option.Option[Value] {
 	return s.ctx.load(s.env, name)
 }
 

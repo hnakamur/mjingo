@@ -5,14 +5,14 @@ import (
 )
 
 type Caller interface {
-	Call(state *vmState, args []Value) (Value, error)
+	Call(state *State, args []Value) (Value, error)
 }
 
 type CallMethoder interface {
-	CallMethod(state *vmState, name string, args []Value) (Value, error)
+	CallMethod(state *State, name string, args []Value) (Value, error)
 }
 
-func valueCall(receiver Value, state *vmState, args []Value) (Value, error) {
+func valueCall(receiver Value, state *State, args []Value) (Value, error) {
 	if dyVal, ok := receiver.(dynamicValue); ok {
 		if c, ok := dyVal.Dy.(Caller); ok {
 			return c.Call(state, args)
@@ -27,7 +27,7 @@ func notCallableValueType(v Value) (Value, error) {
 		fmt.Sprintf("value of type %s is not callable", v.kind()))
 }
 
-func callMethod(receiver Value, state *vmState, name string, args []Value) (Value, error) {
+func callMethod(receiver Value, state *State, name string, args []Value) (Value, error) {
 	switch v := receiver.(type) {
 	case mapValue:
 		if val, ok := v.Map.Get(keyRefFromString(name)); ok {

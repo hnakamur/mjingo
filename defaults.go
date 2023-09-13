@@ -22,7 +22,7 @@ func DefaultAutoEscapeCallback(name string) AutoEscape {
 	return AutoEscapeNone
 }
 
-func escapeFormatter(out *output, state *vmState, val Value) error {
+func escapeFormatter(out *output, state *State, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }
 

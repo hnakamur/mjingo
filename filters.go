@@ -12,7 +12,7 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type BoxedFilter = func(*vmState, []Value) (Value, error)
+type BoxedFilter = func(*State, []Value) (Value, error)
 
 func BoxedFilterFromFunc(fn any) BoxedFilter {
 	if bf, ok := fn.(BoxedFilter); ok {
@@ -40,7 +40,7 @@ func BoxedFilterFromFunc(fn any) BoxedFilter {
 		panic(err.Error())
 	}
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
 		goVals, err := argsToGoValuesReflect(state, values, argTypes)
 		if err != nil {
 			return nil, err
@@ -78,7 +78,7 @@ func safe(v string) Value {
 	return ValueFromSafeString(v)
 }
 
-func escape(state *vmState, v Value) (Value, error) {
+func escape(state *State, v Value) (Value, error) {
 	if v.isSafe() {
 		return v, nil
 	}
@@ -132,7 +132,7 @@ func capitalize(s string) string {
 //	-> Goodbye World
 //
 // ```
-func replace(_ *vmState, v, from, to string) string {
+func replace(_ *State, v, from, to string) string {
 	r := strings.NewReplacer(from, to)
 	return r.Replace(v)
 }
@@ -240,7 +240,7 @@ func dictsort(v Value, kwargs Kwargs) (Value, error) {
 	return valueFromSlice(items), nil
 }
 
-func sortFilter(state *vmState, val Value, kwargs Kwargs) (Value, error) {
+func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, NewError(InvalidOperation, "cannot convert value to list").withSource(err)
@@ -514,7 +514,7 @@ func last(val Value) (Value, error) {
 	return nil, NewError(InvalidOperation, "cannot get last item from value")
 }
 
-func minFilter(state *vmState, val Value) (Value, error) {
+func minFilter(state *State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
@@ -522,7 +522,7 @@ func minFilter(state *vmState, val Value) (Value, error) {
 	return iter.Min().UnwrapOr(Undefined), nil
 }
 
-func maxFilter(state *vmState, val Value) (Value, error) {
+func maxFilter(state *State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
@@ -530,7 +530,7 @@ func maxFilter(state *vmState, val Value) (Value, error) {
 	return iter.Max().UnwrapOr(Undefined), nil
 }
 
-func listFilter(state *vmState, val Value) (Value, error) {
+func listFilter(state *State, val Value) (Value, error) {
 	iter, err := state.UndefinedBehavior().tryIter(val)
 	if err != nil {
 		return nil, NewError(InvalidDelimiter, "cannot convert value to list").withSource(err)
@@ -565,7 +565,7 @@ func boolFilter(val Value) bool {
 //
 // </table>
 // ```
-func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func batchFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
 		return nil, NewError(InvalidOperation, "count cannot be 0")
 	}
@@ -620,7 +620,7 @@ func batchFilter(state *vmState, val Value, count uint, fillWith option.Option[V
 //
 // If you pass it a second argument it’s used to fill missing values on the
 // last iteration.
-func sliceFilter(state *vmState, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
+func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Value]) (Value, error) {
 	if count == 0 {
 		return nil, NewError(InvalidOperation, "count cannot be 0")
 	}
@@ -693,7 +693,7 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 	return rv
 }
 
-func selectOrReject(state *vmState, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectOrReject(state *State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
 	var rv []Value
 	test := option.None[BoxedTest]()
 	if testName.IsSome() {
@@ -736,19 +736,19 @@ func selectOrReject(state *vmState, invert bool, val Value, attr, testName optio
 	return rv, nil
 }
 
-func selectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.None[string](), testName, args...)
 }
 
-func selectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func selectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, false, val, option.Some(attr), testName, args...)
 }
 
-func rejectFilter(state *vmState, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectFilter(state *State, val Value, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.None[string](), testName, args...)
 }
 
-func rejectAttrFilter(state *vmState, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
+func rejectAttrFilter(state *State, val Value, attr string, testName option.Option[string], args ...Value) ([]Value, error) {
 	return selectOrReject(state, true, val, option.Some(attr), testName, args...)
 }
 
@@ -802,7 +802,7 @@ func uniqueFilter(values []Value) Value {
 // ```jinja
 // Users on this page: {{ titles|map('lower')|join(', ') }}
 // ```
-func mapFilter(state *vmState, val Value, args ...Value) ([]Value, error) {
+func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 	rv := make([]Value, 0, val.len().UnwrapOr(0))
 	var kwargs Kwargs
 	var err error

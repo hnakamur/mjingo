@@ -6,7 +6,7 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type BoxedFunc = func(*vmState, []Value) (Value, error)
+type BoxedFunc = func(*State, []Value) (Value, error)
 
 func BoxedFuncFromFunc(fn any) BoxedFunc {
 	fnType := reflect.TypeOf(fn)
@@ -30,7 +30,7 @@ func BoxedFuncFromFunc(fn any) BoxedFunc {
 		panic(err.Error())
 	}
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (Value, error) {
+	return func(state *State, values []Value) (Value, error) {
 		goVals, err := argsToGoValuesReflect(state, values, argTypes)
 		if err != nil {
 			return nil, err
@@ -75,7 +75,7 @@ var _ = (Caller)(funcObject{})
 
 func (funcObject) Kind() ObjectKind { return ObjectKindPlain }
 
-func (f funcObject) Call(state *vmState, args []Value) (Value, error) {
+func (f funcObject) Call(state *State, args []Value) (Value, error) {
 	return f.f(state, args)
 }
 

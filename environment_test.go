@@ -1,6 +1,7 @@
 package mjingo_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hnakamur/mjingo"
@@ -958,29 +959,29 @@ func TestSetUndefinedBehavior(t *testing.T) {
 	}
 }
 
-// func TestEnvironment_AddFilter_withStateArg(t *testing.T) {
-// 	slugify := func(_ *mjingo.State, value string) string {
-// 		return strings.Join(strings.Split(strings.ToLower(value), " "), "-")
-// 	}
+func TestEnvironment_AddFilter_withStateArg(t *testing.T) {
+	slugify := func(_ *mjingo.State, value string) string {
+		return strings.Join(strings.Split(strings.ToLower(value), " "), "-")
+	}
 
-// 	env := mjingo.NewEnvironment()
-// 	env.AddFilter("slugify", mjingo.BoxedFilterFromFunc(slugify))
-// 	const templateName = "test.txt"
-// 	err := env.AddTemplate(templateName, `{{ title|slugify }}`)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	tpl, err := env.GetTemplate(templateName)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	context := mjingo.ValueFromGoValue(map[string]string{"title": "this is my page"})
-// 	got, err := tpl.Render(context)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	const want = "this-is-my-page"
-// 	if got != want {
-// 		t.Errorf("result mismatch, got=%q,\nwant=%q", got, want)
-// 	}
-// }
+	env := mjingo.NewEnvironment()
+	env.AddFilter("slugify", mjingo.BoxedFilterFromFunc(slugify))
+	const templateName = "test.txt"
+	err := env.AddTemplate(templateName, `{{ title|slugify }}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl, err := env.GetTemplate(templateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	context := mjingo.ValueFromGoValue(map[string]string{"title": "this is my page"})
+	got, err := tpl.Render(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "this-is-my-page"
+	if got != want {
+		t.Errorf("result mismatch, got=%q,\nwant=%q", got, want)
+	}
+}

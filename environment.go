@@ -33,7 +33,7 @@ type Environment struct {
 // determine the escaping behavior for the template of the specified name.
 type AutoEscapeFunc func(name string) AutoEscape
 
-type formatterFunc = func(*output, *vmState, Value) error
+type formatterFunc = func(*output, *State, Value) error
 
 // NewEnvironment creates a new environment with sensible defaults.
 //
@@ -266,7 +266,7 @@ func (e *Environment) RemoveGlobal(name string) {
 	delete(e.globals, name)
 }
 
-func (e *Environment) format(v Value, state *vmState, out *output) error {
+func (e *Environment) format(v Value, state *State, out *output) error {
 	if v.isUndefined() && e.undefinedBehavior == UndefinedBehaviorStrict {
 		return NewError(UndefinedError, "")
 	}

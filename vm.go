@@ -35,7 +35,7 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 }
 
 func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], error) {
-	state := vmState{
+	state := State{
 		env:          m.env,
 		ctx:          *newContext(*newFrame(root)),
 		autoEscape:   escape,
@@ -46,7 +46,7 @@ func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]
 }
 
 func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
-	caller option.Option[Value], out *output, state *vmState, args []Value) (option.Option[Value], error) {
+	caller option.Option[Value], out *output, state *State, args []Value) (option.Option[Value], error) {
 	ctx := newContext(*newFrame(closure))
 	if caller.IsSome() {
 		ctx.store("caller", caller.Unwrap())
@@ -56,7 +56,7 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 	}
 
 	stack := stackpkg.Stack[Value](args)
-	return m.evalImpl(&vmState{
+	return m.evalImpl(&State{
 		env:             m.env,
 		ctx:             *ctx,
 		currentBlock:    option.None[string](),
@@ -68,12 +68,12 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 	}, out, &stack, pc)
 }
 
-func (m *virtualMachine) evalState(state *vmState, out *output) (option.Option[Value], error) {
+func (m *virtualMachine) evalState(state *State, out *output) (option.Option[Value], error) {
 	var stack stackpkg.Stack[Value]
 	return m.evalImpl(state, out, &stack, 0)
 }
 
-func (m *virtualMachine) evalImpl(state *vmState, out *output, stack *stackpkg.Stack[Value], pc uint) (option.Option[Value], error) {
+func (m *virtualMachine) evalImpl(state *State, out *output, stack *stackpkg.Stack[Value], pc uint) (option.Option[Value], error) {
 	initialAutoEscape := state.autoEscape
 	undefinedBehavior := state.UndefinedBehavior()
 	var autoEscapeStack stackpkg.Stack[AutoEscape]
@@ -616,7 +616,7 @@ loop:
 	return option.None[Value](), nil
 }
 
-func (m *virtualMachine) performInclude(name Value, state *vmState, out *output, ignoreMissing bool) error {
+func (m *virtualMachine) performInclude(name Value, state *State, out *output, ignoreMissing bool) error {
 	var choices SeqObject
 	if optChoices := name.asSeq(); optChoices.IsSome() {
 		choices = optChoices.Unwrap()
@@ -681,7 +681,7 @@ func (m *virtualMachine) performInclude(name Value, state *vmState, out *output,
 	return nil
 }
 
-func (m *virtualMachine) performSuper(state *vmState, out *output, capture bool) (Value, error) {
+func (m *virtualMachine) performSuper(state *State, out *output, capture bool) (Value, error) {
 	if state.currentBlock.IsNone() {
 		return nil, NewError(InvalidOperation, "cannot super outside of block")
 	}
@@ -718,7 +718,7 @@ func untrustedSizeHint(val uint) uint {
 	return min(val, 1024)
 }
 
-func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
+func (m *virtualMachine) prepareLoopRecursion(state *State) (uint, error) {
 	if optLoopState := state.ctx.currentLoop(); optLoopState.IsSome() {
 		loopCtx := optLoopState.Unwrap()
 		if loopCtx.recurseJumpTarget.IsSome() {
@@ -729,7 +729,7 @@ func (m *virtualMachine) prepareLoopRecursion(state *vmState) (uint, error) {
 	return 0, NewError(InvalidOperation, "cannot recurse outside of loop")
 }
 
-func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, error) {
+func (m *virtualMachine) loadBlocks(name Value, state *State) (instructions, error) {
 	var strName string
 	if !valueAsOptionString(name).UnwrapTo(&strName) {
 		return instructions{}, NewError(InvalidOperation, "template name was not a string")
@@ -757,7 +757,7 @@ func (m *virtualMachine) loadBlocks(name Value, state *vmState) (instructions, e
 	return newInsts, nil
 }
 
-func (m *virtualMachine) callBlock(name string, state *vmState, out *output) (option.Option[Value], error) {
+func (m *virtualMachine) callBlock(name string, state *State, out *output) (option.Option[Value], error) {
 	if blockStack, ok := state.blocks[name]; ok {
 		oldBlock := state.currentBlock
 		state.currentBlock = option.Some(name)
@@ -793,7 +793,7 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 	return nil, NewError(InvalidOperation, "invalid value to autoescape tag")
 }
 
-func (m *virtualMachine) pushLoop(state *vmState, iterable Value,
+func (m *virtualMachine) pushLoop(state *State, iterable Value,
 	flags uint8, pc uint, currentRecursionJump option.Option[recursionJump]) error {
 	it, err := state.UndefinedBehavior().tryIter(iterable)
 	if err != nil {
@@ -851,7 +851,7 @@ func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) er
 	return nil
 }
 
-func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *vmState, offset uint, name string, flags uint8) {
+func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *State, offset uint, name string, flags uint8) {
 	var argSpec []string
 	if args, ok := stack.Pop().(seqValue); ok {
 		argSpec = slicex.Map(args.Items, func(arg Value) string {
@@ -900,7 +900,7 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 	}
 }
 
-func assertValid(v Value, pc uint, st *vmState) (Value, error) {
+func assertValid(v Value, pc uint, st *State) (Value, error) {
 	if vInvalid, ok := v.(invalidValue); ok {
 		detail := vInvalid.Detail
 		err := NewError(BadSerialization, detail)
@@ -910,7 +910,7 @@ func assertValid(v Value, pc uint, st *vmState) (Value, error) {
 	return v, nil
 }
 
-func processErr(err error, pc uint, st *vmState) error {
+func processErr(err error, pc uint, st *State) error {
 	er, ok := err.(*Error)
 	if !ok {
 		return err

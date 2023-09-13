@@ -14,16 +14,16 @@ func TestArgsTo1GoValue(t *testing.T) {
 	intEqual := func(a, b int) bool { return a == b }
 
 	t.Run("State", func(t *testing.T) {
-		st, err := ArgsTo1GoValue[*vmState]((*vmState)(nil), nil)
+		st, err := ArgsTo1GoValue[*State]((*State)(nil), nil)
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 		}
-		if got, want := st, (*vmState)(nil); got != want {
+		if got, want := st, (*State)(nil); got != want {
 			t.Errorf("state mismatch, got=%v (%T), want=%v (%T)", got, got, want, want)
 		}
 	})
 	t.Run("int", func(t *testing.T) {
-		n, err := ArgsTo1GoValue[int]((*vmState)(nil), []Value{valueFromI64(3)})
+		n, err := ArgsTo1GoValue[int]((*State)(nil), []Value{valueFromI64(3)})
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 		}
@@ -33,7 +33,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 	})
 	t.Run("Option[int]", func(t *testing.T) {
 		t.Run("None", func(t *testing.T) {
-			n, err := ArgsTo1GoValue[option.Option[int]]((*vmState)(nil), nil)
+			n, err := ArgsTo1GoValue[option.Option[int]]((*State)(nil), nil)
 			if err != nil {
 				t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 			}
@@ -42,7 +42,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 			}
 		})
 		t.Run("Some", func(t *testing.T) {
-			n, err := ArgsTo1GoValue[option.Option[int]]((*vmState)(nil), []Value{valueFromI64(3)})
+			n, err := ArgsTo1GoValue[option.Option[int]]((*State)(nil), []Value{valueFromI64(3)})
 			if err != nil {
 				t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 			}
@@ -52,7 +52,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 		})
 	})
 	t.Run("[]int", func(t *testing.T) {
-		slice, err := ArgsTo1GoValue[[]int]((*vmState)(nil),
+		slice, err := ArgsTo1GoValue[[]int]((*State)(nil),
 			[]Value{valueFromSlice([]Value{valueFromI64(3), valueFromI64(4)})})
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
@@ -62,7 +62,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 		}
 	})
 	t.Run("Rest[string]", func(t *testing.T) {
-		rest, err := ArgsTo1GoValue[Rest[string]]((*vmState)(nil),
+		rest, err := ArgsTo1GoValue[Rest[string]]((*State)(nil),
 			[]Value{valueFromString("ab"), valueFromString("cd")})
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
@@ -73,7 +73,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 	})
 	t.Run("Kwargs", func(t *testing.T) {
 		t.Run("WithValue", func(t *testing.T) {
-			kwargs, err := ArgsTo1GoValue[Kwargs]((*vmState)(nil),
+			kwargs, err := ArgsTo1GoValue[Kwargs]((*State)(nil),
 				[]Value{valueFromKwargs(newKwargs(*valueMapFromEntries([]valueMapEntry{
 					{Key: keyRefFromString("a"), Value: valueFromI64(3)},
 				})))})
@@ -85,7 +85,7 @@ func TestArgsTo1GoValue(t *testing.T) {
 			}
 		})
 		t.Run("NoValue", func(t *testing.T) {
-			kwargs, err := ArgsTo1GoValue[Kwargs]((*vmState)(nil), nil)
+			kwargs, err := ArgsTo1GoValue[Kwargs]((*State)(nil), nil)
 			if err != nil {
 				t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 			}
@@ -98,11 +98,11 @@ func TestArgsTo1GoValue(t *testing.T) {
 
 func TestArgsTo2GoValues(t *testing.T) {
 	t.Run("StateInt", func(t *testing.T) {
-		st, n, err := ArgsTo2GoValues[*vmState, int]((*vmState)(nil), []Value{valueFromI64(3)})
+		st, n, err := ArgsTo2GoValues[*State, int]((*State)(nil), []Value{valueFromI64(3)})
 		if err != nil {
 			t.Errorf("err mismatch, got=%v, want=%v", err, nil)
 		}
-		if got, want := st, (*vmState)(nil); got != want {
+		if got, want := st, (*State)(nil); got != want {
 			t.Errorf("ret#0 mismatch, got=%v (%T), want=%v (%T)", got, got, want, want)
 		}
 		if got, want := n, 3; got != want {
@@ -110,7 +110,7 @@ func TestArgsTo2GoValues(t *testing.T) {
 		}
 	})
 	t.Run("MissingArgument", func(t *testing.T) {
-		_, _, err := ArgsTo2GoValues[*vmState, int]((*vmState)(nil), nil)
+		_, _, err := ArgsTo2GoValues[*State, int]((*State)(nil), nil)
 		if err != nil {
 			var merr *Error
 			if errors.As(err, &merr) && merr.Type() == MissingArgument {
@@ -120,7 +120,7 @@ func TestArgsTo2GoValues(t *testing.T) {
 		t.Errorf("err mismatch, got=%v, want=%v", err, NewError(MissingArgument, ""))
 	})
 	t.Run("TooManyArguments", func(t *testing.T) {
-		_, _, err := ArgsTo2GoValues[*vmState, int]((*vmState)(nil),
+		_, _, err := ArgsTo2GoValues[*State, int]((*State)(nil),
 			[]Value{valueFromI64(3), valueFromI64(4)})
 		if err != nil {
 			var merr *Error
@@ -135,11 +135,11 @@ func TestArgsTo2GoValues(t *testing.T) {
 func TestCheckArgTypes(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		testCases := [][]reflect.Type{
-			{reflectType[*vmState](), reflectType[int]()},
-			{reflectType[*vmState](), reflectType[int](), reflectType[option.Option[int]]()},
-			{reflectType[*vmState](), reflectType[int](), reflectType[option.Option[int]](),
+			{reflectType[*State](), reflectType[int]()},
+			{reflectType[*State](), reflectType[int](), reflectType[option.Option[int]]()},
+			{reflectType[*State](), reflectType[int](), reflectType[option.Option[int]](),
 				reflectType[Rest[int]]()},
-			{reflectType[*vmState](), reflectType[int](), reflectType[option.Option[int]](),
+			{reflectType[*State](), reflectType[int](), reflectType[option.Option[int]](),
 				reflectType[option.Option[string]](), reflectType[Kwargs]()},
 			{reflectType[[]int](), reflectType[string]()},
 		}
@@ -156,7 +156,7 @@ func TestCheckArgTypes(t *testing.T) {
 			detail   string
 		}{
 			{
-				argTypes: []reflect.Type{reflectType[int](), reflectType[*vmState]()},
+				argTypes: []reflect.Type{reflectType[int](), reflectType[*State]()},
 				detail:   "argument of State type must be the first argument",
 			},
 			{
@@ -165,7 +165,7 @@ func TestCheckArgTypes(t *testing.T) {
 			},
 			{
 				argTypes: []reflect.Type{
-					reflectType[*vmState](), reflectType[int](), reflectType[option.Option[int]](),
+					reflectType[*State](), reflectType[int](), reflectType[option.Option[int]](),
 					reflectType[[]string]()},
 				detail: "argument of non-optional type cannot be after argument of optional type",
 			},

@@ -31,7 +31,7 @@ func (m *macro) String() string {
 
 func (m *macro) Kind() ObjectKind { return ObjectKindStruct }
 
-func (m *macro) Call(state *vmState, args []Value) (Value, error) {
+func (m *macro) Call(state *State, args []Value) (Value, error) {
 	var kwargs *valueMap
 	if len(args) > 0 {
 		if mapVal, ok := args[len(args)-1].(mapValue); ok && mapVal.Type == mapTypeKwargs {

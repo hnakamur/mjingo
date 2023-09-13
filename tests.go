@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type BoxedTest = func(*vmState, []Value) (bool, error)
+type BoxedTest = func(*State, []Value) (bool, error)
 
 func BoxedTestFromFunc(fn any) BoxedTest {
 	if bt, ok := fn.(BoxedTest); ok {
@@ -31,7 +31,7 @@ func BoxedTestFromFunc(fn any) BoxedTest {
 		panic(err.Error())
 	}
 	fnVal := reflect.ValueOf(fn)
-	return func(state *vmState, values []Value) (bool, error) {
+	return func(state *State, values []Value) (bool, error) {
 		goVals, err := argsToGoValuesReflect(state, values, argTypes)
 		if err != nil {
 			return false, err
@@ -180,10 +180,10 @@ func isFalse(val Value) bool {
 	return ok && !boolVal.B
 }
 
-func isFilter(state *vmState, name string) bool {
+func isFilter(state *State, name string) bool {
 	return state.Env().getFilter(name).IsSome()
 }
 
-func isTest(state *vmState, name string) bool {
+func isTest(state *State, name string) bool {
 	return state.Env().getTest(name).IsSome()
 }
