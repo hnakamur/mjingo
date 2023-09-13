@@ -34,7 +34,7 @@ func TestFilterReflect(t *testing.T) {
 		if got, want := ty.NumIn(), 2; got != want {
 			t.Errorf("input parameter count mismatch, got=%v, want=%v", got, want)
 		}
-		if got, want := ty.In(0), reflect.TypeOf((*State)(nil)).Elem(); got != want {
+		if got, want := ty.In(0), reflect.TypeOf((**vmState)(nil)).Elem(); got != want {
 			t.Errorf("input parameter #0 type mismatch, got=%v, want=%v", got, want)
 		}
 		if got, want := ty.In(1), reflect.TypeOf((*Value)(nil)).Elem(); got != want {

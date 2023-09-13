@@ -2,16 +2,9 @@ package mjingo
 
 import (
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/option"
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
+	"github.com/hnakamur/mjingo/option"
 )
-
-type State interface {
-	Env() *Environment
-	Name() string
-	AutoEscape() AutoEscape
-	UndefinedBehavior() UndefinedBehavior
-}
 
 type vmState struct {
 	env             *Environment
@@ -23,8 +16,6 @@ type vmState struct {
 	loadedTemplates hashset.StrHashSet
 	macros          stackpkg.Stack[macroStackElem]
 }
-
-var _ State = ((*vmState)(nil))
 
 type locals = map[string]Value
 

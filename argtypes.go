@@ -166,7 +166,7 @@ func valueTryToValueSlice(val Value) ([]Value, error) {
 	return iter.Collect(), nil
 }
 
-func ArgsTo1GoValue[A any](state State, values []Value) (A, error) {
+func ArgsTo1GoValue[A any](state *vmState, values []Value) (A, error) {
 	var a A
 	goVals, err := argsToGoValuesReflect(state, values, []reflect.Type{reflectType[A]()})
 	if err != nil {
@@ -178,7 +178,7 @@ func ArgsTo1GoValue[A any](state State, values []Value) (A, error) {
 	return a, nil
 }
 
-func ArgsTo2GoValues[A any, B any](state State, values []Value) (A, B, error) {
+func ArgsTo2GoValues[A any, B any](state *vmState, values []Value) (A, B, error) {
 	var a A
 	var b B
 	goVals, err := argsToGoValuesReflect(state, values,
@@ -195,7 +195,7 @@ func ArgsTo2GoValues[A any, B any](state State, values []Value) (A, B, error) {
 	return a, b, nil
 }
 
-func ArgsTo3GoValues[A any, B any, C any](state State, values []Value) (A, B, C, error) {
+func ArgsTo3GoValues[A any, B any, C any](state *vmState, values []Value) (A, B, C, error) {
 	var a A
 	var b B
 	var c C
@@ -216,7 +216,7 @@ func ArgsTo3GoValues[A any, B any, C any](state State, values []Value) (A, B, C,
 	return a, b, c, nil
 }
 
-func ArgsTo4GoValues[A any, B any, C any, D any](state State, values []Value) (A, B, C, D, error) {
+func ArgsTo4GoValues[A any, B any, C any, D any](state *vmState, values []Value) (A, B, C, D, error) {
 	var a A
 	var b B
 	var c C
@@ -241,7 +241,7 @@ func ArgsTo4GoValues[A any, B any, C any, D any](state State, values []Value) (A
 	return a, b, c, d, nil
 }
 
-func ArgsTo5GoValues[A any, B any, C any, D any, E any](state State, values []Value) (A, B, C, D, E, error) {
+func ArgsTo5GoValues[A any, B any, C any, D any, E any](state *vmState, values []Value) (A, B, C, D, E, error) {
 	var a A
 	var b B
 	var c C
@@ -271,13 +271,13 @@ func ArgsTo5GoValues[A any, B any, C any, D any, E any](state State, values []Va
 	return a, b, c, d, e, nil
 }
 
-func argsToGoValuesNoReflect(state State, values []Value, destPtrs []any, variadic bool) error {
+func argsToGoValuesNoReflect(state *vmState, values []Value, destPtrs []any, variadic bool) error {
 	i := 0
 	for j, destPtr := range destPtrs {
 		kind := findArgTypeKindFromDestPtr(destPtr)
 		switch kind {
 		case argTypeKindState:
-			*(destPtr.(*State)) = state
+			*(destPtr.(**vmState)) = state
 		case argTypeKindPrimitive:
 			if i >= len(values) {
 				return NewError(MissingArgument, "")
@@ -335,7 +335,7 @@ func argsToGoValuesNoReflect(state State, values []Value, destPtrs []any, variad
 	return nil
 }
 
-func argsToGoValuesReflect(state State, values []Value, argTypes []reflect.Type) ([]any, error) {
+func argsToGoValuesReflect(state *vmState, values []Value, argTypes []reflect.Type) ([]any, error) {
 	var goVals []any
 	i := 0
 	for _, argType := range argTypes {
@@ -489,7 +489,7 @@ func (k argTypeKind) String() string {
 
 func findArgTypeKindFromDestPtr(destPtr any) argTypeKind {
 	switch destPtr.(type) {
-	case *State:
+	case **vmState:
 		return argTypeKindState
 	case *Value, *bool, *int8,
 		*int16, *int32, *int64,
@@ -529,7 +529,7 @@ func findArgTypeKindFromDestPtr(destPtr any) argTypeKind {
 
 func findArgTypeKind(argType reflect.Type) argTypeKind {
 	switch argType {
-	case reflectType[State]():
+	case reflectType[*vmState]():
 		return argTypeKindState
 	case reflectType[Value](), reflectType[bool](), reflectType[int8](),
 		reflectType[int16](), reflectType[int32](), reflectType[int64](),

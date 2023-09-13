@@ -31,7 +31,7 @@ func (m *macro) String() string {
 
 func (m *macro) Kind() ObjectKind { return ObjectKindStruct }
 
-func (m *macro) Call(state State, args []Value) (Value, error) {
+func (m *macro) Call(state *vmState, args []Value) (Value, error) {
 	var kwargs *valueMap
 	if len(args) > 0 {
 		if mapVal, ok := args[len(args)-1].(mapValue); ok && mapVal.Type == mapTypeKwargs {
@@ -90,21 +90,20 @@ func (m *macro) Call(state State, args []Value) (Value, error) {
 		}
 	}
 
-	st := state.(*vmState)
-	instsAndOffset := st.macros[m.data.macroRefID]
+	instsAndOffset := state.macros[m.data.macroRefID]
 	insts := instsAndOffset.insts
 	offset := instsAndOffset.offset
-	vm := newVirtualMachine(st.env)
+	vm := newVirtualMachine(state.env)
 	var b strings.Builder
 	out := newOutput(&b)
 
 	closure := m.data.closure.clone()
 
-	if _, err := vm.evalMacro(insts, offset, closure, caller, out, st, argValues); err != nil {
+	if _, err := vm.evalMacro(insts, offset, closure, caller, out, state, argValues); err != nil {
 		return nil, err
 	}
 
-	if _, ok := st.autoEscape.(autoEscapeNone); !ok {
+	if _, ok := state.autoEscape.(autoEscapeNone); !ok {
 		return ValueFromSafeString(b.String()), nil
 	}
 	return valueFromString(b.String()), nil

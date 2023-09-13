@@ -5,11 +5,11 @@ import (
 )
 
 type Caller interface {
-	Call(state State, args []Value) (Value, error)
+	Call(state *vmState, args []Value) (Value, error)
 }
 
 type CallMethoder interface {
-	CallMethod(state State, name string, args []Value) (Value, error)
+	CallMethod(state *vmState, name string, args []Value) (Value, error)
 }
 
 func valueCall(receiver Value, state *vmState, args []Value) (Value, error) {

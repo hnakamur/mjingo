@@ -21,7 +21,7 @@ var _ = (StructObject)((*loopObject)(nil))
 
 func (l *loopObject) Kind() ObjectKind { return ObjectKindStruct }
 
-func (l *loopObject) CallMethod(state State, name string, args []Value) (Value, error) {
+func (l *loopObject) CallMethod(state *vmState, name string, args []Value) (Value, error) {
 	switch name {
 	case "changed":
 		if slices.Equal(l.lastChangedValue, args) {
