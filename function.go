@@ -8,7 +8,7 @@ import (
 
 type BoxedFunc = func(*State, []Value) (Value, error)
 
-func BoxedFuncFromFunc(fn any) BoxedFunc {
+func BoxedFuncFromFuncReflect(fn any) BoxedFunc {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
 		panic("argument must be a function")

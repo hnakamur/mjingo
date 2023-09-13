@@ -79,7 +79,7 @@ const templateSource = `{%- with next_class = cycler(["odd", "even"]) %}
 func ExampleObject() {
 	env := mjingo.NewEnvironment()
 	const templateName = "test.html"
-	env.AddFunction("cycler", mjingo.BoxedFuncFromFunc(makeCycler))
+	env.AddFunction("cycler", mjingo.BoxedFuncFromFuncReflect(makeCycler))
 	env.AddGlobal("magic", mjingo.ValueFromGoValue(&Magic{}))
 	env.AddGlobal("seq", mjingo.ValueFromGoValue(&SimpleDynamicSec{}))
 	err := env.AddTemplate(templateName, templateSource)

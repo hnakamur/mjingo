@@ -7,7 +7,7 @@ import (
 
 type BoxedTest = func(*State, []Value) (bool, error)
 
-func BoxedTestFromFunc(fn any) BoxedTest {
+func BoxedTestFromFuncReflect(fn any) BoxedTest {
 	if bt, ok := fn.(BoxedTest); ok {
 		return bt
 	}

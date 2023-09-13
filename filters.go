@@ -14,7 +14,7 @@ import (
 
 type BoxedFilter = func(*State, []Value) (Value, error)
 
-func BoxedFilterFromFunc(fn any) BoxedFilter {
+func BoxedFilterFromFuncReflect(fn any) BoxedFilter {
 	if bf, ok := fn.(BoxedFilter); ok {
 		return bf
 	}
