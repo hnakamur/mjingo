@@ -10,20 +10,29 @@ import (
 )
 
 type FirstArgTypes interface {
-	MiddleArgTypes | *State
+	ScalarTypes | SliceTypes | *State
 }
-
 type MiddleArgTypes interface {
-	Value | bool | string
+	ScalarTypes | SliceTypes
 }
-
 type LastArgTypes interface {
-	MiddleArgTypes | Kwargs
+	ScalarTypes | SliceTypes | Kwargs
 }
 
 type RetValTypes interface {
-	// ~Value |
-	bool | string
+	ScalarTypes | SliceTypes
+}
+
+type ScalarTypes interface {
+	Value | bool | uint8 | uint16 | uint32 | uint64 | uint |
+		int8 | int16 | int32 | int64 | int | big.Int |
+		string
+}
+
+type SliceTypes interface {
+	[]Value | []bool | []uint8 | []uint16 | []uint32 | []uint64 | []uint |
+		[]int8 | []int16 | []int32 | []int64 | []int | []big.Int |
+		[]string
 }
 
 func valueFromBytes(val []byte) Value {

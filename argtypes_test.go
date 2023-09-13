@@ -241,9 +241,7 @@ func TestDestPtrs(t *testing.T) {
 	}
 }
 
-func testGenericFuncCallerNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, B) R) R {
-	var a A
-	var b B
+func testGenericFuncCallerNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](a A, b B, f func(A, B) R) R {
 	return f(a, b)
 }
 
@@ -266,11 +264,31 @@ func testGenericFuncCallerVariadicWithErr[A FirstArgTypes, B LastArgTypes, R Ret
 }
 
 func TestCallGenericFunc(t *testing.T) {
-	got := testGenericFuncCallerNoErr[bool, string, string](func(a bool, b string) string {
-		return fmt.Sprintf("%T %T", a, b)
+	t.Run("case1", func(t *testing.T) {
+		got := testGenericFuncCallerNoErr[bool, string, string](false, "", func(a bool, b string) string {
+			return fmt.Sprintf("%T %T", a, b)
+		})
+		const want = "bool string"
+		if got != want {
+			t.Errorf("result mismatch, got=%s, want=%s", got, want)
+		}
 	})
-	const want = "bool string"
-	if got != want {
-		t.Errorf("result mismatch, got=%s, want=%s", got, want)
-	}
+	t.Run("byteRetVal", func(t *testing.T) {
+		got := testGenericFuncCallerNoErr[bool, string, byte](false, "", func(_a bool, _b string) byte {
+			return 'a'
+		})
+		const want = 'a'
+		if got != want {
+			t.Errorf("result mismatch, got=%v, want=%v", got, want)
+		}
+	})
+	t.Run("byteSlice", func(t *testing.T) {
+		got := testGenericFuncCallerNoErr[[]byte, bool]([]byte("foo"), false, func(a []byte, _b bool) string {
+			return string(a)
+		})
+		const want = "foo"
+		if got != want {
+			t.Errorf("result mismatch, got=%v, want=%v", got, want)
+		}
+	})
 }
