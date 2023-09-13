@@ -189,7 +189,13 @@ func valueTryToValueSlice(val Value) ([]Value, error) {
 	return iter.Collect(), nil
 }
 
-func convertArgToGoVar(state *State, values []Value, destPtr any) ([]Value, error) {
+func convertArgToGoVar[T JustOneArgTypes](state *State, values []Value) (T, []Value, error) {
+	var v T
+	values, err := convertArgToGoVarTo(state, values, &v)
+	return v, values, err
+}
+
+func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, error) {
 	switch p := destPtr.(type) {
 	case **State:
 		*p = state
@@ -298,6 +304,50 @@ func convertArgToGoVar(state *State, values []Value, destPtr any) ([]Value, erro
 	panic(fmt.Sprintf("unsupported go variable type: %T", destPtr))
 }
 
+func convertArgToGoVariadicVar[S ~[]E, E ScalarTypes](values []Value) (S, error) {
+	var s S
+	if err := convertArgToGoVariadicVarTo(values, &s); err != nil {
+		return s, err
+	}
+	return s, nil
+}
+
+func convertArgToGoVariadicVarTo(values []Value, destPtr any) error {
+	switch p := destPtr.(type) {
+	case *[]Value:
+		return convertArgToGoVariadicVarHelper[Value](values, p, valueSliceTryToGoSlice[[]Value, Value])
+	case *[]bool:
+		return convertArgToGoVariadicVarHelper[bool](values, p, valueSliceTryToGoSlice[[]bool, bool])
+	case *[]int8:
+		return convertArgToGoVariadicVarHelper[int8](values, p, valueSliceTryToGoSlice[[]int8, int8])
+	case *[]int16:
+		return convertArgToGoVariadicVarHelper[int16](values, p, valueSliceTryToGoSlice[[]int16, int16])
+	case *[]int32:
+		return convertArgToGoVariadicVarHelper[int32](values, p, valueSliceTryToGoSlice[[]int32, int32])
+	case *[]int64:
+		return convertArgToGoVariadicVarHelper[int64](values, p, valueSliceTryToGoSlice[[]int64, int64])
+	case *[]int:
+		return convertArgToGoVariadicVarHelper[int](values, p, valueSliceTryToGoSlice[[]int, int])
+	case *[]uint8:
+		return convertArgToGoVariadicVarHelper[uint8](values, p, valueSliceTryToGoSlice[[]uint8, uint8])
+	case *[]uint16:
+		return convertArgToGoVariadicVarHelper[uint16](values, p, valueSliceTryToGoSlice[[]uint16, uint16])
+	case *[]uint32:
+		return convertArgToGoVariadicVarHelper[uint32](values, p, valueSliceTryToGoSlice[[]uint32, uint32])
+	case *[]uint64:
+		return convertArgToGoVariadicVarHelper[uint64](values, p, valueSliceTryToGoSlice[[]uint64, uint64])
+	case *[]uint:
+		return convertArgToGoVariadicVarHelper[uint](values, p, valueSliceTryToGoSlice[[]uint, uint])
+	case *[]float32:
+		return convertArgToGoVariadicVarHelper[float32](values, p, valueSliceTryToGoSlice[[]float32, float32])
+	case *[]float64:
+		return convertArgToGoVariadicVarHelper[float64](values, p, valueSliceTryToGoSlice[[]float64, float64])
+	case *[]string:
+		return convertArgToGoVariadicVarHelper[string](values, p, valueSliceTryToGoSlice[[]string, string])
+	}
+	panic(fmt.Sprintf("unsupported go variable type: %T", destPtr))
+}
+
 func convertArgToGoVarHelper[T any](values []Value, dest *T, f func(Value) (T, error)) ([]Value, error) {
 	if len(values) == 0 {
 		return nil, NewError(MissingArgument, "")
@@ -337,6 +387,15 @@ func convertArgToGoSliceVarHelper[T ScalarTypes](values []Value, dest *[]T, f fu
 	}
 	*dest = v
 	return values[1:], nil
+}
+
+func convertArgToGoVariadicVarHelper[T ScalarTypes](values []Value, dest *[]T, f func([]Value) ([]T, error)) error {
+	v, err := f(values)
+	if err != nil {
+		return err
+	}
+	*dest = v
+	return nil
 }
 
 func valueSliceTryToGoSlice[S ~[]E, E ScalarTypes](values []Value) (S, error) {
