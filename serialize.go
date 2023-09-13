@@ -39,7 +39,7 @@ func serializeI128(v big.Int) (Value, error) {
 	if isI128(&v) {
 		return valueFromI128(v), nil
 	}
-	return nil, errors.New("value out of range of i128")
+	return Value{}, errors.New("value out of range of i128")
 }
 
 func serializeU8(v uint8) (Value, error) {
@@ -66,7 +66,7 @@ func serializeU128(v big.Int) (Value, error) {
 	if isU128(&v) {
 		return valueFromU128(v), nil
 	}
-	return nil, errors.New("value out of range of u128")
+	return Value{}, errors.New("value out of range of u128")
 }
 
 func serializeF32(v float32) (Value, error) {
@@ -131,7 +131,7 @@ func canConvertibleToValue(ty reflect.Type) bool {
 
 func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint) Value {
 	if level >= maxNestLevelForValueFromGoValue {
-		return invalidValue{Detail: "nested level too deep"}
+		return Value{data: invalidValue{Detail: "nested level too deep"}}
 	}
 	switch v := val.(type) {
 	case bool:
@@ -161,7 +161,7 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		if err != nil {
 			f, err := v.Float64()
 			if err != nil {
-				return mapErrToInvalidValue(nil, errors.New("invalid json.Number"))
+				return mapErrToInvalidValue(Value{}, errors.New("invalid json.Number"))
 			}
 			return mapErrToInvalidValue(serializeF64(f))
 		}
@@ -200,13 +200,13 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		case reflect.Ptr:
 			return valueFromGoValueHelper(reflect.ValueOf(v).Elem().Interface(), config, level+1)
 		}
-		return mapErrToInvalidValue(nil, fmt.Errorf("unsupported type: %T, ty=%+v, kind=%s", val, ty, k))
+		return mapErrToInvalidValue(Value{}, fmt.Errorf("unsupported type: %T, ty=%+v, kind=%s", val, ty, k))
 	}
 }
 
 func mapErrToInvalidValue(val Value, err error) Value {
 	if err != nil {
-		return invalidValue{Detail: err.Error()}
+		return Value{data: invalidValue{Detail: err.Error()}}
 	}
 	return val
 }

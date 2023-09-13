@@ -33,7 +33,7 @@ func BoxedFuncFromFunc(fn any) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		goVals, err := argsToGoValuesReflect(state, values, argTypes)
 		if err != nil {
-			return nil, err
+			return Value{}, err
 		}
 		reflectVals := make([]reflect.Value, len(goVals))
 		for i, goVal := range goVals {
@@ -109,11 +109,11 @@ func rangeFunc(lower uint32, upper, step option.Option[uint32]) ([]uint32, error
 }
 
 func dictFunc(val Value) (Value, error) {
-	switch v := val.(type) {
+	switch v := val.data.(type) {
 	case undefinedValue:
 		return valueFromIndexMap(newValueMap()), nil
 	case mapValue:
 		return valueFromIndexMap(v.Map), nil
 	}
-	return nil, NewError(InvalidOperation, "")
+	return Value{}, NewError(InvalidOperation, "")
 }

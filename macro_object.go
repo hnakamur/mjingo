@@ -34,14 +34,14 @@ func (m *macro) Kind() ObjectKind { return ObjectKindStruct }
 func (m *macro) Call(state *State, args []Value) (Value, error) {
 	var kwargs *valueMap
 	if len(args) > 0 {
-		if mapVal, ok := args[len(args)-1].(mapValue); ok && mapVal.Type == mapTypeKwargs {
+		if mapVal, ok := args[len(args)-1].data.(mapValue); ok && mapVal.Type == mapTypeKwargs {
 			kwargs = mapVal.Map
 			args = args[:len(args)-1]
 		}
 	}
 
 	if len(args) > len(m.data.argSpec) {
-		return nil, NewError(TooManyArguments, "")
+		return Value{}, NewError(TooManyArguments, "")
 	}
 
 	kwargsUsed := hashset.NewStrHashSet()
@@ -54,11 +54,11 @@ func (m *macro) Call(state *State, args []Value) (Value, error) {
 
 		var arg Value
 		switch {
-		case i < len(args) && kwarg != nil:
-			return nil, NewError(TooManyArguments, fmt.Sprintf("duplicate argument `%s`", name))
-		case i < len(args) && kwarg == nil:
+		case i < len(args) && kwarg.data != nil:
+			return Value{}, NewError(TooManyArguments, fmt.Sprintf("duplicate argument `%s`", name))
+		case i < len(args) && kwarg.data == nil:
 			arg = args[i].clone()
-		case i >= len(args) && kwarg != nil:
+		case i >= len(args) && kwarg.data != nil:
 			kwargsUsed.Add(name)
 			arg = kwarg.clone()
 		default:
@@ -83,7 +83,7 @@ func (m *macro) Call(state *State, args []Value) (Value, error) {
 		for _, keyRef := range kwargs.Keys() {
 			if optKey := keyRef.AsStr(); optKey.IsSome() {
 				if !kwargsUsed.Contains(optKey.Unwrap()) {
-					return nil, NewError(TooManyArguments,
+					return Value{}, NewError(TooManyArguments,
 						fmt.Sprintf("unknown keyword argument `%s`", optKey.Unwrap()))
 				}
 			}
@@ -100,7 +100,7 @@ func (m *macro) Call(state *State, args []Value) (Value, error) {
 	closure := m.data.closure.clone()
 
 	if _, err := vm.evalMacro(insts, offset, closure, caller, out, state, argValues); err != nil {
-		return nil, err
+		return Value{}, err
 	}
 
 	if _, ok := state.autoEscape.(autoEscapeNone); !ok {

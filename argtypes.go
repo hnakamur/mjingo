@@ -14,8 +14,7 @@ type FirstArgTypes interface {
 }
 
 type MiddleArgTypes interface {
-	// ~Value |
-	bool | string
+	Value | bool | string
 }
 
 type LastArgTypes interface {
@@ -28,11 +27,11 @@ type RetValTypes interface {
 }
 
 func valueFromBytes(val []byte) Value {
-	return bytesValue{B: val}
+	return Value{data: bytesValue{B: val}}
 }
 
 func valueFromString(val string) Value {
-	return stringValue{Str: val, Type: stringTypeNormal}
+	return Value{data: stringValue{Str: val, Type: stringTypeNormal}}
 }
 
 // ValueFromSafeString creates a value from a safe string.
@@ -41,47 +40,47 @@ func valueFromString(val string) Value {
 // want to have the template engine render some HTML without the user having to
 // supply the `|safe` filter, you can use a value of this type instead.
 func ValueFromSafeString(s string) Value {
-	return stringValue{Str: s, Type: stringTypeSafe}
+	return Value{data: stringValue{Str: s, Type: stringTypeSafe}}
 }
 
 func valueFromBool(val bool) Value {
-	return boolValue{B: val}
+	return Value{data: boolValue{B: val}}
 }
 
 func valueFromI64(n int64) Value {
-	return i64Value{N: n}
+	return Value{data: i64Value{N: n}}
 }
 
 func valueFromI128(n big.Int) Value {
-	return i128Value{N: n}
+	return Value{data: i128Value{N: n}}
 }
 
 func valueFromU64(n uint64) Value {
-	return u64Value{N: n}
+	return Value{data: u64Value{N: n}}
 }
 
 func valueFromU128(n big.Int) Value {
-	return u128Value{N: n}
+	return Value{data: u128Value{N: n}}
 }
 
 func valueFromF64(f float64) Value {
-	return f64Value{F: f}
+	return Value{data: f64Value{F: f}}
 }
 
 func valueFromSlice(values []Value) Value {
-	return seqValue{Items: values}
+	return Value{data: seqValue{Items: values}}
 }
 
 func valueFromIndexMap(m *valueMap) Value {
-	return mapValue{Map: m, Type: mapTypeNormal}
+	return Value{data: mapValue{Map: m, Type: mapTypeNormal}}
 }
 
 func valueFromKwargs(a Kwargs) Value {
-	return mapValue{Map: &a.values, Type: mapTypeKwargs}
+	return Value{data: mapValue{Map: &a.values, Type: mapTypeKwargs}}
 }
 
 func valueFromObject(dy Object) Value {
-	return dynamicValue{Dy: dy}
+	return Value{data: dynamicValue{Dy: dy}}
 }
 
 // Kwargs is the utility to accept keyword arguments.
@@ -104,10 +103,10 @@ func newKwargs(m valueMap) Kwargs {
 }
 
 func valueTryToKwargs(val Value) (Kwargs, error) {
-	if val == nil {
+	if val.data == nil {
 		return newKwargs(*newValueMap()), nil
 	}
-	switch v := val.(type) {
+	switch v := val.data.(type) {
 	case undefinedValue:
 		return newKwargs(*newValueMap()), nil
 	case mapValue:

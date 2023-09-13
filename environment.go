@@ -274,8 +274,8 @@ func (e *Environment) format(v Value, state *State, out *output) error {
 }
 
 func (e *Environment) getGlobal(name string) option.Option[Value] {
-	val := e.globals[name]
-	if val != nil {
+	val, ok := e.globals[name]
+	if ok {
 		return option.Some(val.clone())
 	}
 	return option.None[Value]()

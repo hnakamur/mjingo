@@ -13,25 +13,25 @@ type CallMethoder interface {
 }
 
 func valueCall(receiver Value, state *State, args []Value) (Value, error) {
-	if dyVal, ok := receiver.(dynamicValue); ok {
+	if dyVal, ok := receiver.data.(dynamicValue); ok {
 		if c, ok := dyVal.Dy.(Caller); ok {
 			return c.Call(state, args)
 		}
-		return nil, NewError(InvalidOperation, "tried to call non callable object")
+		return Value{}, NewError(InvalidOperation, "tried to call non callable object")
 	}
 	return notCallableValueType(receiver)
 }
 
 func notCallableValueType(v Value) (Value, error) {
-	return nil, NewError(InvalidOperation,
+	return Value{}, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s is not callable", v.kind()))
 }
 
 func callMethod(receiver Value, state *State, name string, args []Value) (Value, error) {
-	switch v := receiver.(type) {
+	switch v := receiver.data.(type) {
 	case mapValue:
 		if val, ok := v.Map.Get(keyRefFromString(name)); ok {
-			if dyVal, ok := val.(dynamicValue); ok {
+			if dyVal, ok := val.data.(dynamicValue); ok {
 				if c, ok := dyVal.Dy.(Caller); ok {
 					return c.Call(state, args)
 				}
@@ -43,6 +43,6 @@ func callMethod(receiver Value, state *State, name string, args []Value) (Value,
 			return c.CallMethod(state, name, args)
 		}
 	}
-	return nil, NewError(InvalidOperation,
+	return Value{}, NewError(InvalidOperation,
 		fmt.Sprintf("object has no method named %s", name))
 }

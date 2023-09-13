@@ -79,7 +79,7 @@ func (b UndefinedBehavior) handleUndefined(parentWasUndefined bool) (Value, erro
 	case (b == UndefinedBehaviorLenient && !parentWasUndefined) || b == UndefinedBehaviorChainable:
 		return Undefined, nil
 	case (b == UndefinedBehaviorLenient && parentWasUndefined) || b == UndefinedBehaviorStrict:
-		return nil, NewError(UndefinedError, "")
+		return Value{}, NewError(UndefinedError, "")
 	default:
 		panic("unreachable")
 	}

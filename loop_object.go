@@ -39,7 +39,7 @@ func (l *loopObject) CallMethod(state *State, name string, args []Value) (Value,
 		}
 		return Undefined, nil
 	}
-	return nil, NewError(UnknownMethod, fmt.Sprintf("loop object has no method named %s", name))
+	return Value{}, NewError(UnknownMethod, fmt.Sprintf("loop object has no method named %s", name))
 }
 
 func (*loopObject) StaticFields() option.Option[[]string] {

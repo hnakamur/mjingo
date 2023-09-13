@@ -22,7 +22,7 @@ func TestValueMap(t *testing.T) {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
 
-		m.Set(strKeyRef{str: "bar"}, i64Value{N: 3})
+		m.Set(strKeyRef{str: "bar"}, valueFromI64(3))
 		if got, want := m.Len(), uint(2); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -50,13 +50,13 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("second key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("second value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
 		}
 
-		m.Set(strKeyRef{str: "foo"}, f64Value{F: 3.1})
+		m.Set(strKeyRef{str: "foo"}, valueFromF64(3.1))
 		{
 			got, ok := m.EntryAt(uint(0))
 			if !ok {
@@ -66,7 +66,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := f64Value{F: 3.1}
+			wantVal := valueFromF64(3.1)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
@@ -85,7 +85,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
@@ -94,9 +94,9 @@ func TestValueMap(t *testing.T) {
 	t.Run("ValueKeyRef", func(t *testing.T) {
 		m := newValueMap()
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, Undefined)
+		m.Set(valueKeyRef{val: valueFromF64(0.5)}, Undefined)
 		{
-			got, ok := m.Get(valueKeyRef{val: f64Value{F: 0.5}})
+			got, ok := m.Get(valueKeyRef{val: valueFromF64(0.5)})
 			if !ok {
 				t.Error("load ok mismatch")
 			}
@@ -108,7 +108,7 @@ func TestValueMap(t *testing.T) {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
 
-		m.Set(valueKeyRef{val: i64Value{N: 123}}, i64Value{N: 3})
+		m.Set(valueKeyRef{val: valueFromI64(123)}, valueFromI64(3))
 		if got, want := m.Len(), uint(2); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -118,7 +118,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: f64Value{F: 0.5}}
+			wantKey := valueKeyRef{val: valueFromF64(0.5)}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -132,33 +132,33 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: i64Value{N: 123}}
+			wantKey := valueKeyRef{val: valueFromI64(123)}
 			if got.Key != wantKey {
 				t.Errorf("second key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("second value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
 		}
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, f64Value{F: 3.1})
+		m.Set(valueKeyRef{val: valueFromF64(0.5)}, valueFromF64(3.1))
 		{
 			got, ok := m.EntryAt(uint(0))
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: f64Value{F: 0.5}}
+			wantKey := valueKeyRef{val: valueFromF64(0.5)}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := f64Value{F: 3.1}
+			wantVal := valueFromF64(3.1)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
 		}
 
-		m.Delete(valueKeyRef{val: f64Value{F: 0.5}})
+		m.Delete(valueKeyRef{val: valueFromF64(0.5)})
 		if got, want := m.Len(), uint(1); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -167,11 +167,11 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: i64Value{N: 123}}
+			wantKey := valueKeyRef{val: valueFromI64(123)}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
@@ -180,9 +180,9 @@ func TestValueMap(t *testing.T) {
 	t.Run("mixOfStrAndValueKeyRef", func(t *testing.T) {
 		m := newValueMap()
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, Undefined)
+		m.Set(valueKeyRef{val: valueFromF64(0.5)}, Undefined)
 		{
-			got, ok := m.Get(valueKeyRef{val: f64Value{F: 0.5}})
+			got, ok := m.Get(valueKeyRef{val: valueFromF64(0.5)})
 			if !ok {
 				t.Error("load ok mismatch")
 			}
@@ -194,7 +194,7 @@ func TestValueMap(t *testing.T) {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
 
-		m.Set(strKeyRef{str: "bar"}, i64Value{N: 3})
+		m.Set(strKeyRef{str: "bar"}, valueFromI64(3))
 		if got, want := m.Len(), uint(2); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -204,7 +204,7 @@ func TestValueMap(t *testing.T) {
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: f64Value{F: 0.5}}
+			wantKey := valueKeyRef{val: valueFromF64(0.5)}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
@@ -222,29 +222,29 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("second key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("second value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
 		}
 
-		m.Set(valueKeyRef{val: f64Value{F: 0.5}}, f64Value{F: 3.1})
+		m.Set(valueKeyRef{val: valueFromF64(0.5)}, valueFromF64(3.1))
 		{
 			got, ok := m.EntryAt(uint(0))
 			if !ok {
 				t.Error("load ok mismatch")
 			}
-			wantKey := valueKeyRef{val: f64Value{F: 0.5}}
+			wantKey := valueKeyRef{val: valueFromF64(0.5)}
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := f64Value{F: 3.1}
+			wantVal := valueFromF64(3.1)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}
 		}
 
-		m.Delete(valueKeyRef{val: f64Value{F: 0.5}})
+		m.Delete(valueKeyRef{val: valueFromF64(0.5)})
 		if got, want := m.Len(), uint(1); got != want {
 			t.Errorf("len mismatch, got=%d, want=%d", got, want)
 		}
@@ -257,7 +257,7 @@ func TestValueMap(t *testing.T) {
 			if got.Key != wantKey {
 				t.Errorf("first key mismatch, got=%+v, want=%+v", got.Key, wantKey)
 			}
-			wantVal := i64Value{N: 3}
+			wantVal := valueFromI64(3)
 			if got.Value != wantVal {
 				t.Errorf("first value mismatch, got=%+v, want=%+v", got.Value, wantVal)
 			}

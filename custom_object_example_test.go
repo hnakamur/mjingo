@@ -40,14 +40,14 @@ func (s *Magic) Kind() mjingo.ObjectKind { return mjingo.ObjectKindPlain }
 
 func (s *Magic) CallMethod(state *mjingo.State, name string, args []mjingo.Value) (mjingo.Value, error) {
 	if name != "make_class" {
-		return nil, mjingo.NewError(mjingo.UnknownMethod,
+		return mjingo.Value{}, mjingo.NewError(mjingo.UnknownMethod,
 			fmt.Sprintf("object has no method named %s!!!", name))
 	}
 
 	// single string argument
 	tag, err := mjingo.ArgsTo1GoValue[string](state, args)
 	if err != nil {
-		return nil, err
+		return mjingo.Value{}, err
 	}
 	return mjingo.ValueFromGoValue(fmt.Sprintf("magic-%s", tag)), nil
 }

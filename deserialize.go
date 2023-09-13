@@ -247,14 +247,14 @@ func valueSliceTryToGoSliceReflect(values []Value, destType reflect.Type) (any, 
 func valueTryToValue(val Value) (Value, error) { return val, nil }
 
 func valueTryToGoString(val Value) (string, error) {
-	if v, ok := val.(stringValue); ok {
+	if v, ok := val.data.(stringValue); ok {
 		return v.Str, nil
 	}
 	return "", NewError(InvalidOperation, "value is not a string")
 }
 
 func valueTryToOption[T any](val Value, fn func(val Value) (T, error)) (option.Option[T], error) {
-	if val == nil {
+	if val.data == nil {
 		return option.None[T](), nil
 	}
 	return mapResultOK(option.Some[T])(fn(val))

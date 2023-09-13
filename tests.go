@@ -171,12 +171,12 @@ func isIn(val, other Value) bool {
 }
 
 func isTrue(val Value) bool {
-	boolVal, ok := val.(boolValue)
+	boolVal, ok := val.data.(boolValue)
 	return ok && boolVal.B
 }
 
 func isFalse(val Value) bool {
-	boolVal, ok := val.(boolValue)
+	boolVal, ok := val.data.(boolValue)
 	return ok && !boolVal.B
 }
 

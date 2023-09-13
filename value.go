@@ -16,7 +16,41 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type Value interface {
+type Value struct {
+	data valueData
+}
+
+func (v Value) String() string      { return v.data.String() }
+func (v Value) debugString() string { return v.data.debugString() }
+func (v Value) typ() valueType      { return v.data.typ() }
+func (v Value) kind() valueKind     { return v.data.kind() }
+func (v Value) isUndefined() bool   { return v.data.isUndefined() }
+func (v Value) isNone() bool        { return v.data.isNone() }
+func (v Value) isSafe() bool        { return v.data.isSafe() }
+func (v Value) isTrue() bool        { return v.data.isTrue() }
+func (v Value) getAttrFast(key string) option.Option[Value] {
+	return v.data.getAttrFast(key)
+}
+func (v Value) getItemOpt(key Value) option.Option[Value] {
+	return v.data.getItemOpt(key)
+}
+func (v Value) tryToI128() (big.Int, error)     { return v.data.tryToI128() }
+func (v Value) tryToI64() (int64, error)        { return v.data.tryToI64() }
+func (v Value) tryToUint() (uint, error)        { return v.data.tryToUint() }
+func (v Value) asF64() option.Option[float64]   { return v.data.asF64() }
+func (v Value) asSeq() option.Option[SeqObject] { return v.data.asSeq() }
+func (v Value) clone() Value                    { return Value{data: v.data.clone()} }
+func (v Value) tryIter() (iterator, error)      { return v.data.tryIter() }
+func (v Value) len() option.Option[uint]        { return v.data.len() }
+func (v Value) hash(h hash.Hash)                { v.data.hash(h) }
+func (v Value) Equal(other any) bool {
+	if otherVal, ok := other.(Value); ok {
+		return valueEqual(v, otherVal)
+	}
+	return false
+}
+
+type valueData interface {
 	fmt.Stringer
 	debugString() string
 
@@ -33,7 +67,7 @@ type Value interface {
 	tryToUint() (uint, error)
 	asF64() option.Option[float64]
 	asSeq() option.Option[SeqObject]
-	clone() Value
+	clone() valueData
 	tryIter() (iterator, error)
 	len() option.Option[uint]
 	hash(h hash.Hash)
@@ -86,10 +120,10 @@ const (
 // and this is the only way to construct it.
 var Undefined Value
 
-var none = noneValue{}
+var none = Value{data: noneValue{}}
 
 func init() {
-	Undefined = undefinedValue{}
+	Undefined = Value{data: undefinedValue{}}
 }
 
 func (t valueType) String() string {
@@ -190,20 +224,20 @@ const (
 	stringTypeSafe
 )
 
-var _ = Value(undefinedValue{})
-var _ = Value(boolValue{})
-var _ = Value(u64Value{})
-var _ = Value(i64Value{})
-var _ = Value(f64Value{})
-var _ = Value(noneValue{})
-var _ = Value(invalidValue{})
-var _ = Value(u128Value{})
-var _ = Value(i128Value{})
-var _ = Value(stringValue{})
-var _ = Value(bytesValue{})
-var _ = Value(seqValue{})
-var _ = Value(mapValue{})
-var _ = Value(dynamicValue{})
+var _ = valueData(undefinedValue{})
+var _ = valueData(boolValue{})
+var _ = valueData(u64Value{})
+var _ = valueData(i64Value{})
+var _ = valueData(f64Value{})
+var _ = valueData(noneValue{})
+var _ = valueData(invalidValue{})
+var _ = valueData(u128Value{})
+var _ = valueData(i128Value{})
+var _ = valueData(stringValue{})
+var _ = valueData(bytesValue{})
+var _ = valueData(seqValue{})
+var _ = valueData(mapValue{})
+var _ = valueData(dynamicValue{})
 
 func (v undefinedValue) String() string { return "" }
 func (v boolValue) String() string      { return strconv.FormatBool(v.B) }
@@ -766,30 +800,30 @@ func (v dynamicValue) asSeq() option.Option[SeqObject] {
 	return option.None[SeqObject]()
 }
 
-func (v undefinedValue) clone() Value { return v }
-func (v boolValue) clone() Value      { return v }
-func (v u64Value) clone() Value       { return v }
-func (v i64Value) clone() Value       { return v }
-func (v f64Value) clone() Value       { return v }
-func (v noneValue) clone() Value      { return v }
-func (v invalidValue) clone() Value   { return v }
-func (v u128Value) clone() Value {
+func (v undefinedValue) clone() valueData { return v }
+func (v boolValue) clone() valueData      { return v }
+func (v u64Value) clone() valueData       { return v }
+func (v i64Value) clone() valueData       { return v }
+func (v f64Value) clone() valueData       { return v }
+func (v noneValue) clone() valueData      { return v }
+func (v invalidValue) clone() valueData   { return v }
+func (v u128Value) clone() valueData {
 	c := v
 	c.N.Set(&v.N)
 	return c
 }
-func (v i128Value) clone() Value {
+func (v i128Value) clone() valueData {
 	c := v
 	c.N.Set(&v.N)
 	return c
 }
-func (v stringValue) clone() Value { return v }
-func (v bytesValue) clone() Value {
+func (v stringValue) clone() valueData { return v }
+func (v bytesValue) clone() valueData {
 	b := make([]byte, len(v.B))
 	copy(b, v.B)
 	return bytesValue{B: b}
 }
-func (v seqValue) clone() Value {
+func (v seqValue) clone() valueData {
 	items := make([]Value, len(v.Items))
 	for i, item := range v.Items {
 		// Is shallow copy OK?
@@ -797,11 +831,11 @@ func (v seqValue) clone() Value {
 	}
 	return seqValue{Items: items}
 }
-func (v mapValue) clone() Value {
+func (v mapValue) clone() valueData {
 	m := v.Map.Clone()
 	return mapValue{Map: m, Type: v.Type}
 }
-func (v dynamicValue) clone() Value {
+func (v dynamicValue) clone() valueData {
 	// TODO: implement real clone
 	return v
 }
@@ -994,7 +1028,7 @@ func (i *iterator) Len() uint {
 // All returns if every element of the iterator matches a predicate.
 // An empty iterator returns true.
 func (i *iterator) All(f func(Value) bool) bool {
-	for item := Value(nil); i.Next().UnwrapTo(&item); {
+	for item := (Value{}); i.Next().UnwrapTo(&item); {
 		if !f(item) {
 			return false
 		}
@@ -1059,7 +1093,7 @@ func (i *iterator) maxBy(compare func(a, b Value) int) option.Option[Value] {
 
 func (i *iterator) Collect() []Value {
 	items := make([]Value, 0, i.Len())
-	for item := Value(nil); i.Next().UnwrapTo(&item); {
+	for item := (Value{}); i.Next().UnwrapTo(&item); {
 		items = append(items, item)
 	}
 	return items
@@ -1121,7 +1155,7 @@ func (s *charsValueIteratorState) advanceState() option.Option[Value] {
 	if s.offset < uint(len(s.s)) {
 		r, size := utf8.DecodeRuneInString(s.s[s.offset:])
 		s.offset += uint(size)
-		return option.Some[Value](stringValue{Str: string(r)})
+		return option.Some(valueFromString(string(r)))
 	}
 	return option.None[Value]()
 }
@@ -1137,7 +1171,7 @@ func (s *stringsValueIteratorState) advanceState() option.Option[Value] {
 	if s.idx < uint(len(s.items)) {
 		item := s.items[s.idx]
 		s.idx++
-		return option.Some[Value](stringValue{Str: item})
+		return option.Some(valueFromString(item))
 	}
 	return option.None[Value]()
 }
@@ -1207,7 +1241,9 @@ func (v dynamicValue) len() option.Option[uint] {
 	}
 }
 
-func valueEqual(v, other Value) bool {
+func valueEqual(v, other Value) bool { return valueDataEqual(v.data, other.data) }
+
+func valueDataEqual(v, other valueData) bool {
 	switch {
 	case v.kind() == valueKindNone && other.kind() == valueKindNone:
 		return true
@@ -1222,7 +1258,7 @@ func valueEqual(v, other Value) bool {
 		b := other.(bytesValue).B
 		return bytes.Equal(a, b)
 	default:
-		switch c := coerce(v, other).(type) {
+		switch c := coerceData(v, other).(type) {
 		case f64CoerceResult:
 			return c.lhs == c.rhs
 		case i128CoerceResult:
@@ -1265,12 +1301,9 @@ func valueEqual(v, other Value) bool {
 	return false
 }
 
-func valueEqualAny(v Value, other any) bool {
-	if v == nil && other == nil {
-		return true
-	}
-	if o, ok := other.(Value); ok {
-		return valueEqual(v, o)
+func valueDataEqualAny(v valueData, other any) bool {
+	if o, ok := other.(valueData); ok {
+		return valueDataEqual(v, o)
 	}
 	return false
 }
@@ -1290,12 +1323,12 @@ outer:
 	case v.kind() == valueKindUndefined && other.kind() == valueKindUndefined:
 		rv = 0
 	case v.kind() == valueKindString && other.kind() == valueKindString:
-		a := v.(stringValue).Str
-		b := other.(stringValue).Str
+		a := v.data.(stringValue).Str
+		b := other.data.(stringValue).Str
 		rv = strings.Compare(a, b)
 	case v.kind() == valueKindBytes && other.kind() == valueKindBytes:
-		a := v.(bytesValue).B
-		b := other.(bytesValue).B
+		a := v.data.(bytesValue).B
+		b := other.data.(bytesValue).B
 		rv = bytes.Compare(a, b)
 	default:
 		switch c := coerce(v, other).(type) {
@@ -1352,13 +1385,13 @@ func f64TotalCmp(left, right float64) int {
 
 func getItem(val, key Value) (Value, error) {
 	if val.isUndefined() {
-		return nil, NewError(UndefinedError, "")
+		return Value{}, NewError(UndefinedError, "")
 	}
 	return val.getItemOpt(key).UnwrapOr(Undefined), nil
 }
 
 func valueTryToGoBool(v Value) (bool, error) {
-	if boolVal, ok := v.(boolValue); ok {
+	if boolVal, ok := v.data.(boolValue); ok {
 		return boolVal.B, nil
 	}
 	return false, unsupportedConversion(v.typ(), "bool")
@@ -1372,9 +1405,9 @@ func boolTryFromOptionValue(v option.Option[Value]) (bool, error) {
 }
 
 func getAttr(val Value, key string) (Value, error) {
-	switch v := val.(type) {
+	switch v := val.data.(type) {
 	case undefinedValue:
-		return nil, NewError(UndefinedError, "")
+		return Value{}, NewError(UndefinedError, "")
 	case mapValue:
 		if v2, ok := v.Map.Get(keyRefFromString(key)); ok {
 			return v2.clone(), nil
@@ -1400,34 +1433,36 @@ func getPath(val Value, path string) (Value, error) {
 		if err != nil {
 			rv, err = getAttr(val, part)
 			if err != nil {
-				return nil, err
+				return Value{}, err
 			}
 		} else {
 			rv, err = valueGetItemByIndex(val, uint(num))
 			if err != nil {
-				return nil, err
+				return Value{}, err
 			}
 		}
 	}
 	return rv, nil
 }
 
-func (v undefinedValue) hash(h hash.Hash) { valueHash(v, h) }
-func (v boolValue) hash(h hash.Hash)      { valueHash(v, h) }
-func (v u64Value) hash(h hash.Hash)       { valueHash(v, h) }
-func (v i64Value) hash(h hash.Hash)       { valueHash(v, h) }
-func (v f64Value) hash(h hash.Hash)       { valueHash(v, h) }
-func (v noneValue) hash(h hash.Hash)      { valueHash(v, h) }
-func (v invalidValue) hash(h hash.Hash)   { valueHash(v, h) }
-func (v u128Value) hash(h hash.Hash)      { valueHash(v, h) }
-func (v i128Value) hash(h hash.Hash)      { valueHash(v, h) }
-func (v stringValue) hash(h hash.Hash)    { valueHash(v, h) }
-func (v bytesValue) hash(h hash.Hash)     { valueHash(v, h) }
-func (v seqValue) hash(h hash.Hash)       { valueHash(v, h) }
-func (v mapValue) hash(h hash.Hash)       { valueHash(v, h) }
-func (v dynamicValue) hash(h hash.Hash)   { valueHash(v, h) }
+func (v undefinedValue) hash(h hash.Hash) { valueDataHash(v, h) }
+func (v boolValue) hash(h hash.Hash)      { valueDataHash(v, h) }
+func (v u64Value) hash(h hash.Hash)       { valueDataHash(v, h) }
+func (v i64Value) hash(h hash.Hash)       { valueDataHash(v, h) }
+func (v f64Value) hash(h hash.Hash)       { valueDataHash(v, h) }
+func (v noneValue) hash(h hash.Hash)      { valueDataHash(v, h) }
+func (v invalidValue) hash(h hash.Hash)   { valueDataHash(v, h) }
+func (v u128Value) hash(h hash.Hash)      { valueDataHash(v, h) }
+func (v i128Value) hash(h hash.Hash)      { valueDataHash(v, h) }
+func (v stringValue) hash(h hash.Hash)    { valueDataHash(v, h) }
+func (v bytesValue) hash(h hash.Hash)     { valueDataHash(v, h) }
+func (v seqValue) hash(h hash.Hash)       { valueDataHash(v, h) }
+func (v mapValue) hash(h hash.Hash)       { valueDataHash(v, h) }
+func (v dynamicValue) hash(h hash.Hash)   { valueDataHash(v, h) }
 
-func valueHash(val Value, h hash.Hash) {
+func valueHash(val Value, h hash.Hash) { valueDataHash(val.data, h) }
+
+func valueDataHash(val valueData, h hash.Hash) {
 	switch v := val.(type) {
 	case noneValue, undefinedValue:
 		h.Write([]byte{0})
@@ -1446,22 +1481,22 @@ func valueHash(val Value, h hash.Hash) {
 	case seqValue:
 		binary.Write(h, binary.BigEndian, uint64(len(v.Items)))
 		for _, item := range v.Items {
-			valueHash(item, h)
+			valueDataHash(item.data, h)
 		}
 	case mapValue:
 		l := v.Map.Len()
 		for i := uint(0); i < l; i++ {
 			entry, _ := v.Map.EntryAt(i)
 			keyRefHash(entry.Key, h)
-			valueHash(entry.Value, h)
+			valueDataHash(entry.Value.data, h)
 		}
 	case dynamicValue:
 		switch v.Dy.Kind() {
 		case ObjectKindPlain:
 			h.Write([]byte{0})
 		case ObjectKindSeq:
-			for iter, item := iteratorFromSeqObject(v.Dy.(SeqObject)), Value(nil); iter.Next().UnwrapTo(&item); {
-				valueHash(item, h)
+			for iter, item := iteratorFromSeqObject(v.Dy.(SeqObject)), (Value{}); iter.Next().UnwrapTo(&item); {
+				valueDataHash(item.data, h)
 			}
 		case ObjectKindStruct:
 			structObj := v.Dy.(StructObject)
@@ -1488,28 +1523,28 @@ func f64Hash(f float64, h hash.Hash) {
 	binary.Write(h, binary.BigEndian, math.Float64bits(f))
 }
 
-func (v undefinedValue) Equal(other any) bool { return valueEqualAny(v, other) }
-func (v boolValue) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v u64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v i64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v f64Value) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v noneValue) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v invalidValue) Equal(other any) bool   { return valueEqualAny(v, other) }
-func (v u128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v i128Value) Equal(other any) bool      { return valueEqualAny(v, other) }
-func (v stringValue) Equal(other any) bool    { return valueEqualAny(v, other) }
-func (v bytesValue) Equal(other any) bool     { return valueEqualAny(v, other) }
-func (v seqValue) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v mapValue) Equal(other any) bool       { return valueEqualAny(v, other) }
-func (v dynamicValue) Equal(other any) bool   { return valueEqualAny(v, other) }
+func (v undefinedValue) Equal(other any) bool { return valueDataEqualAny(v, other) }
+func (v boolValue) Equal(other any) bool      { return valueDataEqualAny(v, other) }
+func (v u64Value) Equal(other any) bool       { return valueDataEqualAny(v, other) }
+func (v i64Value) Equal(other any) bool       { return valueDataEqualAny(v, other) }
+func (v f64Value) Equal(other any) bool       { return valueDataEqualAny(v, other) }
+func (v noneValue) Equal(other any) bool      { return valueDataEqualAny(v, other) }
+func (v invalidValue) Equal(other any) bool   { return valueDataEqualAny(v, other) }
+func (v u128Value) Equal(other any) bool      { return valueDataEqualAny(v, other) }
+func (v i128Value) Equal(other any) bool      { return valueDataEqualAny(v, other) }
+func (v stringValue) Equal(other any) bool    { return valueDataEqualAny(v, other) }
+func (v bytesValue) Equal(other any) bool     { return valueDataEqualAny(v, other) }
+func (v seqValue) Equal(other any) bool       { return valueDataEqualAny(v, other) }
+func (v mapValue) Equal(other any) bool       { return valueDataEqualAny(v, other) }
+func (v dynamicValue) Equal(other any) bool   { return valueDataEqualAny(v, other) }
 
 func valueAsGoString(val Value) (string, bool) {
-	strVal, ok := val.(stringValue)
+	strVal, ok := val.data.(stringValue)
 	return strVal.Str, ok
 }
 
 func valueAsOptionString(val Value) option.Option[string] {
-	strVal, ok := val.(stringValue)
+	strVal, ok := val.data.(stringValue)
 	if ok {
 		return option.Some(strVal.Str)
 	}

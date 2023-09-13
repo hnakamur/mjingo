@@ -215,7 +215,7 @@ loop:
 				key := stack.Pop()
 				m.Set(keyRefFromValue(key), val)
 			}
-			stack.Push(mapValue{Map: m, Type: mapTypeKwargs})
+			stack.Push(valueFromKwargs(newKwargs(*m)))
 		case buildListInstruction:
 			v := make([]Value, 0, untrustedSizeHint(inst.Count))
 			for i := uint(0); i < inst.Count; i++ {
@@ -230,8 +230,9 @@ loop:
 		case listAppendInstruction:
 			a = stack.Pop()
 			// this intentionally only works with actual sequences
-			if v, ok := stack.Pop().(seqValue); ok {
-				v.Append(a)
+			v := stack.Pop()
+			if valData, ok := v.data.(seqValue); ok {
+				valData.Append(a)
 				stack.Push(v)
 			} else {
 				err := NewError(InvalidOperation, "cannot append to non-list")
@@ -683,13 +684,13 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *output, i
 
 func (m *virtualMachine) performSuper(state *State, out *output, capture bool) (Value, error) {
 	if state.currentBlock.IsNone() {
-		return nil, NewError(InvalidOperation, "cannot super outside of block")
+		return Value{}, NewError(InvalidOperation, "cannot super outside of block")
 	}
 	name := state.currentBlock.Unwrap()
 
 	blockStack := state.blocks[name]
 	if !blockStack.push() {
-		return nil, NewError(InvalidOperation, "no parent block exists")
+		return Value{}, NewError(InvalidOperation, "no parent block exists")
 	}
 
 	if capture {
@@ -699,14 +700,14 @@ func (m *virtualMachine) performSuper(state *State, out *output, capture bool) (
 	oldInsts := state.instructions
 	state.instructions = blockStack.instructions()
 	if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
-		return nil, err
+		return Value{}, err
 	}
 	_, err := m.evalState(state, out)
 	state.ctx.popFrame()
 	state.instructions = oldInsts
 	state.blocks[name].pop()
 	if err != nil {
-		return nil, NewError(EvalBlock, "error in super block").withSource(err)
+		return Value{}, NewError(EvalBlock, "error in super block").withSource(err)
 	}
 	if capture {
 		return out.endCapture(state.autoEscape), nil
@@ -784,7 +785,7 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 		case "none":
 			return autoEscapeNone{}, nil
 		}
-	} else if v, ok := val.(boolValue); ok && v.B {
+	} else if v, ok := val.data.(boolValue); ok && v.B {
 		if _, ok := initialAutoEscape.(autoEscapeNone); ok {
 			return autoEscapeHTML{}, nil
 		}
@@ -853,9 +854,9 @@ func (m *virtualMachine) unpackList(stack *stackpkg.Stack[Value], count uint) er
 
 func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *State, offset uint, name string, flags uint8) {
 	var argSpec []string
-	if args, ok := stack.Pop().(seqValue); ok {
+	if args, ok := stack.Pop().data.(seqValue); ok {
 		argSpec = slicex.Map(args.Items, func(arg Value) string {
-			if strVal, ok := arg.(stringValue); ok {
+			if strVal, ok := arg.data.(stringValue); ok {
 				return strVal.Str
 			}
 			panic("unreachable")
@@ -901,11 +902,11 @@ func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() opt
 }
 
 func assertValid(v Value, pc uint, st *State) (Value, error) {
-	if vInvalid, ok := v.(invalidValue); ok {
+	if vInvalid, ok := v.data.(invalidValue); ok {
 		detail := vInvalid.Detail
 		err := NewError(BadSerialization, detail)
 		processErr(err, pc, st)
-		return nil, err
+		return Value{}, err
 	}
 	return v, nil
 }

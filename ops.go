@@ -44,7 +44,7 @@ func opGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint) 
 func opSlice(val, start, stop, step Value) (Value, error) {
 	startVal := int64(0)
 	if !start.isNone() {
-		if s, ok := start.(i64Value); ok {
+		if s, ok := start.data.(i64Value); ok {
 			startVal = s.N
 		} else {
 			panic("opsSlice start must be an i64")
@@ -52,7 +52,7 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	}
 	stopVal := option.None[int64]()
 	if !stop.isNone() {
-		if s, ok := stop.(i64Value); ok {
+		if s, ok := stop.data.(i64Value); ok {
 			stopVal = option.Some(s.N)
 		} else {
 			panic("opsSlice stop must be an i64")
@@ -60,14 +60,14 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	}
 	stepVal := int64(1)
 	if !step.isNone() {
-		if s, ok := step.(i64Value); ok {
+		if s, ok := step.data.(i64Value); ok {
 			stepVal = s.N
 			if stepVal < 0 {
-				return nil, NewError(InvalidOperation,
+				return Value{}, NewError(InvalidOperation,
 					"cannot slice by negative step size")
 			}
 			if stepVal == 0 {
-				return nil, NewError(InvalidOperation,
+				return Value{}, NewError(InvalidOperation,
 					"cannot slice by step size of 0")
 			}
 		} else {
@@ -76,7 +76,7 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	}
 
 	var maybeSeq SeqObject
-	switch v := val.(type) {
+	switch v := val.data.(type) {
 	case stringValue:
 		chars := []rune(v.Str)
 		startIdx, stopIdx := opGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
@@ -84,9 +84,9 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 		for i := startIdx; i < stopIdx; i += uint(stepVal) {
 			sliced = append(sliced, chars[i])
 		}
-		return stringValue{Str: string(sliced)}, nil
+		return valueFromString(string(sliced)), nil
 	case undefinedValue, noneValue:
-		return seqValue{Items: []Value{}}, nil
+		return valueFromSlice([]Value{}), nil
 	case seqValue:
 		maybeSeq = newSliceSeqObject(v.Items)
 	case dynamicValue:
@@ -103,23 +103,23 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 				sliced = append(sliced, item.Unwrap())
 			}
 		}
-		return seqValue{Items: sliced}, nil
+		return valueFromSlice(sliced), nil
 	}
-	return nil, NewError(InvalidOperation,
+	return Value{}, NewError(InvalidOperation,
 		fmt.Sprintf("value of type %s cannot be sliced", val.typ()))
 }
 
 func opNeg(val Value) (Value, error) {
 	if val.kind() != valueKindNumber {
-		return nil, NewError(InvalidOperation, "")
+		return Value{}, NewError(InvalidOperation, "")
 	}
-	if v, ok := val.(f64Value); ok {
-		return f64Value{F: -v.F}, nil
+	if v, ok := val.data.(f64Value); ok {
+		return valueFromF64(-v.F), nil
 	}
 
 	x, err := val.tryToI128()
 	if err != nil {
-		return nil, NewError(InvalidOperation, "")
+		return Value{}, NewError(InvalidOperation, "")
 	}
 	x.Neg(&x)
 	return i128AsValue(&x), nil
@@ -132,11 +132,11 @@ func opAdd(lhs, rhs Value) (Value, error) {
 		i128WrappingAdd(&n, &c.lhs, &c.rhs)
 		return i128AsValue(&n), nil
 	case f64CoerceResult:
-		return f64Value{F: c.lhs + c.rhs}, nil
+		return valueFromF64(c.lhs + c.rhs), nil
 	case strCoerceResult:
-		return stringValue{Str: c.lhs + c.rhs}, nil
+		return valueFromString(c.lhs + c.rhs), nil
 	}
-	return nil, impossibleOp("+", lhs, rhs)
+	return Value{}, impossibleOp("+", lhs, rhs)
 }
 
 func opSub(lhs, rhs Value) (Value, error) {
@@ -147,11 +147,11 @@ func opSub(lhs, rhs Value) (Value, error) {
 		if isI128(&n) {
 			return i128AsValue(&n), nil
 		}
-		return nil, failedOp("-", lhs, rhs)
+		return Value{}, failedOp("-", lhs, rhs)
 	case f64CoerceResult:
-		return f64Value{F: c.lhs - c.rhs}, nil
+		return valueFromF64(c.lhs - c.rhs), nil
 	}
-	return nil, impossibleOp("-", lhs, rhs)
+	return Value{}, impossibleOp("-", lhs, rhs)
 }
 
 func opMul(lhs, rhs Value) (Value, error) {
@@ -162,11 +162,11 @@ func opMul(lhs, rhs Value) (Value, error) {
 		if isI128(&n) {
 			return i128AsValue(&n), nil
 		}
-		return nil, failedOp("*", lhs, rhs)
+		return Value{}, failedOp("*", lhs, rhs)
 	case f64CoerceResult:
-		return f64Value{F: c.lhs * c.rhs}, nil
+		return valueFromF64(c.lhs * c.rhs), nil
 	}
-	return nil, impossibleOp("*", lhs, rhs)
+	return Value{}, impossibleOp("*", lhs, rhs)
 }
 
 func opDiv(lhs, rhs Value) (Value, error) {
@@ -176,7 +176,7 @@ func opDiv(lhs, rhs Value) (Value, error) {
 		d := optA.Unwrap() / optB.Unwrap()
 		return valueFromF64(d), nil
 	}
-	return nil, impossibleOp("/", lhs, rhs)
+	return Value{}, impossibleOp("/", lhs, rhs)
 }
 
 func opIntDiv(lhs, rhs Value) (Value, error) {
@@ -184,19 +184,18 @@ func opIntDiv(lhs, rhs Value) (Value, error) {
 	case i128CoerceResult:
 		var zero big.Int
 		if c.rhs.Cmp(&zero) == 0 {
-			return nil, failedOp("//", lhs, rhs)
+			return Value{}, failedOp("//", lhs, rhs)
 		}
 		var div, mod big.Int
 		div.DivMod(&c.lhs, &c.rhs, &mod)
 		if isI128(&div) {
 			return i128AsValue(&div), nil
 		}
-		return nil, failedOp("//", lhs, rhs)
+		return Value{}, failedOp("//", lhs, rhs)
 	case f64CoerceResult:
-		// TODO: div_euclid
-		return f64Value{F: math.Floor(c.lhs / c.rhs)}, nil
+		return valueFromF64(math.Floor(c.lhs / c.rhs)), nil
 	}
-	return nil, impossibleOp("//", lhs, rhs)
+	return Value{}, impossibleOp("//", lhs, rhs)
 }
 
 func opRem(lhs, rhs Value) (Value, error) {
@@ -204,18 +203,18 @@ func opRem(lhs, rhs Value) (Value, error) {
 	case i128CoerceResult:
 		var zero big.Int
 		if c.rhs.Cmp(&zero) == 0 {
-			return nil, failedOp("%", lhs, rhs)
+			return Value{}, failedOp("%", lhs, rhs)
 		}
 		var div, mod big.Int
 		div.DivMod(&c.lhs, &c.rhs, &mod)
 		if isI128(&mod) {
 			return i128AsValue(&mod), nil
 		}
-		return nil, failedOp("%", lhs, rhs)
+		return Value{}, failedOp("%", lhs, rhs)
 	case f64CoerceResult:
-		return f64Value{F: math.Remainder(c.lhs, c.rhs)}, nil
+		return valueFromF64(math.Remainder(c.lhs, c.rhs)), nil
 	}
-	return nil, impossibleOp("%", lhs, rhs)
+	return Value{}, impossibleOp("%", lhs, rhs)
 }
 
 func opPow(lhs, rhs Value) (Value, error) {
@@ -223,22 +222,22 @@ func opPow(lhs, rhs Value) (Value, error) {
 	case i128CoerceResult:
 		var exp uint32
 		if !c.rhs.IsUint64() || c.rhs.Uint64() > math.MaxUint32 {
-			return nil, failedOp("**", lhs, rhs)
+			return Value{}, failedOp("**", lhs, rhs)
 		}
 		exp = uint32(c.rhs.Uint64())
 		var n big.Int
 		if i128CheckedPow(&n, &c.lhs, exp) == nil {
-			return nil, failedOp("**", lhs, rhs)
+			return Value{}, failedOp("**", lhs, rhs)
 		}
 		return i128AsValue(&n), nil
 	case f64CoerceResult:
-		return f64Value{F: math.Pow(c.lhs, c.rhs)}, nil
+		return valueFromF64(math.Pow(c.lhs, c.rhs)), nil
 	}
-	return nil, impossibleOp("**", lhs, rhs)
+	return Value{}, impossibleOp("**", lhs, rhs)
 }
 
 func opStringConcat(left, right Value) Value {
-	return stringValue{Str: fmt.Sprintf("%s%s", left, right)}
+	return valueFromString(fmt.Sprintf("%s%s", left, right))
 }
 
 // / Implements a containment operation on values.
@@ -265,11 +264,11 @@ func opContains(container Value, val Value) (Value, error) {
 				break
 			}
 		}
-	} else if mapVal, ok := container.(mapValue); ok {
+	} else if mapVal, ok := container.data.(mapValue); ok {
 		_, ok := mapVal.Map.Get(keyRefFromValue(val.clone()))
 		rv = ok
 	} else {
-		return nil, NewError(InvalidOperation,
+		return Value{}, NewError(InvalidOperation,
 			"cannot perform a containment check on this value")
 	}
 	return valueFromBool(rv), nil
@@ -307,7 +306,9 @@ const (
 	coerceResultTypeStr
 )
 
-func coerce(a, b Value) coerceResult {
+func coerce(a, b Value) coerceResult { return coerceData(a.data, b.data) }
+
+func coerceData(a, b valueData) coerceResult {
 	switch {
 	case a.typ() == valueTypeU64 && b.typ() == valueTypeU64:
 		aVal := a.(u64Value).N
@@ -444,9 +445,9 @@ func castU128AsI128(ret, input *big.Int) *big.Int {
 
 func i128AsValue(val *big.Int) Value {
 	if val.IsInt64() {
-		return i64Value{N: val.Int64()}
+		return valueFromI64(val.Int64())
 	}
-	return i128Value{N: *val}
+	return valueFromI128(*val)
 }
 
 func i128CheckedMul(ret, lhs, rhs *big.Int) *big.Int {
