@@ -1377,7 +1377,7 @@ outer:
 
 func f64TotalCmp(left, right float64) int {
 	leftInt := int64(math.Float64bits(left))
-	rightInt := int64(math.Float64bits(left))
+	rightInt := int64(math.Float64bits(right))
 	leftInt ^= int64(uint64(leftInt>>63) >> 1)
 	rightInt ^= int64(uint64(rightInt>>63) >> 1)
 	return cmp.Compare(leftInt, rightInt)
