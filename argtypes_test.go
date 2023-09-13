@@ -241,23 +241,23 @@ func TestDestPtrs(t *testing.T) {
 	}
 }
 
-func testGenericFuncCallerNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](a A, b B, f func(A, B) R) R {
+func testGenericFuncCallerNoErr[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](a A, b B, f func(A, B) R) R {
 	return f(a, b)
 }
 
-func testGenericFuncCallerWithErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, B) (R, error)) (R, error) {
+func testGenericFuncCallerWithErr[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) (R, error)) (R, error) {
 	var a A
 	var b B
 	return f(a, b)
 }
 
-func testGenericFuncCallerVariadicNoErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, ...B) R) R {
+func testGenericFuncCallerVariadicNoErr[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, ...B) R) R {
 	var a A
 	var b []B
 	return f(a, b...)
 }
 
-func testGenericFuncCallerVariadicWithErr[A FirstArgTypes, B LastArgTypes, R RetValTypes](f func(A, ...B) (R, error)) (R, error) {
+func testGenericFuncCallerVariadicWithErr[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, ...B) (R, error)) (R, error) {
 	var a A
 	var b []B
 	return f(a, b...)

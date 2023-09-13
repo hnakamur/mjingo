@@ -7,6 +7,120 @@ import (
 
 type BoxedTest = func(*State, []Value) (bool, error)
 
+// 1 argument functions
+
+func BoxTestFromFixedArity1ArgNoErrFunc[A JustOneArgTypes](f func(A) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		// TODO implement
+		return f(a), nil
+	}
+}
+
+func BoxTestFromFixedArity1ArgWithErrFunc[A JustOneArgTypes](f func(A) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		// TODO implement
+		return f(a)
+	}
+}
+
+func BoxTestFromVariadic1ArgNoErrFunc[A VariadicLastArgElemTypes](f func(...A) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a []A
+		// TODO implement
+		return f(a...), nil
+	}
+}
+
+func BoxTestFromVariadic1ArgWithErrFunc[A VariadicLastArgElemTypes](f func(...A) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a []A
+		// TODO implement
+		return f(a...)
+	}
+}
+
+// 2 argument functions
+
+func BoxTestFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		// TODO implement
+		return f(a, b), nil
+	}
+}
+
+func BoxTestFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		// TODO implement
+		return f(a, b)
+	}
+}
+
+func BoxTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicLastArgElemTypes](f func(A, ...B) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b []B
+		// TODO implement
+		return f(a, b...), nil
+	}
+}
+
+func BoxTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicLastArgElemTypes](f func(A, ...B) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b []B
+		// TODO implement
+		return f(a, b...)
+	}
+}
+
+// 3 argument functions
+
+func BoxTestFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		var c C
+		// TODO implement
+		return f(a, b, c), nil
+	}
+}
+
+func BoxTestFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		var c C
+		// TODO implement
+		return f(a, b, c)
+	}
+}
+
+func BoxTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicLastArgElemTypes](f func(A, B, ...C) bool) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		var c []C
+		// TODO implement
+		return f(a, b, c...), nil
+	}
+}
+
+func BoxTestFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicLastArgElemTypes](f func(A, B, ...C) (bool, error)) BoxedTest {
+	return func(*State, []Value) (bool, error) {
+		var a A
+		var b B
+		var c []C
+		// TODO implement
+		return f(a, b, c...)
+	}
+}
+
 func BoxedTestFromFuncReflect(fn any) BoxedTest {
 	if bt, ok := fn.(BoxedTest); ok {
 		return bt

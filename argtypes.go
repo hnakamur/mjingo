@@ -9,14 +9,20 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+type JustOneArgTypes interface {
+	ScalarTypes | OptionalTypes | SliceTypes | *State | Kwargs
+}
 type FirstArgTypes interface {
-	ScalarTypes | SliceTypes | *State
+	ScalarTypes | OptionalTypes | SliceTypes | *State
 }
 type MiddleArgTypes interface {
-	ScalarTypes | SliceTypes
+	ScalarTypes | OptionalTypes | SliceTypes
 }
-type LastArgTypes interface {
-	ScalarTypes | SliceTypes | Kwargs
+type FixedArityLastArgTypes interface {
+	ScalarTypes | OptionalTypes | SliceTypes | Kwargs
+}
+type VariadicLastArgElemTypes interface {
+	ScalarTypes
 }
 
 type RetValTypes interface {
@@ -33,6 +39,14 @@ type SliceTypes interface {
 	[]Value | []bool | []uint8 | []uint16 | []uint32 | []uint64 | []uint |
 		[]int8 | []int16 | []int32 | []int64 | []int | []big.Int |
 		[]string
+}
+
+type OptionalTypes interface {
+	option.Option[Value] | option.Option[bool] | option.Option[uint8] |
+		option.Option[uint16] | option.Option[uint32] | option.Option[uint64] |
+		option.Option[uint] | option.Option[int8] | option.Option[int16] |
+		option.Option[int32] | option.Option[int64] | option.Option[int] |
+		option.Option[big.Int] | option.Option[string]
 }
 
 func valueFromBytes(val []byte) Value {
