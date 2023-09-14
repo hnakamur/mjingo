@@ -1,6 +1,7 @@
 package mjingo
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/hnakamur/mjingo/option"
@@ -86,6 +87,7 @@ func valueTryToGoValueNoReflect(val Value, destPtr any) error {
 	switch p := destPtr.(type) {
 	case *Value:
 		*p = val
+		return nil
 	case *bool:
 		return valueTryToGoValueHelper[bool](val, p, valueTryToGoBool)
 	case *int8:
@@ -117,7 +119,7 @@ func valueTryToGoValueNoReflect(val Value, destPtr any) error {
 	case *Kwargs:
 		return valueTryToGoValueHelper[Kwargs](val, p, valueTryToKwargs)
 	}
-	panic("unsupported destination type")
+	panic(fmt.Sprintf("unsupported destination type: %T", destPtr))
 }
 
 func valueTryToOptionValueNoReflect(val Value, destPtr any) error {

@@ -232,13 +232,14 @@ func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, er
 		return convertArgToGoVarHelper[string](values, p, valueTryToGoString)
 	case *Kwargs: // Kwargs are taken from the last element
 		if len(values) == 0 {
-			return nil, NewError(MissingArgument, "")
+			*p = newKwargs(*newValueMap())
+			return values, nil
 		}
-		v, err := valueTryToKwargs(values[len(values)-1])
+		kwargs, err := valueTryToKwargs(values[len(values)-1])
 		if err != nil {
 			return nil, err
 		}
-		*p = v
+		*p = kwargs
 		return values[:len(values)-1], nil
 	case *option.Option[Value]:
 		return convertArgToGoOptionVarHelper[Value](values, p, valueTryToValue)
@@ -399,7 +400,7 @@ func convertArgToGoVariadicVarHelper[T ScalarTypes](values []Value, dest *[]T, f
 }
 
 func valueSliceTryToGoSlice[S ~[]E, E ScalarTypes](values []Value) (S, error) {
-	slice := make(S, 0, len(values))
+	slice := make(S, len(values))
 	for i, val := range values {
 		if err := valueTryToGoValueNoReflect(val, &slice[i]); err != nil {
 			return nil, err
