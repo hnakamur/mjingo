@@ -26,7 +26,7 @@ func escapeFormatter(out *output, state *State, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }
 
-const useReflect = true
+const useReflect = false
 
 func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	if useReflect {
