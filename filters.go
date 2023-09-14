@@ -18,7 +18,7 @@ type BoxedFilter = func(*State, []Value) (Value, error)
 
 func BoxedFilterFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -33,7 +33,7 @@ func BoxedFilterFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f 
 
 func BoxedFilterFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -51,7 +51,7 @@ func BoxedFilterFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](
 
 func BoxedFilterFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) R) BoxedFilter {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := convertArgToGoVariadicVar[[]A, A](values)
+		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -63,7 +63,7 @@ func BoxedFilterFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes]
 
 func BoxedFilterFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) (R, error)) BoxedFilter {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := convertArgToGoVariadicVar[[]A, A](values)
+		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -80,11 +80,11 @@ func BoxedFilterFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValType
 
 func BoxedFilterFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -99,11 +99,11 @@ func BoxedFilterFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArg
 
 func BoxedFilterFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -121,11 +121,11 @@ func BoxedFilterFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastA
 
 func BoxedFilterFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := convertArgToGoVariadicVar[[]B, B](values)
+		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -137,11 +137,11 @@ func BoxedFilterFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemType
 
 func BoxedFilterFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := convertArgToGoVariadicVar[[]B, B](values)
+		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -158,15 +158,15 @@ func BoxedFilterFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTy
 
 func BoxedFilterFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -181,15 +181,15 @@ func BoxedFilterFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedFilterFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -207,15 +207,15 @@ func BoxedFilterFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 
 func BoxedFilterFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := convertArgToGoVariadicVar[[]C, C](values)
+		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -227,15 +227,15 @@ func BoxedFilterFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 
 func BoxedFilterFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := convertArgToGoVariadicVar[[]C, C](values)
+		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -252,19 +252,19 @@ func BoxedFilterFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedFilterFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -279,19 +279,19 @@ func BoxedFilterFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedFilterFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -309,19 +309,19 @@ func BoxedFilterFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 
 func BoxedFilterFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := convertArgToGoVariadicVar[[]D, D](values)
+		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -333,19 +333,19 @@ func BoxedFilterFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 func BoxedFilterFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := convertArgToGoVariadicVar[[]D, D](values)
+		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -362,23 +362,23 @@ func BoxedFilterFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedFilterFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		e, values, err := convertArgToGoVar[E](state, values)
+		e, values, err := ConvertArgToGoValue[E](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -393,23 +393,23 @@ func BoxedFilterFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedFilterFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		e, values, err := convertArgToGoVar[E](state, values)
+		e, values, err := ConvertArgToGoValue[E](state, values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -427,23 +427,23 @@ func BoxedFilterFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 
 func BoxedFilterFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := convertArgToGoVariadicVar[[]E, E](values)
+		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -455,23 +455,23 @@ func BoxedFilterFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 func BoxedFilterFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := convertArgToGoVariadicVar[[]E, E](values)
+		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -505,26 +505,23 @@ func BoxedFilterFromFuncReflect(fn any) BoxedFilter {
 		assertType[error](fnType.Out(1), "type of second return value must be error")
 	}
 
+	variadic := fnType.IsVariadic()
 	argTypes := buildArgTypesOfFunc(fn)
-	if err := checkArgTypes(argTypes); err != nil {
+	if err := checkArgTypes(argTypes, variadic); err != nil {
 		panic(err.Error())
 	}
 	fnVal := reflect.ValueOf(fn)
 	return func(state *State, values []Value) (Value, error) {
-		goVals, err := argsToGoValuesReflect(state, values, argTypes)
+		goVals, err := argsToGoValuesReflect(state, values, argTypes, variadic)
 		if err != nil {
 			return Value{}, err
 		}
 		reflectVals := make([]reflect.Value, len(goVals))
 		for i, goVal := range goVals {
-			if fnType.IsVariadic() && i == fnType.NumIn()-1 {
-				reflectVals[i] = reflect.ValueOf(goVal).Convert(sliceTypeForRestTypeReflect(argTypes[i]))
-			} else {
-				reflectVals[i] = reflect.ValueOf(goVal)
-			}
+			reflectVals[i] = reflect.ValueOf(goVal)
 		}
 		var retVals []reflect.Value
-		if fnType.IsVariadic() {
+		if variadic {
 			retVals = fnVal.CallSlice(reflectVals)
 		} else {
 			retVals = fnVal.Call(reflectVals)

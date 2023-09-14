@@ -45,7 +45,7 @@ func (s *Magic) CallMethod(state *mjingo.State, name string, args []mjingo.Value
 	}
 
 	// single string argument
-	tag, err := mjingo.ArgsTo1GoValue[string](state, args)
+	tag, args, err := mjingo.ConvertArgToGoValue[string](state, args)
 	if err != nil {
 		return mjingo.Value{}, err
 	}

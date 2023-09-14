@@ -189,7 +189,7 @@ func valueTryToValueSlice(val Value) ([]Value, error) {
 	return iter.Collect(), nil
 }
 
-func convertArgToGoVar[T JustOneArgTypes](state *State, values []Value) (T, []Value, error) {
+func ConvertArgToGoValue[T JustOneArgTypes](state *State, values []Value) (T, []Value, error) {
 	var v T
 	values, err := convertArgToGoVarTo(state, values, &v)
 	return v, values, err
@@ -305,7 +305,7 @@ func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, er
 	panic(fmt.Sprintf("unsupported go variable type: %T", destPtr))
 }
 
-func convertArgToGoVariadicVar[S ~[]E, E ScalarTypes](values []Value) (S, error) {
+func ConvertArgToGoValueVariadic[S ~[]E, E ScalarTypes](values []Value) (S, error) {
 	var s S
 	if err := convertArgToGoVariadicVarTo(values, &s); err != nil {
 		return s, err
@@ -409,111 +409,6 @@ func valueSliceTryToGoSlice[S ~[]E, E ScalarTypes](values []Value) (S, error) {
 	return slice, nil
 }
 
-func ArgsTo1GoValue[A any](state *State, values []Value) (A, error) {
-	var a A
-	goVals, err := argsToGoValuesReflect(state, values, []reflect.Type{reflectType[A]()})
-	if err != nil {
-		return a, err
-	}
-	if goVals[0] != nil {
-		a = goVals[0].(A)
-	}
-	return a, nil
-}
-
-func ArgsTo2GoValues[A any, B any](state *State, values []Value) (A, B, error) {
-	var a A
-	var b B
-	goVals, err := argsToGoValuesReflect(state, values,
-		[]reflect.Type{reflectType[A](), reflectType[B]()})
-	if err != nil {
-		return a, b, err
-	}
-	if goVals[0] != nil {
-		a = goVals[0].(A)
-	}
-	if goVals[1] != nil {
-		b = goVals[1].(B)
-	}
-	return a, b, nil
-}
-
-func ArgsTo3GoValues[A any, B any, C any](state *State, values []Value) (A, B, C, error) {
-	var a A
-	var b B
-	var c C
-	goVals, err := argsToGoValuesReflect(state, values,
-		[]reflect.Type{reflectType[A](), reflectType[B](), reflectType[C]()})
-	if err != nil {
-		return a, b, c, err
-	}
-	if goVals[0] != nil {
-		a = goVals[0].(A)
-	}
-	if goVals[1] != nil {
-		b = goVals[1].(B)
-	}
-	if goVals[2] != nil {
-		c = goVals[2].(C)
-	}
-	return a, b, c, nil
-}
-
-func ArgsTo4GoValues[A any, B any, C any, D any](state *State, values []Value) (A, B, C, D, error) {
-	var a A
-	var b B
-	var c C
-	var d D
-	goVals, err := argsToGoValuesReflect(state, values,
-		[]reflect.Type{reflectType[A](), reflectType[B](), reflectType[C](), reflectType[D]()})
-	if err != nil {
-		return a, b, c, d, err
-	}
-	if goVals[0] != nil {
-		a = goVals[0].(A)
-	}
-	if goVals[1] != nil {
-		b = goVals[1].(B)
-	}
-	if goVals[2] != nil {
-		c = goVals[2].(C)
-	}
-	if goVals[3] != nil {
-		d = goVals[3].(D)
-	}
-	return a, b, c, d, nil
-}
-
-func ArgsTo5GoValues[A any, B any, C any, D any, E any](state *State, values []Value) (A, B, C, D, E, error) {
-	var a A
-	var b B
-	var c C
-	var d D
-	var e E
-	goVals, err := argsToGoValuesReflect(state, values,
-		[]reflect.Type{reflectType[A](), reflectType[B](), reflectType[C](), reflectType[D](),
-			reflectType[E]()})
-	if err != nil {
-		return a, b, c, d, e, err
-	}
-	if goVals[0] != nil {
-		a = goVals[0].(A)
-	}
-	if goVals[1] != nil {
-		b = goVals[1].(B)
-	}
-	if goVals[2] != nil {
-		c = goVals[2].(C)
-	}
-	if goVals[3] != nil {
-		d = goVals[3].(D)
-	}
-	if goVals[4] != nil {
-		e = goVals[4].(E)
-	}
-	return a, b, c, d, e, nil
-}
-
 func argsToGoValuesNoReflect(state *State, values []Value, destPtrs []any, variadic bool) error {
 	i := 0
 	for j, destPtr := range destPtrs {
@@ -578,10 +473,10 @@ func argsToGoValuesNoReflect(state *State, values []Value, destPtrs []any, varia
 	return nil
 }
 
-func argsToGoValuesReflect(state *State, values []Value, argTypes []reflect.Type) ([]any, error) {
+func argsToGoValuesReflect(state *State, values []Value, argTypes []reflect.Type, variadic bool) ([]any, error) {
 	var goVals []any
 	i := 0
-	for _, argType := range argTypes {
+	for j, argType := range argTypes {
 		kind := findArgTypeKind(argType)
 		switch kind {
 		case argTypeKindState:
@@ -624,28 +519,28 @@ func argsToGoValuesReflect(state *State, values []Value, argTypes []reflect.Type
 			}
 			goVals = append(goVals, goVal)
 		case argTypeKindSlice:
-			if i >= len(values) {
-				return nil, NewError(MissingArgument, "")
+			if variadic && j == len(argTypes)-1 {
+				goVal, err := valueSliceTryToGoSliceReflect(values[i:], argType)
+				if err != nil {
+					return nil, err
+				}
+				goVals = append(goVals, goVal)
+				i = len(values)
+			} else {
+				if i >= len(values) {
+					return nil, NewError(MissingArgument, "")
+				}
+				argVals, err := valueTryToValueSlice(values[i])
+				if err != nil {
+					return nil, err
+				}
+				goVal, err := valueSliceTryToGoSliceReflect(argVals, argType)
+				if err != nil {
+					return nil, err
+				}
+				goVals = append(goVals, goVal)
+				i++
 			}
-			argVals, err := valueTryToValueSlice(values[i])
-			if err != nil {
-				return nil, err
-			}
-			goVal, err := valueSliceTryToGoSliceReflect(argVals, argType)
-			if err != nil {
-				return nil, err
-			}
-			goVals = append(goVals, goVal)
-			i++
-		case argTypeKindRest:
-			sliceType := sliceTypeForRestTypeReflect(argType)
-			sliceVal, err := valueSliceTryToGoSliceReflect(values[i:], sliceType)
-			if err != nil {
-				return nil, err
-			}
-			goVal := reflect.ValueOf(sliceVal).Convert(argType).Interface()
-			goVals = append(goVals, goVal)
-			i = len(values)
 		}
 	}
 	if i < len(values) {
@@ -659,16 +554,12 @@ func buildArgTypesOfFunc(fn any) []reflect.Type {
 	numIn := typ.NumIn()
 	argTypes := make([]reflect.Type, numIn)
 	for i := 0; i < numIn; i++ {
-		if typ.IsVariadic() && i == numIn-1 {
-			argTypes[i] = restTypeFromSliceTypeReflect(typ.In(i))
-		} else {
-			argTypes[i] = typ.In(i)
-		}
+		argTypes[i] = typ.In(i)
 	}
 	return argTypes
 }
 
-func checkArgTypes(argTypes []reflect.Type) error {
+func checkArgTypes(argTypes []reflect.Type, variadic bool) error {
 	seenOptional := false
 	for i, argType := range argTypes {
 		kind := findArgTypeKind(argType)
@@ -678,14 +569,19 @@ func checkArgTypes(argTypes []reflect.Type) error {
 				return NewError(InvalidOperation,
 					"argument of State type must be the first argument")
 			}
-		case argTypeKindPrimitive, argTypeKindSlice:
+		case argTypeKindPrimitive:
 			if seenOptional {
+				return NewError(InvalidOperation,
+					"argument of non-optional type cannot be after argument of optional type")
+			}
+		case argTypeKindSlice:
+			if seenOptional && !(variadic && i == len(argTypes)-1) {
 				return NewError(InvalidOperation,
 					"argument of non-optional type cannot be after argument of optional type")
 			}
 		case argTypeKindOption:
 			seenOptional = true
-		case argTypeKindRest, argTypeKindKwargs:
+		case argTypeKindKwargs:
 			if i != len(argTypes)-1 {
 				return NewError(InvalidOperation,
 					fmt.Sprintf("argument of %s type must be the last argument", kind))
@@ -697,9 +593,6 @@ func checkArgTypes(argTypes []reflect.Type) error {
 	return nil
 }
 
-// Rest is a utility type to capture remaining arguments.
-type Rest[T any] []T
-
 type argTypeKind int
 
 const (
@@ -708,7 +601,6 @@ const (
 	argTypeKindPrimitive
 	argTypeKindSlice
 	argTypeKindOption
-	argTypeKindRest
 	argTypeKindKwargs
 )
 
@@ -722,8 +614,6 @@ func (k argTypeKind) String() string {
 		return "slice"
 	case argTypeKindOption:
 		return "Option"
-	case argTypeKindRest:
-		return "Rest"
 	case argTypeKindKwargs:
 		return "Kwargs"
 	}
@@ -755,15 +645,6 @@ func findArgTypeKindFromDestPtr(destPtr any) argTypeKind {
 		*option.Option[float32], *option.Option[float64],
 		*option.Option[string]:
 		return argTypeKindOption
-	case *Rest[Value], *Rest[bool],
-		*Rest[int8], *Rest[int16],
-		*Rest[int32], *Rest[int64],
-		*Rest[int], *Rest[uint8],
-		*Rest[uint16], *Rest[uint32],
-		*Rest[uint64], *Rest[uint],
-		*Rest[float32], *Rest[float64],
-		*Rest[string]:
-		return argTypeKindRest
 	case *Kwargs:
 		return argTypeKindKwargs
 	}
@@ -795,89 +676,8 @@ func findArgTypeKind(argType reflect.Type) argTypeKind {
 		reflectType[option.Option[float32]](), reflectType[option.Option[float64]](),
 		reflectType[option.Option[string]]():
 		return argTypeKindOption
-	case reflectType[Rest[Value]](), reflectType[Rest[bool]](),
-		reflectType[Rest[int8]](), reflectType[Rest[int16]](),
-		reflectType[Rest[int32]](), reflectType[Rest[int64]](),
-		reflectType[Rest[int]](), reflectType[Rest[uint8]](),
-		reflectType[Rest[uint16]](), reflectType[Rest[uint32]](),
-		reflectType[Rest[uint64]](), reflectType[Rest[uint]](),
-		reflectType[Rest[float32]](), reflectType[Rest[float64]](),
-		reflectType[Rest[string]]():
-		return argTypeKindRest
 	case reflectType[Kwargs]():
 		return argTypeKindKwargs
 	}
 	return argTypeKindUnsupported
-}
-
-func sliceTypeForRestTypeReflect(typ reflect.Type) reflect.Type {
-	switch typ {
-	case reflectType[Rest[Value]]():
-		return reflectType[[]Value]()
-	case reflectType[Rest[bool]]():
-		return reflectType[[]bool]()
-	case reflectType[Rest[int8]]():
-		return reflectType[[]int8]()
-	case reflectType[Rest[int16]]():
-		return reflectType[[]int16]()
-	case reflectType[Rest[int32]]():
-		return reflectType[[]int32]()
-	case reflectType[Rest[int64]]():
-		return reflectType[[]int64]()
-	case reflectType[Rest[int]]():
-		return reflectType[[]int]()
-	case reflectType[Rest[uint8]]():
-		return reflectType[[]uint8]()
-	case reflectType[Rest[uint16]]():
-		return reflectType[[]uint16]()
-	case reflectType[Rest[uint32]]():
-		return reflectType[[]uint32]()
-	case reflectType[Rest[uint64]]():
-		return reflectType[[]uint64]()
-	case reflectType[Rest[uint]]():
-		return reflectType[[]uint]()
-	case reflectType[Rest[float32]]():
-		return reflectType[[]float32]()
-	case reflectType[Rest[float64]]():
-		return reflectType[[]float64]()
-	case reflectType[Rest[string]]():
-		return reflectType[[]string]()
-	}
-	panic("unreachable")
-}
-
-func restTypeFromSliceTypeReflect(typ reflect.Type) reflect.Type {
-	switch typ {
-	case reflectType[[]Value]():
-		return reflectType[Rest[Value]]()
-	case reflectType[[]bool]():
-		return reflectType[Rest[bool]]()
-	case reflectType[[]int8]():
-		return reflectType[Rest[int8]]()
-	case reflectType[[]int16]():
-		return reflectType[Rest[int16]]()
-	case reflectType[[]int32]():
-		return reflectType[Rest[int32]]()
-	case reflectType[[]int64]():
-		return reflectType[Rest[int64]]()
-	case reflectType[[]int]():
-		return reflectType[Rest[int]]()
-	case reflectType[[]uint8]():
-		return reflectType[Rest[uint8]]()
-	case reflectType[[]uint16]():
-		return reflectType[Rest[uint16]]()
-	case reflectType[[]uint32]():
-		return reflectType[Rest[uint32]]()
-	case reflectType[[]uint64]():
-		return reflectType[Rest[uint64]]()
-	case reflectType[[]uint]():
-		return reflectType[Rest[uint]]()
-	case reflectType[[]float32]():
-		return reflectType[Rest[float32]]()
-	case reflectType[[]float64]():
-		return reflectType[Rest[float64]]()
-	case reflectType[[]string]():
-		return reflectType[Rest[string]]()
-	}
-	panic("unreachable")
 }

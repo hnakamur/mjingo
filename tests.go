@@ -11,7 +11,7 @@ type BoxedTest = func(*State, []Value) (bool, error)
 
 func BoxedTestFromFixedArity1ArgNoErrFunc[A JustOneArgTypes](f func(A) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -24,7 +24,7 @@ func BoxedTestFromFixedArity1ArgNoErrFunc[A JustOneArgTypes](f func(A) bool) Box
 
 func BoxedTestFromFixedArity1ArgWithErrFunc[A JustOneArgTypes](f func(A) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -37,7 +37,7 @@ func BoxedTestFromFixedArity1ArgWithErrFunc[A JustOneArgTypes](f func(A) (bool, 
 
 func BoxedTestFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes](f func(...A) bool) BoxedTest {
 	return func(_state *State, values []Value) (bool, error) {
-		a, err := convertArgToGoVariadicVar[[]A, A](values)
+		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
 		if err != nil {
 			return false, err
 		}
@@ -47,7 +47,7 @@ func BoxedTestFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes](f func(...A) boo
 
 func BoxedTestFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes](f func(...A) (bool, error)) BoxedTest {
 	return func(_state *State, values []Value) (bool, error) {
-		a, err := convertArgToGoVariadicVar[[]A, A](values)
+		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
 		if err != nil {
 			return false, err
 		}
@@ -59,11 +59,11 @@ func BoxedTestFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes](f func(...A) (
 
 func BoxedTestFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -76,11 +76,11 @@ func BoxedTestFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTy
 
 func BoxedTestFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes](f func(A, B) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -93,11 +93,11 @@ func BoxedTestFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArg
 
 func BoxedTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes](f func(A, ...B) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, err := convertArgToGoVariadicVar[[]B, B](values)
+		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
 		if err != nil {
 			return false, err
 		}
@@ -107,11 +107,11 @@ func BoxedTestFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes]
 
 func BoxedTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTypes](f func(A, ...B) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, err := convertArgToGoVariadicVar[[]B, B](values)
+		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
 		if err != nil {
 			return false, err
 		}
@@ -123,15 +123,15 @@ func BoxedTestFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemType
 
 func BoxedTestFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -144,15 +144,15 @@ func BoxedTestFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C F
 
 func BoxedTestFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes](f func(A, B, C) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -165,15 +165,15 @@ func BoxedTestFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes](f func(A, B, ...C) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, err := convertArgToGoVariadicVar[[]C, C](values)
+		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
 		if err != nil {
 			return false, err
 		}
@@ -183,15 +183,15 @@ func BoxedTestFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Var
 
 func BoxedTestFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes](f func(A, B, ...C) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, err := convertArgToGoVariadicVar[[]C, C](values)
+		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
 		if err != nil {
 			return false, err
 		}
@@ -203,19 +203,19 @@ func BoxedTestFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 
 func BoxedTestFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes](f func(A, B, C, D) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -228,19 +228,19 @@ func BoxedTestFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 func BoxedTestFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes](f func(A, B, C, D) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -253,19 +253,19 @@ func BoxedTestFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedTestFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes](f func(A, B, C, ...D) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, err := convertArgToGoVariadicVar[[]D, D](values)
+		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
 		if err != nil {
 			return false, err
 		}
@@ -275,19 +275,19 @@ func BoxedTestFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 
 func BoxedTestFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes](f func(A, B, C, ...D) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, err := convertArgToGoVariadicVar[[]D, D](values)
+		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
 		if err != nil {
 			return false, err
 		}
@@ -299,23 +299,23 @@ func BoxedTestFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 func BoxedTestFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes](f func(A, B, C, D, E) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
-		e, values, err := convertArgToGoVar[E](state, values)
+		e, values, err := ConvertArgToGoValue[E](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -328,23 +328,23 @@ func BoxedTestFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 func BoxedTestFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes](f func(A, B, C, D, E) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
-		e, values, err := convertArgToGoVar[E](state, values)
+		e, values, err := ConvertArgToGoValue[E](state, values)
 		if err != nil {
 			return false, err
 		}
@@ -357,23 +357,23 @@ func BoxedTestFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 func BoxedTestFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes](f func(A, B, C, D, ...E) bool) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
-		e, err := convertArgToGoVariadicVar[[]E, E](values)
+		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
 		if err != nil {
 			return false, err
 		}
@@ -383,23 +383,23 @@ func BoxedTestFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 
 func BoxedTestFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes](f func(A, B, C, D, ...E) (bool, error)) BoxedTest {
 	return func(state *State, values []Value) (bool, error) {
-		a, values, err := convertArgToGoVar[A](state, values)
+		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return false, err
 		}
-		b, values, err := convertArgToGoVar[B](state, values)
+		b, values, err := ConvertArgToGoValue[B](state, values)
 		if err != nil {
 			return false, err
 		}
-		c, values, err := convertArgToGoVar[C](state, values)
+		c, values, err := ConvertArgToGoValue[C](state, values)
 		if err != nil {
 			return false, err
 		}
-		d, values, err := convertArgToGoVar[D](state, values)
+		d, values, err := ConvertArgToGoValue[D](state, values)
 		if err != nil {
 			return false, err
 		}
-		e, err := convertArgToGoVariadicVar[[]E, E](values)
+		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
 		if err != nil {
 			return false, err
 		}
@@ -426,26 +426,23 @@ func BoxedTestFromFuncReflect(fn any) BoxedTest {
 		assertType[error](fnType.Out(1), "type of seond return value must be error")
 	}
 
+	variadic := fnType.IsVariadic()
 	argTypes := buildArgTypesOfFunc(fn)
-	if err := checkArgTypes(argTypes); err != nil {
+	if err := checkArgTypes(argTypes, variadic); err != nil {
 		panic(err.Error())
 	}
 	fnVal := reflect.ValueOf(fn)
 	return func(state *State, values []Value) (bool, error) {
-		goVals, err := argsToGoValuesReflect(state, values, argTypes)
+		goVals, err := argsToGoValuesReflect(state, values, argTypes, variadic)
 		if err != nil {
 			return false, err
 		}
 		reflectVals := make([]reflect.Value, len(goVals))
 		for i, goVal := range goVals {
-			if fnType.IsVariadic() && i == fnType.NumIn()-1 {
-				reflectVals[i] = reflect.ValueOf(goVal).Convert(sliceTypeForRestTypeReflect(argTypes[i]))
-			} else {
-				reflectVals[i] = reflect.ValueOf(goVal)
-			}
+			reflectVals[i] = reflect.ValueOf(goVal)
 		}
 		var retVals []reflect.Value
-		if fnType.IsVariadic() {
+		if variadic {
 			retVals = fnVal.CallSlice(reflectVals)
 		} else {
 			retVals = fnVal.Call(reflectVals)
