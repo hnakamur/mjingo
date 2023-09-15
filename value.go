@@ -622,7 +622,7 @@ func (v invalidValue) tryToI128() (*I128, error) {
 	return nil, unsupportedConversion(v.typ(), "i128")
 }
 func (v u128Value) tryToI128() (*I128, error) {
-	if v.N.n.Cmp(getI128Max()) > 0 {
+	if v.N.n.Cmp(i128Max) > 0 {
 		return nil, unsupportedConversion(v.typ(), "i128")
 	}
 	return I128TryFromBigInt(&v.N.n)

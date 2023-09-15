@@ -365,11 +365,11 @@ func coerceData(a, b valueData) coerceResult {
 
 func i128WrappingAdd(ret, lhs, rhs *I128) *I128 {
 	ret.n.Add(&lhs.n, &rhs.n)
-	if ret.n.Cmp(getI128Min()) < 0 {
+	if ret.n.Cmp(i128Min) < 0 {
 		ret.n.Add(&ret.n, getTwoPow128())
 		return ret
 	}
-	if ret.n.Cmp(getI128Max()) > 0 {
+	if ret.n.Cmp(i128Max) > 0 {
 		ret.n.Sub(&ret.n, getTwoPow128())
 		return ret
 	}
@@ -378,7 +378,7 @@ func i128WrappingAdd(ret, lhs, rhs *I128) *I128 {
 
 func castU128AsI128(ret *I128, input *U128) *I128 {
 	ret.n.Set(&input.n)
-	if input.n.Cmp(getI128Max()) > 0 {
+	if input.n.Cmp(i128Max) > 0 {
 		ret.n.Sub(&ret.n, getTwoPow128())
 	}
 	return ret

@@ -919,13 +919,14 @@ func abs(val Value) (Value, error) {
 		return valueFromI64(n), nil
 	case i128Value:
 		var n I128
-		n.Abs(&v.N)
+		if n.CheckedAbs(&v.N) == nil {
+			return Value{}, NewError(InvalidOperation, "overflow in getting absolute value")
+		}
 		return valueFromI128(n), nil
 	case f64Value:
 		return valueFromF64(math.Abs(v.F)), nil
 	default:
-		// TODO: Verify MiniJinja error message is really intentional.
-		return Value{}, NewError(InvalidOperation, "cannot round value")
+		return Value{}, NewError(InvalidOperation, "cannot get absolute value")
 	}
 }
 

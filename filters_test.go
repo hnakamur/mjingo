@@ -145,3 +145,16 @@ func TestVaradicFunc(t *testing.T) {
 		t.Errorf("arg 2 variadic mismatch, got=%v, want=%v", got, want)
 	}
 }
+
+func TestAbsFilter(t *testing.T) {
+	t.Run("error", func(t *testing.T) {
+		i, err := I128TryFromBigInt(i128Min)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = abs(valueFromI128(*i))
+		if err == nil {
+			t.Error("should get error but not")
+		}
+	})
+}
