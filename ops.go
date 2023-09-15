@@ -141,11 +141,10 @@ func opSub(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
 		var n I128
-		n.Sub(&c.lhs, &c.rhs)
-		if isI128(&n.n) {
-			return i128AsValue(&n), nil
+		if n.CheckedSub(&c.lhs, &c.rhs) == nil {
+			return Value{}, failedOp("-", lhs, rhs)
 		}
-		return Value{}, failedOp("-", lhs, rhs)
+		return i128AsValue(&n), nil
 	case f64CoerceResult:
 		return valueFromF64(c.lhs - c.rhs), nil
 	}
@@ -156,11 +155,10 @@ func opMul(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
 		var n I128
-		n.Mul(&c.lhs, &c.rhs)
-		if isI128(&n.n) {
-			return i128AsValue(&n), nil
+		if n.CheckedMul(&c.lhs, &c.rhs) == nil {
+			return Value{}, failedOp("*", lhs, rhs)
 		}
-		return Value{}, failedOp("*", lhs, rhs)
+		return i128AsValue(&n), nil
 	case f64CoerceResult:
 		return valueFromF64(c.lhs * c.rhs), nil
 	}
@@ -180,16 +178,11 @@ func opDiv(lhs, rhs Value) (Value, error) {
 func opIntDiv(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var zero I128
-		if c.rhs.Cmp(&zero) == 0 {
+		var div I128
+		if div.CheckedDiv(&c.lhs, &c.rhs) == nil {
 			return Value{}, failedOp("//", lhs, rhs)
 		}
-		var div I128
-		div.Div(&c.lhs, &c.rhs)
-		if isI128(&div.n) {
-			return i128AsValue(&div), nil
-		}
-		return Value{}, failedOp("//", lhs, rhs)
+		return i128AsValue(&div), nil
 	case f64CoerceResult:
 		return valueFromF64(math.Floor(c.lhs / c.rhs)), nil
 	}
@@ -199,16 +192,11 @@ func opIntDiv(lhs, rhs Value) (Value, error) {
 func opRem(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var zero I128
-		if c.rhs.Cmp(&zero) == 0 {
+		var mod I128
+		if mod.CheckedMod(&c.lhs, &c.rhs) == nil {
 			return Value{}, failedOp("%", lhs, rhs)
 		}
-		var mod I128
-		mod.Mod(&c.lhs, &c.rhs)
-		if isI128(&mod.n) {
-			return i128AsValue(&mod), nil
-		}
-		return Value{}, failedOp("%", lhs, rhs)
+		return i128AsValue(&mod), nil
 	case f64CoerceResult:
 		return valueFromF64(math.Remainder(c.lhs, c.rhs)), nil
 	}

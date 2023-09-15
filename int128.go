@@ -26,12 +26,54 @@ func I128TryFromBigInt(n *big.Int) (*I128, error) {
 	return &rv, nil
 }
 
-func (i *I128) Abs(x *I128)        { i.n.Abs(&x.n) }
-func (i *I128) Cmp(x *I128) int    { return i.n.Cmp(&x.n) }
-func (i *I128) Div(x, y *I128)     { i.n.Div(&x.n, &y.n) }
-func (i *I128) Mod(x, y *I128)     { i.n.Mod(&x.n, &y.n) }
-func (i *I128) Mul(x, y *I128)     { i.n.Mul(&x.n, &y.n) }
-func (i *I128) Sub(x, y *I128)     { i.n.Sub(&x.n, &y.n) }
+func (i *I128) Abs(x *I128)     { i.n.Abs(&x.n) }
+func (i *I128) Cmp(x *I128) int { return i.n.Cmp(&x.n) }
+
+// CheckedDiv sets sets z to the quotient x/y and returns z if y != 0 and z is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+// Div implements Euclidean division (unlike Go); see [math/big.Int.DivMod] for more details.
+func (z *I128) CheckedDiv(x, y *I128) *I128 {
+	var zero I128
+	if y.Cmp(&zero) == 0 {
+		return nil
+	}
+	z.n.Div(&x.n, &y.n)
+	return z.checkedVal()
+}
+
+// CheckedMod sets sets z to the modulus x%y and returns z if y != 0 and z is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+// Mod implements Euclidean modulus (unlike Go); see [math/big.Int.DivMod] for more details.
+func (z *I128) CheckedMod(x, y *I128) *I128 {
+	var zero I128
+	if y.Cmp(&zero) == 0 {
+		return nil
+	}
+	z.n.Mod(&x.n, &y.n)
+	return z.checkedVal()
+}
+
+// CheckedMul sets z to the product x*y and returns z if z is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+func (z *I128) CheckedMul(x, y *I128) *I128 {
+	z.n.Mul(&x.n, &y.n)
+	return z.checkedVal()
+}
+
+// CheckedSub sets z to the difference x-y and returns z if z is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+func (z *I128) CheckedSub(x, y *I128) *I128 {
+	z.n.Sub(&x.n, &y.n)
+	return z.checkedVal()
+}
+
+func (z *I128) checkedVal() *I128 {
+	if isI128(&z.n) {
+		return z
+	}
+	return nil
+}
+
 func (i *I128) Neg(x *I128)        { i.n.Neg(&x.n) }
 func (i *I128) Set(x *I128)        { i.n.Set(&x.n) }
 func (i *I128) IsInt64() bool      { return i.n.IsInt64() }
