@@ -9,24 +9,40 @@ import (
 // I128 represents an integer in the range between
 // -170141183460469231731687303715884105728 and 170141183460469231731687303715884105727
 // (both ends inclusive).
+// The zero value for an I128 represents the value 0.
+//
+// Operations always take pointer arguments (*I128) rather
+// than I128 values, and each unique Int value requires
+// its own unique *I128 pointer. To "copy" an I128 value,
+// an existing (or newly allocated) I128 must be set to
+// a new value using the [I128.Set] method; shallow copies
+// of I128s are not supported and may lead to errors.
+//
+// Note that methods may leak the I128's value through timing side-channels.
+// Because of this and because of the scope and complexity of the
+// implementation, I128 is not well-suited to implement cryptographic operations.
 type I128 struct{ n big.Int }
 
-func I128FromInt64(n int64) *I128 {
-	return &I128{n: *big.NewInt(n)}
+// I128FromInt64 allocates and returns a new I128 set to x.
+func I128FromInt64(x int64) *I128 {
+	return &I128{n: *big.NewInt(x)}
 }
 
-func I128FromUint64(n uint64) *I128 {
+// I128FromUint64 allocates and returns a new I128 set to x.
+func I128FromUint64(x uint64) *I128 {
 	var rv I128
-	rv.n.SetUint64(n)
+	rv.n.SetUint64(x)
 	return &rv
 }
 
-func I128TryFromBigInt(n *big.Int) (*I128, error) {
-	if !isI128(n) {
+// I128TryFromBigInt allocates and returns a new I128 set to x.
+// If x is out of range of I128, it returns an error.
+func I128TryFromBigInt(x *big.Int) (*I128, error) {
+	if !isI128(x) {
 		return nil, NewError(InvalidOperation, "cannot convert to I128")
 	}
 	var rv I128
-	rv.n.Set(n)
+	rv.n.Set(x)
 	return &rv, nil
 }
 
@@ -37,7 +53,12 @@ func (z *I128) CheckedAbs(x *I128) *I128 {
 	return z.checkedVal()
 }
 
-func (i *I128) Cmp(x *I128) int { return i.n.Cmp(&x.n) }
+// Cmp compares x and y and returns:
+//
+//	-1 if x <  y
+//	 0 if x == y
+//	+1 if x >  y
+func (x *I128) Cmp(y *I128) int { return x.n.Cmp(&y.n) }
 
 // CheckedDiv sets sets z to the quotient x/y and returns z if y != 0 and the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
@@ -91,13 +112,37 @@ func (z *I128) checkedVal() *I128 {
 	return nil
 }
 
-func (i *I128) Set(x *I128)        { i.n.Set(&x.n) }
-func (i *I128) IsInt64() bool      { return i.n.IsInt64() }
-func (i *I128) Int64() int64       { return i.n.Int64() }
-func (i *I128) IsUint64() bool     { return i.n.IsUint64() }
-func (i *I128) Uint64() uint64     { return i.n.Uint64() }
-func (i *I128) SetInt64(x int64)   { i.n.SetInt64(x) }
-func (i *I128) SetUint64(x uint64) { i.n.SetUint64(x) }
+// Set sets z to x and returns z.
+func (z *I128) Set(x *I128) *I128 {
+	z.n.Set(&x.n)
+	return z
+}
+
+// IsInt64 reports whether x can be represented as an int64.
+func (x *I128) IsInt64() bool { return x.n.IsInt64() }
+
+// IsUint64 reports whether x can be represented as a uint64.
+func (x *I128) IsUint64() bool { return x.n.IsUint64() }
+
+// Int64 returns the int64 representation of x.
+// If x cannot be represented in an int64, the result is undefined.
+func (x *I128) Int64() int64 { return x.n.Int64() }
+
+// Uint64 returns the uint64 representation of x.
+// If x cannot be represented in a uint64, the result is undefined.
+func (x *I128) Uint64() uint64 { return x.n.Uint64() }
+
+// SetInt64 sets z to x and returns z.
+func (z *I128) SetInt64(x int64) *I128 {
+	z.n.SetInt64(x)
+	return z
+}
+
+// SetUint64 sets z to x and returns z.
+func (z *I128) SetUint64(x uint64) *I128 {
+	z.n.SetUint64(x)
+	return z
+}
 
 // MustSetString sets z to the value of s, interpreted in the given base,
 // and returns z or panic on failure. The entire string
@@ -163,10 +208,13 @@ func (z *I128) SetString(s string, base int) (*I128, bool) {
 	return z, true
 }
 
-func (i *I128) String() string { return i.n.String() }
-func (i *I128) BigInt() big.Int {
+// String returns the decimal representation of x in base 10.
+func (x *I128) String() string { return x.n.String() }
+
+// BigInt returns a new big.Int whose value is copied from x.
+func (x *I128) BigInt() big.Int {
 	var rv big.Int
-	rv.Set(&i.n)
+	rv.Set(&x.n)
 	return rv
 }
 
