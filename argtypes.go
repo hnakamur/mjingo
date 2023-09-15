@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
@@ -46,8 +45,8 @@ type OptionalTypes interface {
 		option.Option[uint16] | option.Option[uint32] | option.Option[uint64] |
 		option.Option[uint] | option.Option[int8] | option.Option[int16] |
 		option.Option[int32] | option.Option[int64] | option.Option[int] |
-		option.Option[big.Int] | option.Option[float32] | option.Option[float64] |
-		option.Option[string]
+		option.Option[I128] | option.Option[U128] | option.Option[float32] |
+		option.Option[float64] | option.Option[string]
 }
 
 func valueFromBytes(val []byte) Value {
