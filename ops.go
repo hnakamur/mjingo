@@ -119,7 +119,9 @@ func opNeg(val Value) (Value, error) {
 	if err != nil {
 		return Value{}, NewError(InvalidOperation, "")
 	}
-	x.Neg(x)
+	if x.CheckedNeg(x) == nil {
+		return Value{}, failedOpUnary("-", val)
+	}
 	return i128AsValue(x), nil
 }
 
@@ -418,6 +420,11 @@ func i128CheckedPow(ret, base *I128, exp uint32) *I128 {
 		}
 	}
 	return i128CheckedMul(ret, ret, base2)
+}
+
+func failedOpUnary(op string, v Value) error {
+	return NewError(InvalidOperation,
+		fmt.Sprintf("unable to calculate %s%s", op, v))
 }
 
 func failedOp(op string, lhs, rhs Value) error {

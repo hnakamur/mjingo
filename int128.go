@@ -5,6 +5,9 @@ import (
 	"sync"
 )
 
+// I128 represents an integer in the range between
+// -170141183460469231731687303715884105728 and 170141183460469231731687303715884105727
+// (both ends inclusive).
 type I128 struct{ n big.Int }
 
 func I128FromInt64(n int64) *I128 {
@@ -29,7 +32,7 @@ func I128TryFromBigInt(n *big.Int) (*I128, error) {
 func (i *I128) Abs(x *I128)     { i.n.Abs(&x.n) }
 func (i *I128) Cmp(x *I128) int { return i.n.Cmp(&x.n) }
 
-// CheckedDiv sets sets z to the quotient x/y and returns z if y != 0 and z is in the range of I128.
+// CheckedDiv sets sets z to the quotient x/y and returns z if y != 0 and the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
 // Div implements Euclidean division (unlike Go); see [math/big.Int.DivMod] for more details.
 func (z *I128) CheckedDiv(x, y *I128) *I128 {
@@ -41,7 +44,7 @@ func (z *I128) CheckedDiv(x, y *I128) *I128 {
 	return z.checkedVal()
 }
 
-// CheckedMod sets sets z to the modulus x%y and returns z if y != 0 and z is in the range of I128.
+// CheckedMod sets sets z to the modulus x%y and returns z if y != 0 and the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
 // Mod implements Euclidean modulus (unlike Go); see [math/big.Int.DivMod] for more details.
 func (z *I128) CheckedMod(x, y *I128) *I128 {
@@ -53,17 +56,24 @@ func (z *I128) CheckedMod(x, y *I128) *I128 {
 	return z.checkedVal()
 }
 
-// CheckedMul sets z to the product x*y and returns z if z is in the range of I128.
+// CheckedMul sets z to the product x*y and returns z if the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
 func (z *I128) CheckedMul(x, y *I128) *I128 {
 	z.n.Mul(&x.n, &y.n)
 	return z.checkedVal()
 }
 
-// CheckedSub sets z to the difference x-y and returns z if z is in the range of I128.
+// CheckedSub sets z to the difference x-y and returns z if the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
 func (z *I128) CheckedSub(x, y *I128) *I128 {
 	z.n.Sub(&x.n, &y.n)
+	return z.checkedVal()
+}
+
+// CheckedNeg sets z to -x and returns z if the result is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+func (z *I128) CheckedNeg(x *I128) *I128 {
+	z.n.Neg(&x.n)
 	return z.checkedVal()
 }
 
@@ -74,7 +84,6 @@ func (z *I128) checkedVal() *I128 {
 	return nil
 }
 
-func (i *I128) Neg(x *I128)        { i.n.Neg(&x.n) }
 func (i *I128) Set(x *I128)        { i.n.Set(&x.n) }
 func (i *I128) IsInt64() bool      { return i.n.IsInt64() }
 func (i *I128) Int64() int64       { return i.n.Int64() }
