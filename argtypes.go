@@ -31,13 +31,13 @@ type RetValTypes interface {
 
 type ScalarTypes interface {
 	Value | bool | uint8 | uint16 | uint32 | uint64 | uint |
-		int8 | int16 | int32 | int64 | int | big.Int |
+		int8 | int16 | int32 | int64 | int | I128 | U128 |
 		float32 | float64 | string
 }
 
 type SliceTypes interface {
 	[]Value | []bool | []uint8 | []uint16 | []uint32 | []uint64 | []uint |
-		[]int8 | []int16 | []int32 | []int64 | []int | []big.Int |
+		[]int8 | []int16 | []int32 | []int64 | []int | []I128 | []U128 |
 		[]float32 | []float64 | []string
 }
 
@@ -75,7 +75,7 @@ func valueFromI64(n int64) Value {
 	return Value{data: i64Value{N: n}}
 }
 
-func valueFromI128(n big.Int) Value {
+func valueFromI128(n I128) Value {
 	return Value{data: i128Value{N: n}}
 }
 
@@ -83,7 +83,7 @@ func valueFromU64(n uint64) Value {
 	return Value{data: u64Value{N: n}}
 }
 
-func valueFromU128(n big.Int) Value {
+func valueFromU128(n U128) Value {
 	return Value{data: u128Value{N: n}}
 }
 

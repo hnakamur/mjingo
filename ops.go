@@ -3,9 +3,7 @@ package mjingo
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/hnakamur/mjingo/option"
 )
@@ -121,14 +119,14 @@ func opNeg(val Value) (Value, error) {
 	if err != nil {
 		return Value{}, NewError(InvalidOperation, "")
 	}
-	x.Neg(&x)
-	return i128AsValue(&x), nil
+	x.Neg(x)
+	return i128AsValue(x), nil
 }
 
 func opAdd(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var n big.Int
+		var n I128
 		i128WrappingAdd(&n, &c.lhs, &c.rhs)
 		return i128AsValue(&n), nil
 	case f64CoerceResult:
@@ -142,9 +140,9 @@ func opAdd(lhs, rhs Value) (Value, error) {
 func opSub(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var n big.Int
+		var n I128
 		n.Sub(&c.lhs, &c.rhs)
-		if isI128(&n) {
+		if isI128(&n.n) {
 			return i128AsValue(&n), nil
 		}
 		return Value{}, failedOp("-", lhs, rhs)
@@ -157,9 +155,9 @@ func opSub(lhs, rhs Value) (Value, error) {
 func opMul(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var n big.Int
+		var n I128
 		n.Mul(&c.lhs, &c.rhs)
-		if isI128(&n) {
+		if isI128(&n.n) {
 			return i128AsValue(&n), nil
 		}
 		return Value{}, failedOp("*", lhs, rhs)
@@ -182,13 +180,13 @@ func opDiv(lhs, rhs Value) (Value, error) {
 func opIntDiv(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var zero big.Int
+		var zero I128
 		if c.rhs.Cmp(&zero) == 0 {
 			return Value{}, failedOp("//", lhs, rhs)
 		}
-		var div, mod big.Int
-		div.DivMod(&c.lhs, &c.rhs, &mod)
-		if isI128(&div) {
+		var div I128
+		div.Div(&c.lhs, &c.rhs)
+		if isI128(&div.n) {
 			return i128AsValue(&div), nil
 		}
 		return Value{}, failedOp("//", lhs, rhs)
@@ -201,13 +199,13 @@ func opIntDiv(lhs, rhs Value) (Value, error) {
 func opRem(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
-		var zero big.Int
+		var zero I128
 		if c.rhs.Cmp(&zero) == 0 {
 			return Value{}, failedOp("%", lhs, rhs)
 		}
-		var div, mod big.Int
-		div.DivMod(&c.lhs, &c.rhs, &mod)
-		if isI128(&mod) {
+		var mod I128
+		mod.Mod(&c.lhs, &c.rhs)
+		if isI128(&mod.n) {
 			return i128AsValue(&mod), nil
 		}
 		return Value{}, failedOp("%", lhs, rhs)
@@ -225,7 +223,7 @@ func opPow(lhs, rhs Value) (Value, error) {
 			return Value{}, failedOp("**", lhs, rhs)
 		}
 		exp = uint32(c.rhs.Uint64())
-		var n big.Int
+		var n I128
 		if i128CheckedPow(&n, &c.lhs, exp) == nil {
 			return Value{}, failedOp("**", lhs, rhs)
 		}
@@ -279,8 +277,8 @@ type coerceResult interface {
 }
 
 type i128CoerceResult struct {
-	lhs big.Int
-	rhs big.Int
+	lhs I128
+	rhs I128
 }
 
 type f64CoerceResult struct {
@@ -371,101 +369,53 @@ func coerceData(a, b valueData) coerceResult {
 		if err != nil {
 			return nil
 		}
-		return i128CoerceResult{lhs: aVal, rhs: bVal}
+		return i128CoerceResult{lhs: *aVal, rhs: *bVal}
 	}
 }
 
-var i128Min, i128Max, u128Max, twoPow128 big.Int
-
-func getI128Min() *big.Int {
-	return sync.OnceValue(func() *big.Int {
-		if _, ok := i128Min.SetString("-170141183460469231731687303715884105728", 10); !ok {
-			panic("set i128Min")
-		}
-		return &i128Min
-	})()
-}
-
-func getI128Max() *big.Int {
-	return sync.OnceValue(func() *big.Int {
-		if _, ok := i128Max.SetString("170141183460469231731687303715884105727", 10); !ok {
-			panic("set i128Max")
-		}
-		return &i128Max
-	})()
-}
-
-func getU128Max() *big.Int {
-	return sync.OnceValue(func() *big.Int {
-		if _, ok := u128Max.SetString("340282366920938463463374607431768211455", 10); !ok {
-			panic("set u128Max")
-		}
-		return &u128Max
-	})()
-}
-
-func getTwoPow128() *big.Int {
-	return sync.OnceValue(func() *big.Int {
-		if _, ok := twoPow128.SetString("340282366920938463463374607431768211456", 10); !ok {
-			panic("set twoPow128")
-		}
-		return &twoPow128
-	})()
-}
-
-func isI128(n *big.Int) bool {
-	return n.Cmp(getI128Min()) >= 0 && n.Cmp(getI128Max()) <= 0
-}
-
-func isU128(n *big.Int) bool {
-	var zero big.Int
-	return n.Cmp(&zero) >= 0 && n.Cmp(getI128Max()) <= 0
-}
-
-func i128WrappingAdd(ret, lhs, rhs *big.Int) *big.Int {
-	ret.Add(lhs, rhs)
-	if ret.Cmp(getI128Min()) < 0 {
-		ret.Add(ret, getTwoPow128())
+func i128WrappingAdd(ret, lhs, rhs *I128) *I128 {
+	ret.n.Add(&lhs.n, &rhs.n)
+	if ret.n.Cmp(getI128Min()) < 0 {
+		ret.n.Add(&ret.n, getTwoPow128())
 		return ret
 	}
-	if ret.Cmp(getI128Max()) > 0 {
-		ret.Sub(ret, getTwoPow128())
+	if ret.n.Cmp(getI128Max()) > 0 {
+		ret.n.Sub(&ret.n, getTwoPow128())
 		return ret
 	}
 	return ret
 }
 
-func castU128AsI128(ret, input *big.Int) *big.Int {
-	ret.Set(input)
-	if input.Cmp(getI128Max()) > 0 {
-		ret.Sub(ret, getTwoPow128())
+func castU128AsI128(ret *I128, input *U128) *I128 {
+	ret.n.Set(&input.n)
+	if input.n.Cmp(getI128Max()) > 0 {
+		ret.n.Sub(&ret.n, getTwoPow128())
 	}
 	return ret
 }
 
-func i128AsValue(val *big.Int) Value {
+func i128AsValue(val *I128) Value {
 	if val.IsInt64() {
 		return valueFromI64(val.Int64())
 	}
 	return valueFromI128(*val)
 }
 
-func i128CheckedMul(ret, lhs, rhs *big.Int) *big.Int {
-	ret.Mul(lhs, rhs)
-	if isI128(ret) {
+func i128CheckedMul(ret, lhs, rhs *I128) *I128 {
+	ret.n.Mul(&lhs.n, &rhs.n)
+	if isI128(&ret.n) {
 		return ret
 	}
 	return nil
 }
 
-func i128CheckedPow(ret, base *big.Int, exp uint32) *big.Int {
+func i128CheckedPow(ret, base *I128, exp uint32) *I128 {
 	// ported from https://github.com/rust-lang/rust/blob/1.72.0/library/core/src/num/int_macros.rs#L875-L899
-	ret.SetUint64(1)
+	ret.n.SetUint64(1)
 	if exp == 0 {
 		return ret
 	}
-	base2 := &big.Int{}
-	base2.Set(base)
+	base2, _ := I128TryFromBigInt(&base.n)
 	for exp > 1 {
 		if exp&1 == 1 {
 			ret = i128CheckedMul(ret, ret, base2)

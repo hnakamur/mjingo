@@ -8,7 +8,6 @@ import (
 	"hash"
 	"io"
 	"math"
-	"math/big"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -34,7 +33,7 @@ func (v Value) getAttrFast(key string) option.Option[Value] {
 func (v Value) getItemOpt(key Value) option.Option[Value] {
 	return v.data.getItemOpt(key)
 }
-func (v Value) tryToI128() (big.Int, error)     { return v.data.tryToI128() }
+func (v Value) tryToI128() (*I128, error)       { return v.data.tryToI128() }
 func (v Value) tryToI64() (int64, error)        { return v.data.tryToI64() }
 func (v Value) tryToUint() (uint, error)        { return v.data.tryToUint() }
 func (v Value) asF64() option.Option[float64]   { return v.data.asF64() }
@@ -62,7 +61,7 @@ type valueData interface {
 	isTrue() bool
 	getAttrFast(key string) option.Option[Value]
 	getItemOpt(key Value) option.Option[Value]
-	tryToI128() (big.Int, error)
+	tryToI128() (*I128, error)
 	tryToI64() (int64, error)
 	tryToUint() (uint, error)
 	asF64() option.Option[float64]
@@ -191,8 +190,8 @@ type i64Value struct{ N int64 }
 type f64Value struct{ F float64 }
 type noneValue struct{}
 type invalidValue struct{ Detail string }
-type u128Value struct{ N big.Int }
-type i128Value struct{ N big.Int }
+type u128Value struct{ N U128 }
+type i128Value struct{ N I128 }
 type stringValue struct {
 	Str  string
 	Type stringType
@@ -491,11 +490,11 @@ func (v f64Value) isTrue() bool     { return v.F != 0.0 }
 func (noneValue) isTrue() bool      { return false }
 func (invalidValue) isTrue() bool   { return false }
 func (v u128Value) isTrue() bool {
-	var zero big.Int
+	var zero U128
 	return v.N.Cmp(&zero) != 0
 }
 func (v i128Value) isTrue() bool {
-	var zero big.Int
+	var zero I128
 	return v.N.Cmp(&zero) != 0
 }
 func (v stringValue) isTrue() bool { return len(v.Str) != 0 }
@@ -598,67 +597,51 @@ func getItemOptFromSeq(seq SeqObject, key Value) option.Option[Value] {
 	return option.None[Value]()
 }
 
-func (v undefinedValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v undefinedValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v boolValue) tryToI128() (big.Int, error) {
-	var n big.Int
+func (v boolValue) tryToI128() (*I128, error) {
+	var n int64
 	if v.B {
-		n.SetUint64(1)
+		n = 1
 	}
-	return n, nil
+	return I128FromInt64(n), nil
 }
-func (v u64Value) tryToI128() (big.Int, error) {
-	var n big.Int
-	n.SetUint64(v.N)
-	return n, nil
-}
-func (v i64Value) tryToI128() (big.Int, error) {
-	var n big.Int
-	n.SetInt64(v.N)
-	return n, nil
-}
-func (v f64Value) tryToI128() (big.Int, error) {
+func (v u64Value) tryToI128() (*I128, error) { return I128FromUint64(v.N), nil }
+func (v i64Value) tryToI128() (*I128, error) { return I128FromInt64(v.N), nil }
+func (v f64Value) tryToI128() (*I128, error) {
 	if float64(int64(v.F)) == v.F {
-		var n big.Int
-		n.SetInt64(int64(v.F))
-		return n, nil
+		return I128FromInt64(int64(v.F)), nil
 	}
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v noneValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v noneValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v invalidValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v invalidValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v u128Value) tryToI128() (big.Int, error) {
-	if v.N.Cmp(getI128Max()) > 0 {
-		return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v u128Value) tryToI128() (*I128, error) {
+	if v.N.n.Cmp(getI128Max()) > 0 {
+		return nil, unsupportedConversion(v.typ(), "i128")
 	}
-	var n big.Int
-	n.Set(&v.N)
-	return n, nil
+	return I128TryFromBigInt(&v.N.n)
 }
-func (v i128Value) tryToI128() (big.Int, error) {
-	var n big.Int
-	n.Set(&v.N)
-	return n, nil
+func (v i128Value) tryToI128() (*I128, error) { return I128TryFromBigInt(&v.N.n) }
+func (v stringValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v stringValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v bytesValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v bytesValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v seqValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v seqValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v mapValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
-func (v mapValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
-}
-func (v dynamicValue) tryToI128() (big.Int, error) {
-	return big.Int{}, unsupportedConversion(v.typ(), "i128")
+func (v dynamicValue) tryToI128() (*I128, error) {
+	return nil, unsupportedConversion(v.typ(), "i128")
 }
 
 func (v undefinedValue) tryToI64() (int64, error) { return 0, unsupportedConversion(v.typ(), "i64") }
@@ -765,11 +748,11 @@ func (v f64Value) asF64() option.Option[float64]   { return option.Some(v.F) }
 func (noneValue) asF64() option.Option[float64]    { return option.None[float64]() }
 func (invalidValue) asF64() option.Option[float64] { return option.None[float64]() }
 func (v u128Value) asF64() option.Option[float64] {
-	f, _ := v.N.Float64()
+	f, _ := v.N.n.Float64()
 	return option.Some(f)
 }
 func (v i128Value) asF64() option.Option[float64] {
-	f, _ := v.N.Float64()
+	f, _ := v.N.n.Float64()
 	return option.Some(f)
 }
 func (stringValue) asF64() option.Option[float64]  { return option.None[float64]() }
@@ -964,6 +947,28 @@ func valueTryToGoUint64(val Value) (uint64, error) {
 		return 0, unsupportedConversion(val.typ(), "uint64")
 	}
 	return n.Uint64(), nil
+}
+
+func valueTryToGoI128(val Value) (I128, error) {
+	i, err := val.tryToI128()
+	if err != nil {
+		return I128{}, err
+	}
+	return *i, nil
+}
+
+func valueTryToGoU128(val Value) (U128, error) {
+	if u, ok := val.data.(u128Value); ok {
+		u2, _ := U128TryFromBigInt(&u.N.n)
+		return *u2, nil
+	}
+	n, err := val.tryToI128()
+	var zero I128
+	if err != nil || n.Cmp(&zero) < 0 {
+		return U128{}, unsupportedConversion(val.typ(), "uint64")
+	}
+	u, _ := U128TryFromBigInt(&n.n)
+	return *u, nil
 }
 
 func valueTryToGoFloat32(val Value) (float32, error) {

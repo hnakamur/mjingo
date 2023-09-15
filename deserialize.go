@@ -110,6 +110,10 @@ func valueTryToGoValueNoReflect(val Value, destPtr any) error {
 		return valueTryToGoValueHelper[uint64](val, p, valueTryToGoUint64)
 	case *uint:
 		return valueTryToGoValueHelper[uint](val, p, valueTryToGoUint)
+	case *I128:
+		return valueTryToGoValueHelper[I128](val, p, valueTryToGoI128)
+	case *U128:
+		return valueTryToGoValueHelper[U128](val, p, valueTryToGoU128)
 	case *float32:
 		return valueTryToGoValueHelper[float32](val, p, valueTryToGoFloat32)
 	case *float64:

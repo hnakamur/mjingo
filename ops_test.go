@@ -16,9 +16,9 @@ func TestI128WrappingAdd(t *testing.T) {
 		{lhs: "-170141183460469231731687303715884105728", rhs: "-2", want: "170141183460469231731687303715884105726"},
 	}
 	for _, tc := range testCases {
-		var lhs, rhs, rv big.Int
-		setBigIntString(t, &lhs, tc.lhs)
-		setBigIntString(t, &rhs, tc.rhs)
+		var lhs, rhs, rv I128
+		setBigIntString(t, &lhs.n, tc.lhs)
+		setBigIntString(t, &rhs.n, tc.rhs)
 		i128WrappingAdd(&rv, &lhs, &rhs)
 		if got, want := rv.String(), tc.want; got != want {
 			t.Errorf("result mismatch, got=%s, want=%s, lhs=%s, rhs=%s", got, want, tc.lhs, tc.rhs)
@@ -37,9 +37,10 @@ func TestCaseU128AsI128(t *testing.T) {
 		{input: "170141183460469231731687303715884105729", want: "-170141183460469231731687303715884105727"},
 	}
 	for _, tc := range testCases {
-		var rv big.Int
-		setBigIntString(t, &rv, tc.input)
-		castU128AsI128(&rv, &rv)
+		var u U128
+		var rv I128
+		setBigIntString(t, &u.n, tc.input)
+		castU128AsI128(&rv, &u)
 		if got, want := rv.String(), tc.want; got != want {
 			t.Errorf("result mismatch, got=%s, want=%s, input=%s", got, want, tc.input)
 		}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"strings"
 
@@ -35,11 +34,8 @@ func serializeInt(v int) (Value, error) {
 	return valueFromI64(int64(v)), nil
 }
 
-func serializeI128(v big.Int) (Value, error) {
-	if isI128(&v) {
-		return valueFromI128(v), nil
-	}
-	return Value{}, errors.New("value out of range of i128")
+func serializeI128(v I128) (Value, error) {
+	return valueFromI128(v), nil
 }
 
 func serializeU8(v uint8) (Value, error) {
@@ -62,11 +58,8 @@ func serializeUint(v uint) (Value, error) {
 	return valueFromU64(uint64(v)), nil
 }
 
-func serializeU128(v big.Int) (Value, error) {
-	if isU128(&v) {
-		return valueFromU128(v), nil
-	}
-	return Value{}, errors.New("value out of range of u128")
+func serializeU128(v U128) (Value, error) {
+	return valueFromU128(v), nil
 }
 
 func serializeF32(v float32) (Value, error) {
@@ -166,10 +159,9 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 			return mapErrToInvalidValue(serializeF64(f))
 		}
 		return mapErrToInvalidValue(serializeI64(n))
-	case big.Int:
-		if isI128(&v) {
-			return mapErrToInvalidValue(serializeI128(v))
-		}
+	case I128:
+		return mapErrToInvalidValue(serializeI128(v))
+	case U128:
 		return mapErrToInvalidValue(serializeU128(v))
 	case float32:
 		return mapErrToInvalidValue(serializeF32(v))

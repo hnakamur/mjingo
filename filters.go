@@ -3,7 +3,6 @@ package mjingo
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"reflect"
 	"slices"
 	"strings"
@@ -919,7 +918,7 @@ func abs(val Value) (Value, error) {
 		}
 		return valueFromI64(n), nil
 	case i128Value:
-		var n big.Int
+		var n I128
 		n.Abs(&v.N)
 		return valueFromI128(n), nil
 	case f64Value:
