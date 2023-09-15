@@ -237,7 +237,8 @@ func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, er
 		}
 		kwargs, err := valueTryToKwargs(values[len(values)-1])
 		if err != nil {
-			return nil, err
+			*p = newKwargs(*newValueMap())
+			return values, nil
 		}
 		*p = kwargs
 		return values[:len(values)-1], nil
