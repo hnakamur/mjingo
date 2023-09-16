@@ -18,7 +18,7 @@ import (
 // Since mjingo takes advantage of chained errors it's recommended
 // to render the entire chain to better understand the causes.
 type Error struct {
-	typ    ErrorType
+	kind   ErrorKind
 	detail string
 	name   option.Option[string]
 	lineno uint
@@ -27,61 +27,61 @@ type Error struct {
 }
 
 // NewError creates a new error with kind and detail.
-func NewError(typ ErrorType, detail string) *Error {
-	return &Error{typ: typ, detail: detail}
+func NewError(kind ErrorKind, detail string) *Error {
+	return &Error{kind: kind, detail: detail}
 }
 
-// ErrorType describes the error kind.
-type ErrorType int
+// ErrorKind describes the error kind.
+type ErrorKind int
 
 const (
 	// NonPrimitive represents a non primitive value was encountered where one was expected.
-	NonPrimitive ErrorType = 1
+	NonPrimitive ErrorKind = 1
 	// A value is not valid for a key in a map.
-	nonKey ErrorType = 2
+	nonKey ErrorKind = 2
 	// InvalidOperation is an invalid operation was attempted.
-	InvalidOperation ErrorType = 3
+	InvalidOperation ErrorKind = 3
 	// SyntaxError represents the template has a syntax error
-	SyntaxError ErrorType = 4
+	SyntaxError ErrorKind = 4
 	// TemplateNotFound represents a template was not found.
-	TemplateNotFound ErrorType = 5
+	TemplateNotFound ErrorKind = 5
 	// TooManyArguments represents too many arguments were passed to a function.
-	TooManyArguments ErrorType = 6
+	TooManyArguments ErrorKind = 6
 	// MissingArgument represents a expected argument was missing
-	MissingArgument ErrorType = 7
+	MissingArgument ErrorKind = 7
 	// UnknownFilter represents a filter is unknown
-	UnknownFilter ErrorType = 8
+	UnknownFilter ErrorKind = 8
 	// UnknownTest represents A test is unknown
-	UnknownTest ErrorType = 9
+	UnknownTest ErrorKind = 9
 	// UnknownFunction represents a function is unknown
-	UnknownFunction ErrorType = 10
+	UnknownFunction ErrorKind = 10
 	// UnknownMethod represents an unknown method was called
-	UnknownMethod ErrorType = 11
+	UnknownMethod ErrorKind = 11
 	// BadEscape represents a bad escape sequence in a string was encountered.
-	BadEscape ErrorType = 12
+	BadEscape ErrorKind = 12
 	// UndefinedError represents an operation on an undefined value was attempted.
-	UndefinedError ErrorType = 13
+	UndefinedError ErrorKind = 13
 	// BadSerialization represents not able to serialize this
-	BadSerialization ErrorType = 14
+	BadSerialization ErrorKind = 14
 	// Not able to deserialize this
-	cannotDeserialize ErrorType = 15
+	cannotDeserialize ErrorKind = 15
 	// BadInclude represents an error happened in an include.
-	BadInclude ErrorType = 16
+	BadInclude ErrorKind = 16
 	// EvalBlock represents an error happened in a super block.
-	EvalBlock ErrorType = 17
+	EvalBlock ErrorKind = 17
 	// CannotUnpack represents unable to unpack a value.
-	CannotUnpack ErrorType = 18
+	CannotUnpack ErrorKind = 18
 	// Failed writing output.
-	writeFailure ErrorType = 19
+	writeFailure ErrorKind = 19
 	// Engine ran out of fuel
-	outOfFuel ErrorType = 20
+	outOfFuel ErrorKind = 20
 	// InvalidDelimiter represents error creating aho-corasick delimiters
-	InvalidDelimiter ErrorType = 21
+	InvalidDelimiter ErrorKind = 21
 	// UnknownBlock represents an unknown block was called
-	UnknownBlock ErrorType = 22
+	UnknownBlock ErrorKind = 22
 )
 
-func (k ErrorType) String() string {
+func (k ErrorKind) String() string {
 	switch k {
 	case NonPrimitive:
 		return "not a primitive"
@@ -134,7 +134,7 @@ func (k ErrorType) String() string {
 
 func (e *Error) Error() string {
 	var b strings.Builder
-	b.WriteString(e.typ.String())
+	b.WriteString(e.kind.String())
 	if e.detail != "" {
 		b.WriteString(": ")
 		b.WriteString(e.detail)
@@ -145,8 +145,8 @@ func (e *Error) Error() string {
 	return b.String()
 }
 
-// Type returns the error kind
-func (e *Error) Type() ErrorType { return e.typ }
+// Kind returns the error kind
+func (e *Error) Kind() ErrorKind { return e.kind }
 
 func (e *Error) line() option.Option[uint] {
 	if e.lineno > 0 {

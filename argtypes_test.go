@@ -77,7 +77,7 @@ func TestCheckArgTypes(t *testing.T) {
 			if err != nil {
 				var merr *Error
 				if errors.As(err, &merr) {
-					if got, want := merr.Type(), InvalidOperation; got != want {
+					if got, want := merr.Kind(), InvalidOperation; got != want {
 						t.Errorf("error Type() mismatch, i=%d, got=%v, want=%v", i, got, want)
 					}
 					if got, want := merr.detail, tc.detail; got != want {

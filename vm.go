@@ -636,7 +636,7 @@ func (m *virtualMachine) performInclude(name Value, state *State, out *output, i
 		tmpl, err := m.env.GetTemplate(name)
 		if err != nil {
 			var er *Error
-			if errors.As(err, &er) && er.Type() == TemplateNotFound {
+			if errors.As(err, &er) && er.Kind() == TemplateNotFound {
 				templatesTried.Push(choice)
 			} else {
 				return err
