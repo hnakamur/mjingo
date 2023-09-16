@@ -6,10 +6,20 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// BoxedFunc is the type of a boxed function.
+//
+// A boxed function can be registered as global functions to the environment via
+// [Environment.AddFunction].
+//
+// A boxed function can be created by wrapping a "unboxed" function using one of BoxedFuncFrom* function.
+// Or a user can define a boxed function directly.
+// In that case, [ConvertArgToGoValue] and [ConvertVariadicArgsToGoValue] can be used to convert a Value
+// to Go's data type.
 type BoxedFunc = func(*State, []Value) (Value, error)
 
 // 1 argument functions
 
+// BoxedFuncFromFixedArity1ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -25,6 +35,7 @@ func BoxedFuncFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f fu
 	}
 }
 
+// BoxedFuncFromFixedArity1ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -43,9 +54,10 @@ func BoxedFuncFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](f 
 	}
 }
 
+// BoxedFuncFromVariadic1ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) R) BoxedFunc {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
+		a, err := ConvertVariadicArgsToGoValue[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -55,9 +67,10 @@ func BoxedFuncFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes](f
 	}
 }
 
+// BoxedFuncFromVariadic1ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) (R, error)) BoxedFunc {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
+		a, err := ConvertVariadicArgsToGoValue[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -72,6 +85,7 @@ func BoxedFuncFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValTypes]
 
 // 2 argument functions
 
+// BoxedFuncFromFixedArity2ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -91,6 +105,7 @@ func BoxedFuncFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTy
 	}
 }
 
+// BoxedFuncFromFixedArity2ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -113,13 +128,14 @@ func BoxedFuncFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArg
 	}
 }
 
+// BoxedFuncFromVariadic2ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
+		b, err := ConvertVariadicArgsToGoValue[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -129,13 +145,14 @@ func BoxedFuncFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes,
 	}
 }
 
+// BoxedFuncFromVariadic2ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
+		b, err := ConvertVariadicArgsToGoValue[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -150,6 +167,7 @@ func BoxedFuncFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemType
 
 // 3 argument functions
 
+// BoxedFuncFromFixedArity3ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -173,6 +191,7 @@ func BoxedFuncFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C F
 	}
 }
 
+// BoxedFuncFromFixedArity3ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -199,6 +218,7 @@ func BoxedFuncFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFuncFromVariadic3ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -209,7 +229,7 @@ func BoxedFuncFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Var
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
+		c, err := ConvertVariadicArgsToGoValue[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -219,6 +239,7 @@ func BoxedFuncFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Var
 	}
 }
 
+// BoxedFuncFromVariadic3ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -229,7 +250,7 @@ func BoxedFuncFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
+		c, err := ConvertVariadicArgsToGoValue[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -244,6 +265,7 @@ func BoxedFuncFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 
 // 4 argument functions
 
+// BoxedFuncFromFixedArity4ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -271,6 +293,7 @@ func BoxedFuncFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 	}
 }
 
+// BoxedFuncFromFixedArity4ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -301,6 +324,7 @@ func BoxedFuncFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFuncFromVariadic4ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -315,7 +339,7 @@ func BoxedFuncFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
+		d, err := ConvertVariadicArgsToGoValue[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -325,6 +349,7 @@ func BoxedFuncFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 	}
 }
 
+// BoxedFuncFromVariadic4ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -339,7 +364,7 @@ func BoxedFuncFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
+		d, err := ConvertVariadicArgsToGoValue[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -354,6 +379,7 @@ func BoxedFuncFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 
 // 5 argument functions
 
+// BoxedFuncFromFixedArity5ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -385,6 +411,7 @@ func BoxedFuncFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 	}
 }
 
+// BoxedFuncFromFixedArity5ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -419,6 +446,7 @@ func BoxedFuncFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFuncFromVariadic5ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) R) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -437,7 +465,7 @@ func BoxedFuncFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
+		e, err := ConvertVariadicArgsToGoValue[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -447,6 +475,7 @@ func BoxedFuncFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C Mid
 	}
 }
 
+// BoxedFuncFromVariadic5ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFuncFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) (R, error)) BoxedFunc {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -465,7 +494,7 @@ func BoxedFuncFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
+		e, err := ConvertVariadicArgsToGoValue[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -478,6 +507,9 @@ func BoxedFuncFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 	}
 }
 
+// BoxedFuncFromFuncReflect creates a boxed function which wraps f using Go's reflect package.
+//
+// This may be slower so caller should prefer generic BoxedFuncFrom* functions.
 func BoxedFuncFromFuncReflect(fn any) BoxedFunc {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
@@ -532,7 +564,7 @@ func BoxedFuncFromFuncReflect(fn any) BoxedFunc {
 }
 
 func valueFromBoxedFunc(f BoxedFunc) Value {
-	return valueFromObject(funcObject{f: f})
+	return ValueFromObject(funcObject{f: f})
 }
 
 type funcObject struct{ f BoxedFunc }

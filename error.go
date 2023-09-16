@@ -7,6 +7,16 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// Error represents template errors.
+//
+// If debug mode is enabled a template error contains additional debug
+// information that can be displayed by formatting an error with the
+// alternative formatting (DebugString()).  That information
+// is also shown for the [DebugString] display where the extended information
+// is hidden when the alternative formatting is used.
+//
+// Since mjingo takes advantage of chained errors it's recommended
+// to render the entire chain to better understand the causes.
 type Error struct {
 	typ    ErrorType
 	detail string
@@ -16,56 +26,58 @@ type Error struct {
 	source error
 }
 
+// NewError creates a new error with kind and detail.
 func NewError(typ ErrorType, detail string) *Error {
 	return &Error{typ: typ, detail: detail}
 }
 
+// ErrorType describes the error kind.
 type ErrorType int
 
 const (
-	// A non primitive value was encountered where one was expected.
+	// NonPrimitive represents a non primitive value was encountered where one was expected.
 	NonPrimitive ErrorType = 1
 	// A value is not valid for a key in a map.
 	nonKey ErrorType = 2
-	// An invalid operation was attempted.
+	// InvalidOperation is an invalid operation was attempted.
 	InvalidOperation ErrorType = 3
-	// The template has a syntax error
+	// SyntaxError represents the template has a syntax error
 	SyntaxError ErrorType = 4
-	// A template was not found.
+	// TemplateNotFound represents a template was not found.
 	TemplateNotFound ErrorType = 5
-	// Too many arguments were passed to a function.
+	// TooManyArguments represents too many arguments were passed to a function.
 	TooManyArguments ErrorType = 6
-	// A expected argument was missing
+	// MissingArgument represents a expected argument was missing
 	MissingArgument ErrorType = 7
-	// A filter is unknown
+	// UnknownFilter represents a filter is unknown
 	UnknownFilter ErrorType = 8
-	// A test is unknown
+	// UnknownTest represents A test is unknown
 	UnknownTest ErrorType = 9
-	// A function is unknown
+	// UnknownFunction represents a function is unknown
 	UnknownFunction ErrorType = 10
-	// Un unknown method was called
+	// UnknownMethod represents an unknown method was called
 	UnknownMethod ErrorType = 11
-	// A bad escape sequence in a string was encountered.
+	// BadEscape represents a bad escape sequence in a string was encountered.
 	BadEscape ErrorType = 12
-	// An operation on an undefined value was attempted.
+	// UndefinedError represents an operation on an undefined value was attempted.
 	UndefinedError ErrorType = 13
-	// Not able to serialize this
+	// BadSerialization represents not able to serialize this
 	BadSerialization ErrorType = 14
 	// Not able to deserialize this
 	cannotDeserialize ErrorType = 15
-	// An error happened in an include.
+	// BadInclude represents an error happened in an include.
 	BadInclude ErrorType = 16
-	// An error happened in a super block.
+	// EvalBlock represents an error happened in a super block.
 	EvalBlock ErrorType = 17
-	// Unable to unpack a value.
+	// CannotUnpack represents unable to unpack a value.
 	CannotUnpack ErrorType = 18
 	// Failed writing output.
 	writeFailure ErrorType = 19
 	// Engine ran out of fuel
 	outOfFuel ErrorType = 20
-	// Error creating aho-corasick delimiters
+	// InvalidDelimiter represents error creating aho-corasick delimiters
 	InvalidDelimiter ErrorType = 21
-	// An unknown block was called
+	// UnknownBlock represents an unknown block was called
 	UnknownBlock ErrorType = 22
 )
 
@@ -133,6 +145,7 @@ func (e *Error) Error() string {
 	return b.String()
 }
 
+// Type returns the error kind
 func (e *Error) Type() ErrorType { return e.typ }
 
 func (e *Error) line() option.Option[uint] {

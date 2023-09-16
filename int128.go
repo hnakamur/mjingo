@@ -218,42 +218,86 @@ func (x *I128) BigInt() big.Int {
 	return rv
 }
 
+// U128 represents an integer in the range between
+// 0 and 340282366920938463463374607431768211455
+// (both ends inclusive).
+// The zero value for an U128 represents the value 0.
+//
+// Operations always take pointer arguments (*U128) rather
+// than U128 values, and each unique Int value requires
+// its own unique *U128 pointer. To "copy" an U128 value,
+// an existing (or newly allocated) U128 must be set to
+// a new value using the [U128.Set] method; shallow copies
+// of U128s are not supported and may lead to errors.
+//
+// Note that methods may leak the U128's value through timing side-channels.
+// Because of this and because of the scope and complexity of the
+// implementation, U128 is not well-suited to implement cryptographic operations.
 type U128 struct{ n big.Int }
 
-func U128FromUint64(n uint64) *U128 {
+// U128FromUint64 allocates and returns a new U128 set to x.
+func U128FromUint64(x uint64) *U128 {
 	var rv U128
-	rv.n.SetUint64(n)
+	rv.n.SetUint64(x)
 	return &rv
 }
 
-func U128TryFromInt64(n int64) (*U128, error) {
-	if n < 0 {
+// U128TryFromInt64 allocates and returns a new U128 set to x.
+// If x is out of range of U128, it returns an error.
+func U128TryFromInt64(x int64) (*U128, error) {
+	if x < 0 {
 		return nil, NewError(InvalidOperation, "cannot convert to U128")
 	}
 	var rv U128
-	rv.n.SetInt64(n)
+	rv.n.SetInt64(x)
 	return &rv, nil
 }
 
-func U128TryFromBigInt(n *big.Int) (*U128, error) {
-	if !isU128(n) {
+// U128TryFromBigInt allocates and returns a new U128 set to x.
+// If x is out of range of U128, it returns an error.
+func U128TryFromBigInt(x *big.Int) (*U128, error) {
+	if !isU128(x) {
 		return nil, NewError(InvalidOperation, "cannot convert to U128")
 	}
 	var rv U128
-	rv.n.Set(n)
+	rv.n.Set(x)
 	return &rv, nil
 }
 
-func (u *U128) Cmp(x *U128) int { return u.n.Cmp(&x.n) }
-func (u *U128) Set(x *U128)     { u.n.Set(&x.n) }
-func (u *U128) IsInt64() bool   { return u.n.IsInt64() }
-func (u *U128) Int64() int64    { return u.n.Int64() }
-func (u *U128) IsUint64() bool  { return u.n.IsUint64() }
-func (u *U128) Uint64() uint64  { return u.n.Uint64() }
-func (u *U128) String() string  { return u.n.String() }
-func (u *U128) BigInt() big.Int {
+// Cmp compares x and y and returns:
+//
+//	-1 if x <  y
+//	 0 if x == y
+//	+1 if x >  y
+func (x *U128) Cmp(y *U128) int { return x.n.Cmp(&y.n) }
+
+// Set sets z to x and returns z.
+func (z *U128) Set(x *U128) *U128 {
+	z.n.Set(&x.n)
+	return z
+}
+
+// IsInt64 reports whether x can be represented as an int64.
+func (x *U128) IsInt64() bool { return x.n.IsInt64() }
+
+// IsUint64 reports whether x can be represented as a uint64.
+func (x *U128) IsUint64() bool { return x.n.IsUint64() }
+
+// Int64 returns the int64 representation of x.
+// If x cannot be represented in an int64, the result is undefined.
+func (x *U128) Int64() int64 { return x.n.Int64() }
+
+// Uint64 returns the uint64 representation of x.
+// If x cannot be represented in a uint64, the result is undefined.
+func (x *U128) Uint64() uint64 { return x.n.Uint64() }
+
+// String returns the decimal representation of x in base 10.
+func (x *U128) String() string { return x.n.String() }
+
+// BigInt returns a new big.Int whose value is copied from x.
+func (x *U128) BigInt() big.Int {
 	var rv big.Int
-	rv.Set(&u.n)
+	rv.Set(&x.n)
 	return rv
 }
 

@@ -77,7 +77,7 @@ func valueTryToGoValueReflect(val Value, destType reflect.Type) (any, error) {
 	panic("unsupported destination type")
 }
 
-func ValueTryToGoValue[T any](val Value) (T, error) {
+func valueTryToGoValue[T any](val Value) (T, error) {
 	var ret T
 	err := valueTryToGoValueNoReflect(val, &ret)
 	return ret, err

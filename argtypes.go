@@ -8,38 +8,56 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// JustOneArgTypes is the type constraint for the argument of an unboxed filter, test, or function
+// which has just one argument.
 type JustOneArgTypes interface {
 	ScalarTypes | OptionalTypes | SliceTypes | *State | Kwargs
 }
+
+// FirstArgTypes is the type constraint for the first argument of an unboxed filter, test or function
+// which has two or more arguments.
 type FirstArgTypes interface {
 	ScalarTypes | OptionalTypes | SliceTypes | *State
 }
+
+// MiddleArgTypes is the type constraint for the middle (which is neither the first nor the last) argument
+// of an unboxed filter, test or function which has three or more arguments.
 type MiddleArgTypes interface {
 	ScalarTypes | OptionalTypes | SliceTypes
 }
+
+// FixedArityLastArgTypes is the type constraint for the last argument of a fixed-ary (non-variadic)
+// unboxed filter, test or function which has two or more arguments.
 type FixedArityLastArgTypes interface {
 	ScalarTypes | OptionalTypes | SliceTypes | Kwargs
 }
+
+// VariadicArgElemTypes is the type constraint for the element of the last argument slice of a variadic unboxed filter,
+// test or function.
 type VariadicArgElemTypes interface {
 	ScalarTypes
 }
 
+// RetValTypes is the type constraint for the return value of an unboxed filter or function.
 type RetValTypes interface {
 	ScalarTypes | SliceTypes
 }
 
+// ScalarTypes is the type constraint for a scalar argument of an unboxed filter, test, or a function.
 type ScalarTypes interface {
 	Value | bool | uint8 | uint16 | uint32 | uint64 | uint |
 		int8 | int16 | int32 | int64 | int | I128 | U128 |
 		float32 | float64 | string
 }
 
+// ScalarTypes is the type constraint for a slice argument of an unboxed filter, test, or a function.
 type SliceTypes interface {
 	[]Value | []bool | []uint8 | []uint16 | []uint32 | []uint64 | []uint |
 		[]int8 | []int16 | []int32 | []int64 | []int | []I128 | []U128 |
 		[]float32 | []float64 | []string
 }
 
+// OptionalTypes is the type constraint for an optional argument of an unboxed filter, test, or a function.
 type OptionalTypes interface {
 	option.Option[Value] | option.Option[bool] | option.Option[uint8] |
 		option.Option[uint16] | option.Option[uint32] | option.Option[uint64] |
@@ -102,7 +120,8 @@ func valueFromKwargs(a Kwargs) Value {
 	return Value{data: mapValue{Map: &a.values, Type: mapTypeKwargs}}
 }
 
-func valueFromObject(dy Object) Value {
+// ValueFromObject creates a value that wraps the object.
+func ValueFromObject(dy Object) Value {
 	return Value{data: dynamicValue{Dy: dy}}
 }
 
@@ -188,10 +207,12 @@ func valueTryToValueSlice(val Value) ([]Value, error) {
 	return iter.Collect(), nil
 }
 
-func ConvertArgToGoValue[T JustOneArgTypes](state *State, values []Value) (T, []Value, error) {
+// ConvertArgToGoValue convert an argument in args to a Go value of type T.
+// It returns the rest of args.
+func ConvertArgToGoValue[T JustOneArgTypes](state *State, args []Value) (T, []Value, error) {
 	var v T
-	values, err := convertArgToGoVarTo(state, values, &v)
-	return v, values, err
+	args, err := convertArgToGoVarTo(state, args, &v)
+	return v, args, err
 }
 
 func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, error) {
@@ -305,9 +326,10 @@ func convertArgToGoVarTo(state *State, values []Value, destPtr any) ([]Value, er
 	panic(fmt.Sprintf("unsupported go variable type: %T", destPtr))
 }
 
-func ConvertArgToGoValueVariadic[S ~[]E, E ScalarTypes](values []Value) (S, error) {
+// ConvertVariadicArgsToGoValue converts the variadic arguments to a Go value of type S.
+func ConvertVariadicArgsToGoValue[S ~[]E, E ScalarTypes](args []Value) (S, error) {
 	var s S
-	if err := convertArgToGoVariadicVarTo(values, &s); err != nil {
+	if err := convertArgToGoVariadicVarTo(args, &s); err != nil {
 		return s, err
 	}
 	return s, nil

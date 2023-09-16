@@ -98,7 +98,7 @@ func (c *context) load(env *Environment, key string) option.Option[Value] {
 		if frame.currentLoop.IsSome() {
 			l := frame.currentLoop.AsPtr()
 			if l.withLoopVar && key == "loop" {
-				return option.Some(valueFromObject(&l.object))
+				return option.Some(ValueFromObject(&l.object))
 			}
 		}
 

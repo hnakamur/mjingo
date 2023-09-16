@@ -86,18 +86,29 @@ func serializeNone() (Value, error) {
 	return none, nil
 }
 
+// ValueFromGoValueOption is the option type to configure the behavior of
+// [ValueFromGoValue].
 type ValueFromGoValueOption func(*valueFromGoValueConfig)
 
 type valueFromGoValueConfig struct {
 	structTag string
 }
 
+// WithStructTag sets the struct tag which is used to reference a struct field.
+// If a struct tag value exists with the specified tag name, the value before comma
+// is used as a field name instead.
 func WithStructTag(tag string) ValueFromGoValueOption {
 	return func(cfg *valueFromGoValueConfig) {
 		cfg.structTag = tag
 	}
 }
 
+// ValueFromGoValue creates a value from a Go value.
+//
+// Supported scalar types are bool, uint8, uint16, uint32, uint64, uint, int8, int16,
+// int32, int64, int, json.Number, I128, U128, float32, float64, string, nil, Value.
+//
+// And struct, slice, pointer, and map of these types are supported.
 func ValueFromGoValue(val any, opts ...ValueFromGoValueOption) Value {
 	var config valueFromGoValueConfig
 	for _, opt := range opts {
@@ -176,7 +187,7 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 	case Value:
 		return v
 	case Object:
-		return valueFromObject(v)
+		return ValueFromObject(v)
 	case []Value:
 		return valueFromSlice(v)
 	default:
@@ -184,9 +195,9 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		k := ty.Kind()
 		switch k {
 		case reflect.Struct:
-			return valueFromObject(structObjectWithReflect(reflect.ValueOf(v), config, level))
+			return ValueFromObject(structObjectWithReflect(reflect.ValueOf(v), config, level))
 		case reflect.Array, reflect.Slice:
-			return valueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
+			return ValueFromObject(sqeObjectFromGoReflectSeq(reflect.ValueOf(v), config, level))
 		case reflect.Map:
 			return valueFromGoMapReflect(reflect.ValueOf(v), config, level)
 		case reflect.Ptr:

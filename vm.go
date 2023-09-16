@@ -605,7 +605,7 @@ loop:
 			state.ctx.enclose(state.env, inst.Name)
 		case getClosureInstruction:
 			closure := state.ctx.closure()
-			stack.Push(valueFromObject(&closure))
+			stack.Push(ValueFromObject(&closure))
 		default:
 			panic("unreachable")
 		}
@@ -876,7 +876,7 @@ func (m *virtualMachine) buildMacro(stack *stackpkg.Stack[Value], state *State, 
 			callerReference: flags&macroCaller != 0,
 		},
 	}
-	stack.Push(valueFromObject(macro))
+	stack.Push(ValueFromObject(macro))
 }
 
 func getOrLookupLocal[T any](vec []option.Option[T], localID uint8, f func() option.Option[T]) option.Option[T] {

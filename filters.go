@@ -11,10 +11,20 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// BoxedFilter is the type of a boxed filter.
+//
+// A boxed filter can be registered as a filter to the environment via
+// [Environment.AddFilter].
+//
+// A boxed filter can be created by wrapping a "unboxed" filter using one of BoxedFilterFrom* function.
+// Or a user can define a boxed filter directly.
+// In that case, [ConvertArgToGoValue] and [ConvertVariadicArgsToGoValue] can be used to convert a Value
+// to Go's data type.
 type BoxedFilter = func(*State, []Value) (Value, error)
 
 // 1 argument functions
 
+// BoxedFilterFromFixedArity1ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -30,6 +40,7 @@ func BoxedFilterFromFixedArity1ArgNoErrFunc[A JustOneArgTypes, R RetValTypes](f 
 	}
 }
 
+// BoxedFilterFromFixedArity1ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](f func(A) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -48,9 +59,10 @@ func BoxedFilterFromFixedArity1ArgWithErrFunc[A JustOneArgTypes, R RetValTypes](
 	}
 }
 
+// BoxedFilterFromVariadic1ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) R) BoxedFilter {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
+		a, err := ConvertVariadicArgsToGoValue[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -60,9 +72,10 @@ func BoxedFilterFromVariadic1ArgNoErrFunc[A VariadicArgElemTypes, R RetValTypes]
 	}
 }
 
+// BoxedFilterFromVariadic1ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValTypes](f func(...A) (R, error)) BoxedFilter {
 	return func(_state *State, values []Value) (Value, error) {
-		a, err := ConvertArgToGoValueVariadic[[]A, A](values)
+		a, err := ConvertVariadicArgsToGoValue[[]A, A](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -77,6 +90,7 @@ func BoxedFilterFromVariadic1ArgWithErrFunc[A VariadicArgElemTypes, R RetValType
 
 // 2 argument functions
 
+// BoxedFilterFromFixedArity2ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -96,6 +110,7 @@ func BoxedFilterFromFixedArity2ArgNoErrFunc[A FirstArgTypes, B FixedArityLastArg
 	}
 }
 
+// BoxedFilterFromFixedArity2ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastArgTypes, R RetValTypes](f func(A, B) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -118,13 +133,14 @@ func BoxedFilterFromFixedArity2ArgWithErrFunc[A FirstArgTypes, B FixedArityLastA
 	}
 }
 
+// BoxedFilterFromVariadic2ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
+		b, err := ConvertVariadicArgsToGoValue[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -134,13 +150,14 @@ func BoxedFilterFromVariadic2ArgNoErrFunc[A FirstArgTypes, B VariadicArgElemType
 	}
 }
 
+// BoxedFilterFromVariadic2ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTypes, R RetValTypes](f func(A, ...B) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
 		if err != nil {
 			return Value{}, err
 		}
-		b, err := ConvertArgToGoValueVariadic[[]B, B](values)
+		b, err := ConvertVariadicArgsToGoValue[[]B, B](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -155,6 +172,7 @@ func BoxedFilterFromVariadic2ArgWithErrFunc[A FirstArgTypes, B VariadicArgElemTy
 
 // 3 argument functions
 
+// BoxedFilterFromFixedArity3ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -178,6 +196,7 @@ func BoxedFilterFromFixedArity3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFilterFromFixedArity3ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C FixedArityLastArgTypes, R RetValTypes](f func(A, B, C) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -204,6 +223,7 @@ func BoxedFilterFromFixedArity3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 	}
 }
 
+// BoxedFilterFromVariadic3ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -214,7 +234,7 @@ func BoxedFilterFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
+		c, err := ConvertVariadicArgsToGoValue[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -224,6 +244,7 @@ func BoxedFilterFromVariadic3ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C V
 	}
 }
 
+// BoxedFilterFromVariadic3ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C VariadicArgElemTypes, R RetValTypes](f func(A, B, ...C) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -234,7 +255,7 @@ func BoxedFilterFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 		if err != nil {
 			return Value{}, err
 		}
-		c, err := ConvertArgToGoValueVariadic[[]C, C](values)
+		c, err := ConvertVariadicArgsToGoValue[[]C, C](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -249,6 +270,7 @@ func BoxedFilterFromVariadic3ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 // 4 argument functions
 
+// BoxedFilterFromFixedArity4ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -276,6 +298,7 @@ func BoxedFilterFromFixedArity4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFilterFromFixedArity4ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -306,6 +329,7 @@ func BoxedFilterFromFixedArity4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 	}
 }
 
+// BoxedFilterFromVariadic4ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -320,7 +344,7 @@ func BoxedFilterFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
+		d, err := ConvertVariadicArgsToGoValue[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -330,6 +354,7 @@ func BoxedFilterFromVariadic4ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 	}
 }
 
+// BoxedFilterFromVariadic4ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D VariadicArgElemTypes, R RetValTypes](f func(A, B, C, ...D) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -344,7 +369,7 @@ func BoxedFilterFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 		if err != nil {
 			return Value{}, err
 		}
-		d, err := ConvertArgToGoValueVariadic[[]D, D](values)
+		d, err := ConvertVariadicArgsToGoValue[[]D, D](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -359,6 +384,7 @@ func BoxedFilterFromVariadic4ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 
 // 5 argument functions
 
+// BoxedFilterFromFixedArity5ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -390,6 +416,7 @@ func BoxedFilterFromFixedArity5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFilterFromFixedArity5ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E FixedArityLastArgTypes, R RetValTypes](f func(A, B, C, D, E) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -424,6 +451,7 @@ func BoxedFilterFromFixedArity5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes,
 	}
 }
 
+// BoxedFilterFromVariadic5ArgNoErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) R) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -442,7 +470,7 @@ func BoxedFilterFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
+		e, err := ConvertVariadicArgsToGoValue[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -452,6 +480,7 @@ func BoxedFilterFromVariadic5ArgNoErrFunc[A FirstArgTypes, B MiddleArgTypes, C M
 	}
 }
 
+// BoxedFilterFromVariadic5ArgWithErrFunc creates a boxed function which wraps f.
 func BoxedFilterFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C MiddleArgTypes, D MiddleArgTypes, E VariadicArgElemTypes, R RetValTypes](f func(A, B, C, D, ...E) (R, error)) BoxedFilter {
 	return func(state *State, values []Value) (Value, error) {
 		a, values, err := ConvertArgToGoValue[A](state, values)
@@ -470,7 +499,7 @@ func BoxedFilterFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 		if err != nil {
 			return Value{}, err
 		}
-		e, err := ConvertArgToGoValueVariadic[[]E, E](values)
+		e, err := ConvertVariadicArgsToGoValue[[]E, E](values)
 		if err != nil {
 			return Value{}, err
 		}
@@ -483,6 +512,9 @@ func BoxedFilterFromVariadic5ArgWithErrFunc[A FirstArgTypes, B MiddleArgTypes, C
 	}
 }
 
+// BoxedFilterFromFuncReflect creates a boxed filter which wraps f using Go's reflect package.
+//
+// This may be slower so caller should prefer generic BoxedFilterFrom* functions.
 func BoxedFilterFromFuncReflect(fn any) BoxedFilter {
 	if bf, ok := fn.(BoxedFilter); ok {
 		return bf

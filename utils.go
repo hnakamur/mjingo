@@ -1,15 +1,25 @@
 package mjingo
 
-// Controls the autoescaping behavior.
+// AutoEscape controls the autoescaping behavior.
 type AutoEscape interface {
 	typ() autoEscapeType
 	isNone() bool
 }
 
+// AutoEscapeNone do not apply auto escaping.
 var AutoEscapeNone AutoEscape
 
+// AutoEscapeHTML use HTML auto escaping rules.
+//
+// Any value will be converted into a string and the following characters
+// will be escaped in ways compatible to XML and HTML: `<`, `>`, `&`, `"`,
+// `'`, and `/`.
 var AutoEscapeHTML AutoEscape
 
+// AutoEscapeJSON use escaping rules suitable for JSON/JavaScript or YAML.
+//
+// Any value effectively ends up being serialized to JSON upon printing.  The
+// serialized values will be compatible with JavaScript and YAML as well.
 var AutoEscapeJSON AutoEscape
 
 func init() {
@@ -47,24 +57,28 @@ const (
 	autoEscapeTypeCustom
 )
 
+// UndefinedBehavior defines the behavior of undefined values in the engine.
+//
+// At present there are three types of behaviors available which mirror the behaviors
+// that Jinja2 provides out of the box.
 type UndefinedBehavior uint
 
 const (
-	// The default, somewhat lenient undefined behavior.
+	// UndefinedBehaviorLenient is the default, somewhat lenient undefined behavior.
 	//
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** fails
 	UndefinedBehaviorLenient UndefinedBehavior = iota
 
-	// Like `Lenient`, but also allows chaining of undefined lookups.
+	// UndefinedBehaviorChainable is like `Lenient`, but also allows chaining of undefined lookups.
 	//
 	// * **printing:** allowed (returns empty string)
 	// * **iteration:** allowed (returns empty array)
 	// * **attribute access of undefined values:** allowed (returns [`undefined`](Value::UNDEFINED))
 	UndefinedBehaviorChainable
 
-	// Complains very quickly about undefined values.
+	// UndefinedBehaviorStrict complains very quickly about undefined values.
 	//
 	// * **printing:** fails
 	// * **iteration:** fails

@@ -6,6 +6,19 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// State provides access to the current execution state of the engine.
+//
+// A read only reference is passed to filter functions and similar objects to
+// allow limited interfacing with the engine.  The state is useful to look up
+// information about the engine in filter, test or global functions.  It not
+// only provides access to the template environment but also the context
+// variables of the engine, the current auto escaping behavior as well as the
+// auto escape flag.
+//
+// In some testing scenarios or more advanced use cases you might need to get
+// a [State].  The state is managed as part of the template execution but the
+// initial state can be retrieved via [Template.NewState].
+// The most common way to get hold of the state however is via functions of filters.
 type State struct {
 	env             *Environment
 	ctx             context
@@ -29,14 +42,18 @@ type macroStackElem struct {
 	offset uint
 }
 
+// Env returns a reference to the current environment.
 func (s *State) Env() *Environment { return s.env }
 
+// AutoEscape returns the current value of the auto escape flag.
 func (s *State) AutoEscape() AutoEscape { return s.autoEscape }
 
+// Name returns the name of the current template.
 func (s *State) Name() string {
 	return s.instructions.Name()
 }
 
+// UndefinedBehavior returns the current undefined behavior.
 func (s *State) UndefinedBehavior() UndefinedBehavior {
 	return s.env.undefinedBehavior
 }

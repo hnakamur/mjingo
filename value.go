@@ -15,12 +15,30 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
+// Value provides a dynamic value type abstraction.
+//
+// This struct gives access to a dynamically typed value which is used by
+// the template engine during execution.
+//
+// For the most part the existence of the value type can be ignored as
+// mjingo will perform the necessary conversions for you.  For instance
+// if you write a filter that converts a string you can directly declare the
+// filter to take a string.  However for some more
+// advanced use cases it's useful to know that this type exists.
+//
+// # Basic Value Conversions
+//
+// Values are typically created via [ValueFromGoValue] function.
+//
+// The special [Undefined] value also exists but does not
+// have a Go equivalent.  It can be created via the [Undefined]
+// variable.
 type Value struct {
 	data valueData
 }
 
 func (v Value) String() string      { return v.data.String() }
-func (v Value) debugString() string { return v.data.debugString() }
+func (v Value) DebugString() string { return v.data.debugString() }
 func (v Value) typ() valueType      { return v.data.typ() }
 func (v Value) kind() valueKind     { return v.data.kind() }
 func (v Value) isUndefined() bool   { return v.data.isUndefined() }
@@ -271,7 +289,7 @@ func (v seqValue) String() string {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.debugString())
+		b.WriteString(item.DebugString())
 	}
 	b.WriteString("]")
 	return b.String()
@@ -288,9 +306,9 @@ func (v mapValue) String() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsValue().debugString())
+		b.WriteString(e.Key.AsValue().DebugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.debugString())
+		b.WriteString(e.Value.DebugString())
 	}
 	b.WriteString("}")
 	return b.String()
@@ -309,7 +327,7 @@ func (v dynamicValue) String() string {
 				b.WriteString(", ")
 			}
 			item := seq.GetItem(i).Unwrap()
-			b.WriteString(item.debugString())
+			b.WriteString(item.DebugString())
 		}
 		b.WriteString("]")
 		return b.String()
@@ -366,7 +384,7 @@ func (v seqValue) debugString() string {
 		if i > 0 {
 			b.WriteString(", ")
 		}
-		b.WriteString(item.debugString())
+		b.WriteString(item.DebugString())
 	}
 	b.WriteString("]")
 	return b.String()
@@ -383,9 +401,9 @@ func (v mapValue) debugString() string {
 		} else {
 			b.WriteString(", ")
 		}
-		b.WriteString(e.Key.AsValue().debugString())
+		b.WriteString(e.Key.AsValue().DebugString())
 		b.WriteString(": ")
-		b.WriteString(e.Value.debugString())
+		b.WriteString(e.Value.DebugString())
 	}
 	b.WriteString("}")
 	return b.String()

@@ -4,11 +4,24 @@ import (
 	"fmt"
 )
 
+// Caller is implemented by any value that has Call method.
 type Caller interface {
+	// Call is called when the object is invoked directly.
+	//
+	// To convert the arguments into arguments use the
+	// ConvertArgToGoValue or ConvertVariadicArgsToGoValue function.
 	Call(state *State, args []Value) (Value, error)
 }
 
+// CallMethoder is implemented by any value that has CallMethod method.
 type CallMethoder interface {
+	// CallMethod is called when the engine tries to call a method on the object.
+	//
+	// It's the responsibility of the implementer to ensure that an
+	// error is generated if an invalid method is invoked.
+	//
+	// To convert the arguments into arguments use the
+	// ConvertArgToGoValue or ConvertVariadicArgsToGoValue function.
 	CallMethod(state *State, name string, args []Value) (Value, error)
 }
 
