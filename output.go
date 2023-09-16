@@ -77,8 +77,8 @@ func writeString(o *output, s string) error {
 }
 
 func writeWithHTMLEscaping(o *output, val Value) error {
-	switch val.kind() {
-	case valueKindUndefined, valueKindNone, valueKindBool, valueKindNumber:
+	switch val.Kind() {
+	case ValueKindUndefined, ValueKindNone, ValueKindBool, ValueKindNumber:
 		return writeString(o, val.String())
 	default:
 		var str string

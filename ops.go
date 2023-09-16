@@ -108,7 +108,7 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 }
 
 func opNeg(val Value) (Value, error) {
-	if val.kind() != valueKindNumber {
+	if val.Kind() != ValueKindNumber {
 		return Value{}, NewError(InvalidOperation, "")
 	}
 	if v, ok := val.data.(f64Value); ok {
@@ -129,7 +129,9 @@ func opAdd(lhs, rhs Value) (Value, error) {
 	switch c := coerce(lhs, rhs).(type) {
 	case i128CoerceResult:
 		var n I128
-		i128WrappingAdd(&n, &c.lhs, &c.rhs)
+		if n.CheckedAdd(&c.lhs, &c.rhs) == nil {
+			return Value{}, failedOp("+", lhs, rhs)
+		}
 		return i128AsValue(&n), nil
 	case f64CoerceResult:
 		return valueFromF64(c.lhs + c.rhs), nil
@@ -363,19 +365,6 @@ func coerceData(a, b valueData) coerceResult {
 	}
 }
 
-func i128WrappingAdd(ret, lhs, rhs *I128) *I128 {
-	ret.n.Add(&lhs.n, &rhs.n)
-	if ret.n.Cmp(i128Min) < 0 {
-		ret.n.Add(&ret.n, getTwoPow128())
-		return ret
-	}
-	if ret.n.Cmp(i128Max) > 0 {
-		ret.n.Sub(&ret.n, getTwoPow128())
-		return ret
-	}
-	return ret
-}
-
 func castU128AsI128(ret *I128, input *U128) *I128 {
 	ret.n.Set(&input.n)
 	if input.n.Cmp(i128Max) > 0 {
@@ -434,5 +423,6 @@ func failedOp(op string, lhs, rhs Value) error {
 
 func impossibleOp(op string, lhs, rhs Value) error {
 	return NewError(InvalidOperation,
-		fmt.Sprintf("tried to use %s operator on unsupported types %s and %s", op, lhs, rhs))
+		fmt.Sprintf("tried to use %s operator on unsupported types %s and %s",
+			op, lhs.Kind(), rhs.Kind()))
 }

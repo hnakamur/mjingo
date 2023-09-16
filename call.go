@@ -37,7 +37,7 @@ func valueCall(receiver Value, state *State, args []Value) (Value, error) {
 
 func notCallableValueType(v Value) (Value, error) {
 	return Value{}, NewError(InvalidOperation,
-		fmt.Sprintf("value of type %s is not callable", v.kind()))
+		fmt.Sprintf("value of type %s is not callable", v.Kind()))
 }
 
 func callMethod(receiver Value, state *State, name string, args []Value) (Value, error) {

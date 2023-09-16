@@ -542,7 +542,7 @@ func isEven(val Value) bool {
 // {{ 42 is number }} -> true
 // {{ "42" is number }} -> false
 // ```
-func isNumber(val Value) bool { return val.kind() == valueKindNumber }
+func isNumber(val Value) bool { return val.Kind() == ValueKindNumber }
 
 // Checks if this value is a string.
 //
@@ -550,7 +550,7 @@ func isNumber(val Value) bool { return val.kind() == valueKindNumber }
 // {{ "42" is string }} -> true
 // {{ 42 is string }} -> false
 // ```
-func isString(val Value) bool { return val.kind() == valueKindString }
+func isString(val Value) bool { return val.Kind() == ValueKindString }
 
 // Checks if this value is a sequence
 //
@@ -558,7 +558,7 @@ func isString(val Value) bool { return val.kind() == valueKindString }
 // {{ [1, 2, 3] is sequence }} -> true
 // {{ 42 is sequence }} -> false
 // ```
-func isSequence(val Value) bool { return val.kind() == valueKindSeq }
+func isSequence(val Value) bool { return val.Kind() == ValueKindSeq }
 
 // Checks if this value is a mapping
 //
@@ -566,7 +566,7 @@ func isSequence(val Value) bool { return val.kind() == valueKindSeq }
 // {{ {"foo": "bar"} is mapping }} -> true
 // {{ [1, 2, 3] is mapping }} -> false
 // ```
-func isMapping(val Value) bool { return val.kind() == valueKindMap }
+func isMapping(val Value) bool { return val.Kind() == ValueKindMap }
 
 // Checks if the value is starting with a string.
 //

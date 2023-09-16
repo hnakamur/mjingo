@@ -40,11 +40,17 @@ type Value struct {
 func (v Value) String() string      { return v.data.String() }
 func (v Value) DebugString() string { return v.data.debugString() }
 func (v Value) typ() valueType      { return v.data.typ() }
-func (v Value) kind() valueKind     { return v.data.kind() }
-func (v Value) isUndefined() bool   { return v.data.isUndefined() }
-func (v Value) isNone() bool        { return v.data.isNone() }
-func (v Value) isSafe() bool        { return v.data.isSafe() }
-func (v Value) isTrue() bool        { return v.data.isTrue() }
+
+// Kind returns the Kind of the value.
+//
+// This can be used to determine what's in the value before trying to
+// perform operations on it.
+func (v Value) Kind() ValueKind { return v.data.kind() }
+
+func (v Value) isUndefined() bool { return v.data.isUndefined() }
+func (v Value) isNone() bool      { return v.data.isNone() }
+func (v Value) isSafe() bool      { return v.data.isSafe() }
+func (v Value) isTrue() bool      { return v.data.isTrue() }
 func (v Value) getAttrFast(key string) option.Option[Value] {
 	return v.data.getAttrFast(key)
 }
@@ -72,7 +78,7 @@ type valueData interface {
 	debugString() string
 
 	typ() valueType
-	kind() valueKind
+	kind() ValueKind
 	isUndefined() bool
 	isNone() bool
 	isSafe() bool
@@ -110,25 +116,28 @@ const (
 	valueTypeDynamic
 )
 
-type valueKind int
+// ValueKind describes the kind of value.
+type ValueKind int
 
 const (
-	// The value is undefined
-	valueKindUndefined valueKind = iota + 1
-	// The value is the none singleton ([`()`])
-	valueKindNone
-	// The value is a [`bool`]
-	valueKindBool
-	// The value is a number of a supported type.
-	valueKindNumber
-	// The value is a string.
-	valueKindString
-	// The value is a byte array.
-	valueKindBytes
-	// The value is an array of other values.
-	valueKindSeq
-	// The value is a key/value mapping.
-	valueKindMap
+	// ValueKindUndefined represents the value is undefined
+	ValueKindUndefined ValueKind = iota + 1
+	// ValueKindNone represents the value is the none (None).
+	//
+	// Note this is different from a None value of option.Option.
+	ValueKindNone
+	// ValueKindBool repreesnts the value is a bool
+	ValueKindBool
+	// ValueKindNumber represents the value is a number of a supported type.
+	ValueKindNumber
+	// ValueKindString represents the value is a string.
+	ValueKindString
+	// ValueKindBytes represents the value is a byte array.
+	ValueKindBytes
+	// ValueKindSeq represents the value is an array of other values.
+	ValueKindSeq
+	// ValueKindMap represents the value is a key/value mapping.
+	ValueKindMap
 )
 
 // Undefined is the undefined value.
@@ -178,23 +187,23 @@ func (t valueType) String() string {
 	}
 }
 
-func (k valueKind) String() string {
+func (k ValueKind) String() string {
 	switch k {
-	case valueKindUndefined:
+	case ValueKindUndefined:
 		return "undefined"
-	case valueKindBool:
+	case ValueKindBool:
 		return "bool"
-	case valueKindNumber:
+	case ValueKindNumber:
 		return "number"
-	case valueKindNone:
+	case ValueKindNone:
 		return "none"
-	case valueKindString:
+	case ValueKindString:
 		return "string"
-	case valueKindBytes:
+	case ValueKindBytes:
 		return "bytes"
-	case valueKindSeq:
+	case ValueKindSeq:
 		return "seq"
-	case valueKindMap:
+	case ValueKindMap:
 		return "map"
 	default:
 		panic(fmt.Sprintf("invalid valueKind: %d", k))
@@ -425,31 +434,31 @@ func (seqValue) typ() valueType       { return valueTypeSeq }
 func (mapValue) typ() valueType       { return valueTypeMap }
 func (dynamicValue) typ() valueType   { return valueTypeDynamic }
 
-func (undefinedValue) kind() valueKind { return valueKindUndefined }
-func (boolValue) kind() valueKind      { return valueKindBool }
-func (u64Value) kind() valueKind       { return valueKindNumber }
-func (i64Value) kind() valueKind       { return valueKindNumber }
-func (f64Value) kind() valueKind       { return valueKindNumber }
-func (noneValue) kind() valueKind      { return valueKindNone }
-func (invalidValue) kind() valueKind {
+func (undefinedValue) kind() ValueKind { return ValueKindUndefined }
+func (boolValue) kind() ValueKind      { return ValueKindBool }
+func (u64Value) kind() ValueKind       { return ValueKindNumber }
+func (i64Value) kind() ValueKind       { return ValueKindNumber }
+func (f64Value) kind() ValueKind       { return ValueKindNumber }
+func (noneValue) kind() ValueKind      { return ValueKindNone }
+func (invalidValue) kind() ValueKind {
 	// XXX: invalid values report themselves as maps which is a lie
-	return valueKindMap
+	return ValueKindMap
 }
-func (u128Value) kind() valueKind   { return valueKindNumber }
-func (i128Value) kind() valueKind   { return valueKindNumber }
-func (stringValue) kind() valueKind { return valueKindString }
-func (bytesValue) kind() valueKind  { return valueKindBytes }
-func (seqValue) kind() valueKind    { return valueKindSeq }
-func (mapValue) kind() valueKind    { return valueKindMap }
-func (v dynamicValue) kind() valueKind {
+func (u128Value) kind() ValueKind   { return ValueKindNumber }
+func (i128Value) kind() ValueKind   { return ValueKindNumber }
+func (stringValue) kind() ValueKind { return ValueKindString }
+func (bytesValue) kind() ValueKind  { return ValueKindBytes }
+func (seqValue) kind() ValueKind    { return ValueKindSeq }
+func (mapValue) kind() ValueKind    { return ValueKindMap }
+func (v dynamicValue) kind() ValueKind {
 	switch v.Dy.Kind() {
 	case ObjectKindPlain:
 		// XXX: basic objects should probably not report as map
-		return valueKindMap
+		return ValueKindMap
 	case ObjectKindSeq:
-		return valueKindSeq
+		return ValueKindSeq
 	case ObjectKindStruct:
-		return valueKindMap
+		return ValueKindMap
 	default:
 		panic("unreachable")
 	}
@@ -1268,15 +1277,15 @@ func valueEqual(v, other Value) bool { return valueDataEqual(v.data, other.data)
 
 func valueDataEqual(v, other valueData) bool {
 	switch {
-	case v.kind() == valueKindNone && other.kind() == valueKindNone:
+	case v.kind() == ValueKindNone && other.kind() == ValueKindNone:
 		return true
-	case v.kind() == valueKindUndefined && other.kind() == valueKindUndefined:
+	case v.kind() == ValueKindUndefined && other.kind() == ValueKindUndefined:
 		return true
-	case v.kind() == valueKindString && other.kind() == valueKindString:
+	case v.kind() == ValueKindString && other.kind() == ValueKindString:
 		a := v.(stringValue).Str
 		b := other.(stringValue).Str
 		return a == b
-	case v.kind() == valueKindBytes && other.kind() == valueKindBytes:
+	case v.kind() == ValueKindBytes && other.kind() == ValueKindBytes:
 		a := v.(bytesValue).B
 		b := other.(bytesValue).B
 		return bytes.Equal(a, b)
@@ -1302,7 +1311,7 @@ func valueDataEqual(v, other valueData) bool {
 					itemB := iterB.Next().Unwrap()
 					return valueEqual(itemA, itemB)
 				})
-			} else if v.kind() == valueKindMap && other.kind() == valueKindMap {
+			} else if v.kind() == ValueKindMap && other.kind() == ValueKindMap {
 				if v.len() != other.len() {
 					return false
 				}
@@ -1341,15 +1350,15 @@ func valueCmp(v, other Value) int {
 	var rv int
 outer:
 	switch {
-	case v.kind() == valueKindNone && other.kind() == valueKindNone:
+	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:
 		rv = 0
-	case v.kind() == valueKindUndefined && other.kind() == valueKindUndefined:
+	case v.Kind() == ValueKindUndefined && other.Kind() == ValueKindUndefined:
 		rv = 0
-	case v.kind() == valueKindString && other.kind() == valueKindString:
+	case v.Kind() == ValueKindString && other.Kind() == ValueKindString:
 		a := v.data.(stringValue).Str
 		b := other.data.(stringValue).Str
 		rv = strings.Compare(a, b)
-	case v.kind() == valueKindBytes && other.kind() == valueKindBytes:
+	case v.Kind() == ValueKindBytes && other.Kind() == ValueKindBytes:
 		a := v.data.(bytesValue).B
 		b := other.data.(bytesValue).B
 		rv = bytes.Compare(a, b)
@@ -1372,7 +1381,7 @@ outer:
 					break outer
 				}
 				return iterA.CompareBy(&iterB, valueCmp)
-			} else if v.kind() == valueKindMap && other.kind() == valueKindMap {
+			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
 				iterA, err := v.tryIter()
 				if err != nil {
 					break outer
@@ -1395,7 +1404,7 @@ outer:
 	if rv != 0 {
 		return rv
 	}
-	return cmp.Compare(v.kind(), other.kind())
+	return cmp.Compare(v.Kind(), other.Kind())
 }
 
 func f64TotalCmp(left, right float64) int {

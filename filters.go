@@ -640,7 +640,7 @@ func length(val Value) (uint, error) {
 		return l, nil
 	}
 	return 0, NewError(InvalidOperation,
-		fmt.Sprintf("cannot calculate length of value of type %s", val.kind()))
+		fmt.Sprintf("cannot calculate length of value of type %s", val.Kind()))
 }
 
 func compareValuesCaseInsensitive(a, b Value) int {
@@ -665,7 +665,7 @@ type keyAndValue struct {
 // * `by`: set to `"value"` to sort by  Defaults to `"key"`.
 // * `reverse`: set to `true` to sort in reverse.
 func dictsort(v Value, kwargs Kwargs) (Value, error) {
-	if v.kind() != valueKindMap {
+	if v.Kind() != ValueKindMap {
 		return Value{}, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
 	entries := make([]keyAndValue, 0, v.len().UnwrapOr(0))
@@ -820,7 +820,7 @@ func sortFilter(state *State, val Value, kwargs Kwargs) (Value, error) {
 // </dl>
 // ```
 func items(v Value) (Value, error) {
-	if v.kind() != valueKindMap {
+	if v.Kind() != ValueKindMap {
 		return Value{}, NewError(InvalidOperation, "cannot convert value into pair list")
 	}
 	items := make([]Value, 0, v.len().UnwrapOr(0))
@@ -876,7 +876,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 		return b.String(), nil
 	}
 	return "", NewError(InvalidOperation,
-		fmt.Sprintf("cannot join value of type %s", val.kind()))
+		fmt.Sprintf("cannot join value of type %s", val.Kind()))
 }
 
 // Reverses a list or string
@@ -912,7 +912,7 @@ func reverse(val Value) (Value, error) {
 		return valueFromSlice(items), nil
 	}
 	return Value{}, NewError(InvalidOperation,
-		fmt.Sprintf("cannot reverse value of type %s", val.kind()))
+		fmt.Sprintf("cannot reverse value of type %s", val.Kind()))
 }
 
 func trim(s string, cutset option.Option[string]) string {

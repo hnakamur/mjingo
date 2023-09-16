@@ -91,6 +91,13 @@ func (z *I128) CheckedMul(x, y *I128) *I128 {
 	return z.checkedVal()
 }
 
+// CheckedAdd sets z to the sum x+y and returns z if the result is in the range of I128.
+// If the operation overflows, the value of z is undefined but the returned value is nil.
+func (z *I128) CheckedAdd(x, y *I128) *I128 {
+	z.n.Add(&x.n, &y.n)
+	return z.checkedVal()
+}
+
 // CheckedSub sets z to the difference x-y and returns z if the result is in the range of I128.
 // If the operation overflows, the value of z is undefined but the returned value is nil.
 func (z *I128) CheckedSub(x, y *I128) *I128 {
