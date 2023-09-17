@@ -26,7 +26,7 @@ func escapeFormatter(out *output, state *State, val Value) error {
 	return writeEscaped(out, state.autoEscape, val)
 }
 
-const useReflect = false
+var useReflect bool
 
 func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	if useReflect {
@@ -71,6 +71,7 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	rv["rejectattr"] = BoxedFilterFromVariadic5ArgWithErrFunc(rejectAttrFilter)
 	rv["map"] = BoxedFilterFromVariadic3ArgWithErrFunc(mapFilter)
 	rv["unique"] = BoxedFilterFromFixedArity1ArgNoErrFunc(uniqueFilter)
+	rv["urlencode"] = BoxedFilterFromFixedArity1ArgWithErrFunc(urlencodeFilter)
 
 	return rv
 }
@@ -114,6 +115,7 @@ func getDefaultBuiltinFiltersReflect() map[string]BoxedFilter {
 	rv["rejectattr"] = BoxedFilterFromFuncReflect(rejectAttrFilter)
 	rv["map"] = BoxedFilterFromFuncReflect(mapFilter)
 	rv["unique"] = BoxedFilterFromFuncReflect(uniqueFilter)
+	rv["urlencode"] = BoxedFilterFromFuncReflect(urlencodeFilter)
 
 	return rv
 }

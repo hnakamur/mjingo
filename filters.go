@@ -3,6 +3,7 @@ package mjingo
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -1238,6 +1239,38 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 	rv := output.String()
 	stripTrailingNewline(&rv)
 	return rv
+}
+
+func urlencodeFilter(val Value) (string, error) {
+	if val.Kind() == ValueKindMap {
+		iter, err := val.tryIter()
+		if err != nil {
+			return "", err
+		}
+		var b strings.Builder
+		i := 0
+		for k := (Value{}); iter.Next().UnwrapTo(&k); i++ {
+			if i > 0 {
+				b.WriteRune('&')
+			}
+			v, err := getItem(val, k)
+			if err != nil {
+				return "", err
+			}
+			fmt.Fprintf(&b, "%s=%s", url.QueryEscape(k.String()), url.QueryEscape(v.String()))
+		}
+		return b.String(), nil
+	}
+	switch v := val.data.(type) {
+	case noneValue, undefinedValue:
+		return "", nil
+	case bytesValue:
+		return url.QueryEscape(string(v.B)), nil
+	case stringValue:
+		return url.QueryEscape(v.Str), nil
+	default:
+		return url.QueryEscape(val.String()), nil
+	}
 }
 
 func selectOrReject(state *State, invert bool, val Value, attr, testName option.Option[string], args ...Value) ([]Value, error) {
