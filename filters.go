@@ -3,7 +3,6 @@ package mjingo
 import (
 	"fmt"
 	"math"
-	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -1242,6 +1241,47 @@ func indentFilter(val string, width uint, indentFirstLine, indentBlankLines opti
 }
 
 func urlencodeFilter(val Value) (string, error) {
+	shouldEscape := func(c rune) bool {
+		return !('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' ||
+			c == '/' || c == '.' || c == '-' || c == '_')
+	}
+
+	urlEscape := func(s string) string {
+		// This implementation is adapted from Go's net/url.escape function.
+		hexCount := 0
+		for _, c := range s {
+			if shouldEscape(c) {
+				hexCount++
+			}
+		}
+		if hexCount == 0 {
+			return s
+		}
+
+		var buf [64]byte
+		var t []byte
+		required := len(s) + 2*hexCount
+		if required <= len(buf) {
+			t = buf[:required]
+		} else {
+			t = make([]byte, required)
+		}
+		j := 0
+		for i, c := range s {
+			if shouldEscape(c) {
+				const upperhex = "0123456789ABCDEF"
+				t[j] = '%'
+				t[j+1] = upperhex[c>>4]
+				t[j+2] = upperhex[c&15]
+				j += 3
+			} else {
+				t[j] = s[i]
+				j++
+			}
+		}
+		return string(t)
+	}
+
 	if val.Kind() == ValueKindMap {
 		iter, err := val.tryIter()
 		if err != nil {
@@ -1257,7 +1297,7 @@ func urlencodeFilter(val Value) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			fmt.Fprintf(&b, "%s=%s", url.QueryEscape(k.String()), url.QueryEscape(v.String()))
+			fmt.Fprintf(&b, "%s=%s", urlEscape(k.String()), urlEscape(v.String()))
 		}
 		return b.String(), nil
 	}
@@ -1265,11 +1305,11 @@ func urlencodeFilter(val Value) (string, error) {
 	case noneValue, undefinedValue:
 		return "", nil
 	case bytesValue:
-		return url.QueryEscape(string(v.B)), nil
+		return urlEscape(string(v.B)), nil
 	case stringValue:
-		return url.QueryEscape(v.Str), nil
+		return urlEscape(v.Str), nil
 	default:
-		return url.QueryEscape(val.String()), nil
+		return urlEscape(val.String()), nil
 	}
 }
 
