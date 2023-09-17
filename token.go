@@ -20,7 +20,8 @@ type blockStartToken struct{}
 type blockEndToken struct{}
 type identToken struct{ ident string }
 type strToken struct{ s string }
-type intToken struct{ n int64 }
+type intToken struct{ n uint64 }
+type int128Token struct{ n U128 }
 type floatToken struct{ f float64 }
 type plusToken struct{}
 type minusToken struct{}
@@ -57,6 +58,7 @@ var _ = token(blockEndToken{})
 var _ = token(identToken{})
 var _ = token(strToken{})
 var _ = token(intToken{})
+var _ = token(int128Token{})
 var _ = token(floatToken{})
 var _ = token(plusToken{})
 var _ = token(minusToken{})
@@ -93,6 +95,7 @@ func (t blockEndToken) String() string      { return t.typ().String() }
 func (t identToken) String() string         { return t.typ().String() }
 func (t strToken) String() string           { return t.typ().String() }
 func (t intToken) String() string           { return t.typ().String() }
+func (t int128Token) String() string        { return t.typ().String() }
 func (t floatToken) String() string         { return t.typ().String() }
 func (t plusToken) String() string          { return t.typ().String() }
 func (t minusToken) String() string         { return t.typ().String() }
@@ -129,6 +132,7 @@ func (t blockEndToken) DebugString() string      { return "BlockEnd" }
 func (t identToken) DebugString() string         { return fmt.Sprintf("Ident(%q)", t.ident) }
 func (t strToken) DebugString() string           { return fmt.Sprintf("Str(%q)", t.s) }
 func (t intToken) DebugString() string           { return fmt.Sprintf("Int(%d)", t.n) }
+func (t int128Token) DebugString() string        { return fmt.Sprintf("Int128(%s)", t.n) }
 func (t floatToken) DebugString() string {
 	s := strconv.FormatFloat(t.f, 'f', -1, 64)
 	if strings.ContainsRune(s, '.') {
@@ -171,6 +175,7 @@ func (blockEndToken) typ() tokenType      { return tokenTypeBlockEnd }
 func (identToken) typ() tokenType         { return tokenTypeIdent }
 func (strToken) typ() tokenType           { return tokenTypeString }
 func (intToken) typ() tokenType           { return tokenTypeInt }
+func (int128Token) typ() tokenType        { return tokenTypeInt128 }
 func (floatToken) typ() tokenType         { return tokenTypeFloat }
 func (plusToken) typ() tokenType          { return tokenTypePlus }
 func (minusToken) typ() tokenType         { return tokenTypeMinus }
@@ -240,6 +245,8 @@ const (
 	tokenTypeString
 	// An integer (limited to i64)
 	tokenTypeInt
+	// A large integer
+	tokenTypeInt128
 	// A float
 	tokenTypeFloat
 	// A plus (`+`) operator.
@@ -310,11 +317,9 @@ func (k tokenType) String() string {
 		return "end of block"
 	case tokenTypeIdent:
 		return "identifier"
-	case tokenTypeStr:
+	case tokenTypeStr, tokenTypeString:
 		return "string"
-	case tokenTypeString:
-		return "string"
-	case tokenTypeInt:
+	case tokenTypeInt, tokenTypeInt128:
 		return "integer"
 	case tokenTypeFloat:
 		return "float"

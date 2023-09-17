@@ -469,7 +469,7 @@ func TestSingleTemplate(t *testing.T) {
 			},
 			{name: "lower", source: `{{ "HELLO"|lower }}`, context: nil, want: "hello"},
 			{name: "upper", source: `{{ "hello"|upper }}`, context: nil, want: "HELLO"},
-			{name: "title", source: `{{ "hello world"|title }}`, context: nil, want: "HELLO WORLD"},
+			{name: "title", source: `{{ "hello worLd"|title }}`, context: nil, want: "Hello World"},
 			{name: "capitalize", source: `{{ "hello World"|capitalize }}`, context: nil, want: "Hello world"},
 			{name: "replace", source: `{{ "Hello World"|replace("Hello", "Goodbye") }}`, context: nil, want: "Goodbye World"},
 			{name: "countSlice", source: `{{ ["foo", "bar"]|length }}`, context: nil, want: "2"},

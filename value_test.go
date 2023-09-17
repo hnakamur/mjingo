@@ -42,3 +42,9 @@ func TestValueString(t *testing.T) {
 		}
 	}
 }
+
+func TestValueCmp(t *testing.T) {
+	if got, want := valueCmp(valueFromBool(true), valueFromI64(1)), -1; got != want {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
+	}
+}

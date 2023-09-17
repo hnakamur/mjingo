@@ -74,3 +74,39 @@ VariableEnd
   "}}"
 TemplateData("\n")
   "\n"
+VariableStart
+  "{{"
+Minus
+  "-"
+Int(9223372036854775808)
+  "9223372036854775808"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Minus
+  "-"
+Int128(170141183460469231731687303715884105728)
+  "170141183460469231731687303715884105728"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Int128(170141183460469231731687303715884105727)
+  "170141183460469231731687303715884105727"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Int128(340282366920938463463374607431768211455)
+  "340282366920938463463374607431768211455"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"

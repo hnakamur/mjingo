@@ -34,7 +34,7 @@ func TestOpAdd(t *testing.T) {
 		}{
 			{lhs: "a", rhs: 42,
 				wantErrMsg: "invalid operation: tried to use + operator on unsupported types string and number"},
-			{lhs: new(I128).MustSetString("170141183460469231731687303715884105727", 10), rhs: 1,
+			{lhs: new(I128).mustSetString("170141183460469231731687303715884105727", 10), rhs: 1,
 				wantErrMsg: "invalid operation: unable to calculate 170141183460469231731687303715884105727 + 1"},
 		}
 		for _, tc := range testCases {

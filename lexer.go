@@ -108,19 +108,24 @@ loop:
 		numLen++
 	}
 
+	isFloat := state != numberStateIntger
 	num := s.advance(uint(numLen))
-	if state != numberStateIntger {
+	if isFloat {
 		fVal, err := strconv.ParseFloat(num, 64)
 		if err != nil {
 			return nil, nil, s.syntaxError("invalid float")
 		}
 		return floatToken{f: fVal}, s.span(oldLoc), nil
 	}
-	iVal, err := strconv.ParseInt(num, 10, 64)
-	if err != nil {
+	iVal, err := strconv.ParseUint(num, 10, 64)
+	if err == nil {
+		return intToken{n: iVal}, s.span(oldLoc), nil
+	}
+	u128Val, ok := new(U128).SetString(num, 10)
+	if !ok {
 		return nil, nil, s.syntaxError("invalid integer")
 	}
-	return intToken{n: iVal}, s.span(oldLoc), nil
+	return int128Token{n: *u128Val}, s.span(oldLoc), nil
 }
 
 func (s *tokenizerState) eatIdentifier() (token, *span, error) {

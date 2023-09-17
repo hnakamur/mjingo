@@ -50,10 +50,11 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	}
 	stopVal := option.None[int64]()
 	if !stop.isNone() {
-		if s, ok := stop.data.(i64Value); ok {
-			stopVal = option.Some(s.N)
+		if v, err := stop.tryToI64(); err == nil {
+			stopVal = option.Some(v)
 		} else {
-			panic("opsSlice stop must be an i64")
+			return Value{}, NewError(InvalidOperation,
+				"cannot convert slice stop index to i64")
 		}
 	}
 	stepVal := int64(1)
@@ -113,6 +114,12 @@ func opNeg(val Value) (Value, error) {
 	}
 	if v, ok := val.data.(f64Value); ok {
 		return valueFromF64(-v.F), nil
+	}
+
+	// special case for the largest i128 that can still be
+	// represented.
+	if v, ok := val.data.(u128Value); ok && v.N.n.Cmp(i128MinAbs) == 0 {
+		return val, nil
 	}
 
 	x, err := val.tryToI128()

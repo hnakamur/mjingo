@@ -360,7 +360,7 @@ func (v dynamicValue) String() string {
 	}
 }
 
-func (v undefinedValue) debugString() string { return "Undefined" }
+func (v undefinedValue) debugString() string { return "undefined" }
 func (v boolValue) debugString() string      { return strconv.FormatBool(v.B) }
 func (v u64Value) debugString() string       { return strconv.FormatUint(v.N, 10) }
 func (v i64Value) debugString() string       { return strconv.FormatInt(v.N, 10) }
@@ -380,7 +380,7 @@ func (v f64Value) debugString() string {
 		return s + ".0"
 	}
 }
-func (v noneValue) debugString() string    { return "None" }
+func (v noneValue) debugString() string    { return "none" }
 func (v invalidValue) debugString() string { return fmt.Sprintf("<invalid value: %s>", v.Detail) }
 func (v u128Value) debugString() string    { return v.N.String() }
 func (v i128Value) debugString() string    { return v.N.String() }
@@ -575,8 +575,24 @@ func (noneValue) getItemOpt(_ Value) option.Option[Value]      { return option.N
 func (invalidValue) getItemOpt(_ Value) option.Option[Value]   { return option.None[Value]() }
 func (u128Value) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
 func (i128Value) getItemOpt(_ Value) option.Option[Value]      { return option.None[Value]() }
-func (stringValue) getItemOpt(_ Value) option.Option[Value]    { return option.None[Value]() }
-func (bytesValue) getItemOpt(_ Value) option.Option[Value]     { return option.None[Value]() }
+func (v stringValue) getItemOpt(key Value) option.Option[Value] {
+	idx, err := key.tryToI64()
+	if err != nil {
+		return option.None[Value]()
+	}
+	chars := []rune(v.Str)
+	if idx < 0 {
+		if -idx > int64(len(chars)) {
+			return option.None[Value]()
+		}
+		idx = int64(len(chars)) + idx
+	}
+	if idx >= int64(len(chars)) {
+		return option.None[Value]()
+	}
+	return option.Some(valueFromString(string(chars[idx])))
+}
+func (bytesValue) getItemOpt(_ Value) option.Option[Value] { return option.None[Value]() }
 func (v seqValue) getItemOpt(key Value) option.Option[Value] {
 	return getItemOptFromSeq(newSliceSeqObject(v.Items), key)
 }
@@ -678,7 +694,12 @@ func (v boolValue) tryToI64() (int64, error) {
 	}
 	return 0, nil
 }
-func (v u64Value) tryToI64() (int64, error) { return int64(v.N), nil }
+func (v u64Value) tryToI64() (int64, error) {
+	if v.N > math.MaxInt64 {
+		return 0, unsupportedConversion(v.typ(), "i64")
+	}
+	return int64(v.N), nil
+}
 func (v i64Value) tryToI64() (int64, error) { return v.N, nil }
 func (v f64Value) tryToI64() (int64, error) {
 	if float64(int64(v.F)) == v.F {
@@ -1365,9 +1386,9 @@ outer:
 	default:
 		switch c := coerce(v, other).(type) {
 		case f64CoerceResult:
-			return f64TotalCmp(c.lhs, c.rhs)
+			rv = f64TotalCmp(c.lhs, c.rhs)
 		case i128CoerceResult:
-			return c.lhs.Cmp(&c.rhs)
+			rv = c.lhs.Cmp(&c.rhs)
 		case strCoerceResult:
 			rv = strings.Compare(c.lhs, c.rhs)
 		default:
@@ -1380,7 +1401,7 @@ outer:
 				if err != nil {
 					break outer
 				}
-				return iterA.CompareBy(&iterB, valueCmp)
+				rv = iterA.CompareBy(&iterB, valueCmp)
 			} else if v.Kind() == ValueKindMap && other.Kind() == ValueKindMap {
 				iterA, err := v.tryIter()
 				if err != nil {
@@ -1390,7 +1411,7 @@ outer:
 				if err != nil {
 					break outer
 				}
-				return iterA.CompareBy(&iterB, func(keyA, keyB Value) int {
+				rv = iterA.CompareBy(&iterB, func(keyA, keyB Value) int {
 					if rv := valueCmp(keyA, keyB); rv != 0 {
 						return 0
 					}
@@ -1463,12 +1484,12 @@ func getPath(val Value, path string) (Value, error) {
 	for _, part := range strings.Split(path, ".") {
 		num, err := strconv.ParseUint(part, 10, 64)
 		if err != nil {
-			rv, err = getAttr(val, part)
+			rv, err = getAttr(rv, part)
 			if err != nil {
 				return Value{}, err
 			}
 		} else {
-			rv, err = valueGetItemByIndex(val, uint(num))
+			rv, err = valueGetItemByIndex(rv, uint(num))
 			if err != nil {
 				return Value{}, err
 			}

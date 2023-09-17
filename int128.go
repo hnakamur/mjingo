@@ -151,31 +151,7 @@ func (z *I128) SetUint64(x uint64) *I128 {
 	return z
 }
 
-// MustSetString sets z to the value of s, interpreted in the given base,
-// and returns z or panic on failure. The entire string
-// (not just a prefix) must be valid for success. If MustSetString fails,
-// it panics.
-//
-// The base argument must be 0 or a value between 2 and MaxBase.
-// For base 0, the number prefix determines the actual base: A prefix of
-// “0b” or “0B” selects base 2, “0”, “0o” or “0O” selects base 8,
-// and “0x” or “0X” selects base 16. Otherwise, the selected base is 10
-// and no prefix is accepted.
-//
-// For bases <= 36, lower and upper case letters are considered the same:
-// The letters 'a' to 'z' and 'A' to 'Z' represent digit values 10 to 35.
-// For bases > 36, the upper case letters 'A' to 'Z' represent the digit
-// values 36 to 61.
-//
-// For base 0, an underscore character “_” may appear between a base
-// prefix and an adjacent digit, and between successive digits; such
-// underscores do not change the value of the number.
-// Incorrect placement of underscores is reported as an error if there
-// are no other errors. If base != 0, underscores are not recognized
-// and act like any other character that is not a valid digit.
-//
-// If the input is out of range of I128, MustSetString fails.
-func (z *I128) MustSetString(s string, base int) *I128 {
+func (z *I128) mustSetString(s string, base int) *I128 {
 	_, ok := z.SetString(s, base)
 	if !ok {
 		panic("overflow in I128.MustSetString")
@@ -224,6 +200,9 @@ func (x *I128) BigInt() big.Int {
 	rv.Set(&x.n)
 	return rv
 }
+
+// Format implements fmt.Formatter.
+func (x I128) Format(f fmt.State, _ rune) { _, _ = f.Write([]byte(x.String())) }
 
 // U128 represents an integer in the range between
 // 0 and 340282366920938463463374607431768211455
@@ -298,8 +277,43 @@ func (x *U128) Int64() int64 { return x.n.Int64() }
 // If x cannot be represented in a uint64, the result is undefined.
 func (x *U128) Uint64() uint64 { return x.n.Uint64() }
 
+// SetString sets z to the value of s, interpreted in the given base,
+// and returns z and a boolean indicating success. The entire string
+// (not just a prefix) must be valid for success. If SetString fails,
+// the value of z is undefined but the returned value is nil.
+//
+// The base argument must be 0 or a value between 2 and MaxBase.
+// For base 0, the number prefix determines the actual base: A prefix of
+// “0b” or “0B” selects base 2, “0”, “0o” or “0O” selects base 8,
+// and “0x” or “0X” selects base 16. Otherwise, the selected base is 10
+// and no prefix is accepted.
+//
+// For bases <= 36, lower and upper case letters are considered the same:
+// The letters 'a' to 'z' and 'A' to 'Z' represent digit values 10 to 35.
+// For bases > 36, the upper case letters 'A' to 'Z' represent the digit
+// values 36 to 61.
+//
+// For base 0, an underscore character “_” may appear between a base
+// prefix and an adjacent digit, and between successive digits; such
+// underscores do not change the value of the number.
+// Incorrect placement of underscores is reported as an error if there
+// are no other errors. If base != 0, underscores are not recognized
+// and act like any other character that is not a valid digit.
+//
+// If the input is out of range of U128, SetString fails.
+func (z *U128) SetString(s string, base int) (*U128, bool) {
+	r, ok := z.n.SetString(s, base)
+	if !ok || !isU128(r) {
+		return nil, false
+	}
+	return z, true
+}
+
 // String returns the decimal representation of x in base 10.
 func (x *U128) String() string { return x.n.String() }
+
+// Format implements fmt.Formatter.
+func (x U128) Format(f fmt.State, _ rune) { _, _ = f.Write([]byte(x.String())) }
 
 // BigInt returns a new big.Int whose value is copied from x.
 func (x *U128) BigInt() big.Int {
@@ -308,6 +322,7 @@ func (x *U128) BigInt() big.Int {
 	return rv
 }
 
+var i128MinAbs = mustNewBigIntFromString("170141183460469231731687303715884105728", 10)
 var i128Min = mustNewBigIntFromString("-170141183460469231731687303715884105728", 10)
 var i128Max = mustNewBigIntFromString("170141183460469231731687303715884105727", 10)
 

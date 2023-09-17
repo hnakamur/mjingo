@@ -11,49 +11,64 @@ import (
 )
 
 func TestTokenize(t *testing.T) {
-	mustReadFile := func(filename string) string {
-		data, err := os.ReadFile(filename)
-		if err != nil {
-			t.Fatalf("cannot read file, filename=%s, err=%v", filename, err)
-		}
-		return string(data)
-	}
-
-	inputFilenames, err := filepath.Glob(filepath.Join(".", "tests", "lexer-inputs", "*.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	inputFilenames := mustGlob(t, []string{"tests", "lexer-inputs"}, []string{"*.txt"})
 	for _, inputFilename := range inputFilenames {
-		inputContent := mustReadFile(inputFilename)
-		iter := tokenize(inputContent, false, &defaultSyntaxConfig)
-		var b strings.Builder
-		for {
-			tkn, spn, err := iter.Next()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if tkn == nil {
-				break
-			}
-			tokenSource := inputContent[spn.StartOffset:spn.EndOffset]
-			fmt.Fprintf(&b, "%s\n", tkn.DebugString())
-			fmt.Fprintf(&b, "  %q\n", tokenSource)
-		}
-		got := b.String()
-
-		snapFilename := inputFilename + ".snap"
-		want := mustReadFile(snapFilename)
-		if got != want {
-			t.Errorf("result mismatch, inputFilename=%s\n-- got -- \n%s\n-- want --\n%s\n-- diff --\n%s",
-				inputFilename, got, want, cmp.Diff(got, want))
-			if overwriteSnapshot {
-				if err := os.WriteFile(snapFilename, []byte(got), 0o644); err != nil {
+		t.Run(inputFilename, func(t *testing.T) {
+			inputContent := mustReadFile(t, inputFilename)
+			iter := tokenize(inputContent, false, &defaultSyntaxConfig)
+			var b strings.Builder
+			for {
+				tkn, spn, err := iter.Next()
+				if err != nil {
 					t.Fatal(err)
 				}
-				t.Logf("overwritten test snapshot file: %s", snapFilename)
-			} else {
-				t.Logf("If `got` result is correct, rerun tests with -overwrite-snapshot flag to overwrite snapshot file")
+				if tkn == nil {
+					break
+				}
+				tokenSource := inputContent[spn.StartOffset:spn.EndOffset]
+				fmt.Fprintf(&b, "%s\n", tkn.DebugString())
+				fmt.Fprintf(&b, "  %q\n", tokenSource)
 			}
+			got := b.String()
+			checkResultWithSnapshotFile(t, got, inputFilename)
+		})
+	}
+}
+
+func mustGlob(t *testing.T, dirSegments []string, patterns []string) []string {
+	var allMatches []string
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(filepath.Join(filepath.Join(dirSegments...), pattern))
+		if err != nil {
+			t.Fatal(err)
+		}
+		allMatches = append(allMatches, matches...)
+	}
+	return allMatches
+}
+
+func mustReadFile(t *testing.T, filename string) string {
+	t.Helper()
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatalf("cannot read file, filename=%s, err=%v", filename, err)
+	}
+	return string(data)
+}
+
+func checkResultWithSnapshotFile(t *testing.T, got, inputFilename string) {
+	snapFilename := inputFilename + ".snap"
+	want := mustReadFile(t, snapFilename)
+	if got != want {
+		t.Errorf("result mismatch, inputFilename=%s\n-- got -- \n%s\n-- want --\n%s\n-- diff --\n%s",
+			inputFilename, got, want, cmp.Diff(got, want))
+		if overwriteSnapshot {
+			if err := os.WriteFile(snapFilename, []byte(got), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("overwritten test snapshot file: %s", snapFilename)
+		} else {
+			t.Logf("If `got` result is correct, rerun tests with -overwrite-snapshot flag to overwrite snapshot file")
 		}
 	}
 }

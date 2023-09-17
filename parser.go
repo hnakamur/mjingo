@@ -372,7 +372,9 @@ func (p *parser) parsePrimaryImpl() (astExpr, error) {
 	case strToken:
 		return makeConst(valueFromString(tkn.s), *spn), nil
 	case intToken:
-		return makeConst(valueFromI64(tkn.n), *spn), nil
+		return makeConst(valueFromU64(tkn.n), *spn), nil
+	case int128Token:
+		return makeConst(valueFromU128(tkn.n), *spn), nil
 	case floatToken:
 		return makeConst(valueFromF64(tkn.f), *spn), nil
 	case parenOpenToken:

@@ -1,8 +1,8 @@
 package mjingo
 
 import (
-	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/stack"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type codeGenerator struct {
@@ -346,11 +346,22 @@ func (g *codeGenerator) compileExpr(exp astExpr) {
 		g.popSpan()
 	case unaryOpExpr:
 		g.setLineFromSpan(exp.span)
-		g.compileExpr(exp.expr)
 		switch exp.op {
 		case unaryOpTypeNot:
+			g.compileExpr(exp.expr)
 			g.add(notInstruction{})
 		case unaryOpTypeNeg:
+			// common case: negative numbers.  In that case we
+			// directly negate them if this is possible without
+			// an error.
+			if c, ok := exp.expr.(constExpr); ok {
+				negated, err := opNeg(c.val)
+				if err == nil {
+					g.add(loadConstInstruction{Val: negated})
+					return
+				}
+			}
+			g.compileExpr(exp.expr)
 			g.addWithSpan(negInstruction{}, exp.span)
 		}
 	case binOpExpr:

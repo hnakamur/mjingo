@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/hnakamur/mjingo/option"
@@ -610,7 +611,36 @@ func upper(s string) string {
 }
 
 func title(s string) string {
-	return strings.ToTitle(s)
+	var b strings.Builder
+	b.Grow(len(s))
+	capitalize := true
+	for len(s) > 0 {
+		r, size := utf8.DecodeRuneInString(s)
+		if isASCIIPunct(r) || unicode.IsSpace(r) {
+			b.WriteRune(r)
+			capitalize = true
+		} else if capitalize {
+			b.WriteRune(unicode.ToUpper(r))
+			capitalize = false
+		} else {
+			b.WriteRune(unicode.ToLower(r))
+		}
+
+		s = s[size:]
+	}
+	return b.String()
+}
+
+func isASCIIPunct(r rune) bool {
+	switch r {
+	case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+		':', ';', '<', '=', '>', '?', '@',
+		'[', '\\', ']', '^', '_', '`',
+		'{', '|', '}', '~':
+		return true
+	default:
+		return false
+	}
 }
 
 func capitalize(s string) string {
@@ -931,7 +961,7 @@ func defaultFilter(val Value, other option.Option[Value]) Value {
 
 func round(val Value, precision option.Option[int32]) (Value, error) {
 	switch v := val.data.(type) {
-	case i64Value, i128Value:
+	case i64Value, i128Value, u64Value, u128Value:
 		return val, nil
 	case f64Value:
 		x := math.Pow10(int(precision.UnwrapOr(0)))
@@ -943,16 +973,22 @@ func round(val Value, precision option.Option[int32]) (Value, error) {
 
 func abs(val Value) (Value, error) {
 	switch v := val.data.(type) {
+	case u64Value, u128Value:
+		return val, nil
 	case i64Value:
 		n := v.N
-		if n < 0 {
-			n = -n
+		if rv := int64(0); i64CheckedAbs(n).UnwrapTo(&rv) {
+			return valueFromI64(rv), nil
 		}
-		return valueFromI64(n), nil
+		i := I128FromInt64(n)
+		if i.CheckedAbs(i); i == nil {
+			panic("unreachable") // this cannot overflow
+		}
+		return valueFromI128(*i), nil
 	case i128Value:
 		var n I128
 		if n.CheckedAbs(&v.N) == nil {
-			return Value{}, NewError(InvalidOperation, "overflow in getting absolute value")
+			return Value{}, NewError(InvalidOperation, "overflow on abs")
 		}
 		return valueFromI128(n), nil
 	case f64Value:
@@ -960,6 +996,16 @@ func abs(val Value) (Value, error) {
 	default:
 		return Value{}, NewError(InvalidOperation, "cannot get absolute value")
 	}
+}
+
+func i64CheckedAbs(i int64) option.Option[int64] {
+	if i == math.MinInt64 {
+		return option.None[int64]()
+	}
+	if i >= 0 {
+		return option.Some(i)
+	}
+	return option.Some(-i)
 }
 
 // Looks up an attribute.
@@ -1085,9 +1131,9 @@ func batchFilter(state *State, val Value, count uint, fillWith option.Option[Val
 	}
 
 	if len(tmp) != 0 {
-		if fillWith.IsSome() {
-			filler := fillWith.Unwrap()
-			for i := uint(0); i < count-uint(len(tmp)); i++ {
+		if filler := (Value{}); fillWith.UnwrapTo(&filler) {
+			l := count - uint(len(tmp))
+			for i := uint(0); i < l; i++ {
 				tmp = append(tmp, filler.clone())
 			}
 		}
@@ -1143,8 +1189,10 @@ func sliceFilter(state *State, val Value, count uint, fillWith option.Option[Val
 		tmp := items[start:end]
 		if fillWith.IsSome() && slice >= slicesWithExtra {
 			filler := fillWith.Unwrap()
-			tmp = append(tmp, filler.clone())
-			rv = append(rv, valueFromSlice(tmp))
+			tmp2 := make([]Value, 0, len(tmp)+1)
+			tmp2 = append(tmp2, tmp...)
+			tmp2 = append(tmp2, filler.clone())
+			rv = append(rv, valueFromSlice(tmp2))
 			continue
 		}
 		rv = append(rv, valueFromSlice(tmp))
@@ -1316,8 +1364,7 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 		}
 	}
 
-	if optAttr := kwargs.GetValue("attribute"); optAttr.IsSome() {
-		attrVal := optAttr.Unwrap()
+	if attrVal := (Value{}); kwargs.GetValue("attribute").UnwrapTo(&attrVal) {
 		if len(args) != 0 {
 			return nil, NewError(TooManyArguments, "")
 		}
