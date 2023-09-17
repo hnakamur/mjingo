@@ -1,0 +1,76 @@
+VariableStart
+  "{{"
+Ident("true")
+  "true"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Ident("false")
+  "false"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Ident("null")
+  "null"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Float(1.0)
+  "1.0"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+Int(2)
+  "2"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+BracketOpen
+  "["
+Int(1)
+  "1"
+Comma
+  ","
+Int(2)
+  "2"
+Comma
+  ","
+Int(3)
+  "3"
+BracketClose
+  "]"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
+VariableStart
+  "{{"
+BraceOpen
+  "{"
+Str("foo")
+  "\"foo\""
+Colon
+  ":"
+Str("bar")
+  "\"bar\""
+BraceClose
+  "}"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
