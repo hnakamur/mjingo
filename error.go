@@ -138,6 +138,57 @@ func (k ErrorKind) String() string {
 	}
 }
 
+func (k ErrorKind) debugString() string {
+	switch k {
+	case NonPrimitive:
+		return "NonPrimitive"
+	case nonKey:
+		return "NonKey"
+	case InvalidOperation:
+		return "InvalidOperation"
+	case SyntaxError:
+		return "SyntaxError"
+	case TemplateNotFound:
+		return "TemplateNotFound"
+	case TooManyArguments:
+		return "TooManyArguments"
+	case MissingArgument:
+		return "MissingArgument"
+	case UnknownFilter:
+		return "UnknownFilter"
+	case UnknownFunction:
+		return "UnknownFunction"
+	case UnknownTest:
+		return "UnknownTest"
+	case UnknownMethod:
+		return "UnknownMethod"
+	case BadEscape:
+		return "BadEscape"
+	case UndefinedError:
+		return "UndefinedError"
+	case BadSerialization:
+		return "BadSerialization"
+	case BadInclude:
+		return "BadInclude"
+	case EvalBlock:
+		return "EvalBlock"
+	case CannotUnpack:
+		return "CannotUnpack"
+	case writeFailure:
+		return "WriteFailure"
+	case cannotDeserialize:
+		return "CannotDeserialize"
+	case outOfFuel:
+		return "OutOfFuel"
+	case InvalidDelimiter:
+		return "InvalidDelimiter"
+	case UnknownBlock:
+		return "UnknownBlock"
+	default:
+		panic("unknown error kind")
+	}
+}
+
 func (e *Error) Error() string {
 	var b strings.Builder
 	b.WriteString(e.kind.String())

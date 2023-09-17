@@ -384,7 +384,7 @@ func (p *parser) parsePrimaryImpl() (astExpr, error) {
 	case braceOpenToken:
 		return p.parseMapExpr(*spn)
 	default:
-		return nil, syntaxError(fmt.Sprintf("expected %v", tkn))
+		return nil, syntaxError(fmt.Sprintf("unexpected %v", tkn))
 	}
 }
 
@@ -1668,7 +1668,17 @@ func parseWithSyntax(source, filename string, syntax syntaxConfig, keepTrailingN
 	}
 
 	parser := newParser(source, false, &syntax)
-	return parser.parse()
+	stmt, err := parser.parse()
+	if err != nil {
+		var merr *Error
+		if errors.As(err, &merr) {
+			if merr.lineno == 0 {
+				merr.setFilenameAndSpan(filename, parser.stream.lastSpan)
+			}
+		}
+		return nil, err
+	}
+	return stmt, nil
 }
 
 func (p *parser) binop(next func() (astExpr, error), matchFn func(tkn token) option.Option[binOpType]) (astExpr, error) {

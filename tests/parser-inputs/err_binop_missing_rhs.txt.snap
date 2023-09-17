@@ -1,0 +1,8 @@
+Err(
+    Error {
+        kind: SyntaxError,
+        detail: "unexpected end of variable block",
+        name: "err_binop_missing_rhs.txt",
+        line: 1,
+    },
+)

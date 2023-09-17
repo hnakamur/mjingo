@@ -1,0 +1,8 @@
+Err(
+    Error {
+        kind: SyntaxError,
+        detail: "cannot assign to reserved variable name loop",
+        name: "err_invalid_var_assignment.txt",
+        line: 1,
+    },
+)

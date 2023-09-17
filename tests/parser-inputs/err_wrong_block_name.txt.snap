@@ -1,0 +1,8 @@
+Err(
+    Error {
+        kind: SyntaxError,
+        detail: "mismatching name on block. Got `bar`, expected `foo`",
+        name: "err_wrong_block_name.txt",
+        line: 3,
+    },
+)
