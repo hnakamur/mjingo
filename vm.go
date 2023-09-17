@@ -460,7 +460,7 @@ loop:
 			if optVal := getOrLookupLocal(loadedFilters[:], inst.LocalID, f); optVal.IsSome() {
 				tf = optVal.Unwrap()
 			} else {
-				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
+				err := NewError(UnknownFilter, fmt.Sprintf("filter %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)

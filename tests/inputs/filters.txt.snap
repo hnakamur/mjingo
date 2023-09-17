@@ -48,6 +48,12 @@ sort-case-insensitive-mixed: [false, 0, true, 1, "false", "False", "true", "True
 sort-case-sensitive-mixed: [false, 0, true, 1, "False", "True", "false", "true"]
 sort-attribute [{"name": "a"}, {"name": "b"}]
 d: true
+json: {"a":"b","c":"d"}
+json-pretty: {
+  "a": "b",
+  "c": "d"
+}
+json-scary-html: "\u003c\u003e\u0026\u0027"
 urlencode: hello%20world/foo-bar_baz.txt
 urlencode-kv: a=x%20y&b=2&c=3
 batch: [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
@@ -55,6 +61,8 @@ batch-fill: [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, "-", "-"]]
 slice: [[0, 1, 2, 3], [4, 5, 6], [7, 8, 9]]
 slice-fill: [[0, 1, 2, 3], [4, 5, 6, "-"], [7, 8, 9, "-"]]
 items: [["a", 1]]
+indent: "foo\n  bar\n  baz"
+indent-first-line: "  foo\n  bar\n  baz"
 int-abs: 42
 float-abs: 42.5
 int-round: 42

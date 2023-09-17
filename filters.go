@@ -1,6 +1,7 @@
 package mjingo
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -1498,4 +1499,25 @@ func mapFilter(state *State, val Value, args ...Value) ([]Value, error) {
 	}
 
 	return rv, nil
+}
+
+var jsonReplacer = strings.NewReplacer("<", `\u003c`, ">", `\u003e`, "&", `\u0026`, `'`, `\u0027`)
+
+func tojson(val Value, pretty option.Option[bool]) (Value, error) {
+	jsonObj, err := valueTryToJSONObject(val)
+	if err != nil {
+		return Value{}, NewError(InvalidOperation, "cannot serialize to JSON")
+	}
+	var b strings.Builder
+	encoder := json.NewEncoder(&b)
+	encoder.SetEscapeHTML(false)
+	if pretty.UnwrapOr(false) {
+		encoder.SetIndent("", "  ")
+	}
+	if err := encoder.Encode(jsonObj); err != nil {
+		return Value{}, NewError(InvalidOperation, "cannot serialize to JSON")
+	}
+	marshaled := b.String()
+	s := jsonReplacer.Replace(strings.TrimSuffix(marshaled, "\n"))
+	return ValueFromSafeString(s), nil
 }

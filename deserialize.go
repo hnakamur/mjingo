@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 
 	"github.com/hnakamur/mjingo/option"
@@ -273,5 +274,100 @@ func mapResultOK[T any, U any](fn func(ok T) U) func(ok T, err error) (U, error)
 			return zero, err
 		}
 		return fn(ok), nil
+	}
+}
+
+func valueTryToJSONObject(val Value) (any, error) {
+	switch v := val.data.(type) {
+	case undefinedValue:
+		// TODO: verify this is correct
+		return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+	case boolValue:
+		return v.B, nil
+	case stringValue:
+		return v.Str, nil
+	case i64Value:
+		return v.N, nil
+	case u64Value:
+		if v.N <= math.MaxInt64 {
+			return int64(v.N), nil
+		}
+		return float64(v.N), nil
+	case f64Value:
+		return v.F, nil
+	case noneValue:
+		return nil, nil
+	case invalidValue:
+		return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+	case u128Value:
+		if v.N.IsInt64() {
+			return v.N.Int64(), nil
+		}
+		f, _ := v.N.n.Float64()
+		return f, nil
+	case i128Value:
+		if v.N.IsInt64() {
+			return v.N.Int64(), nil
+		}
+		f, _ := v.N.n.Float64()
+		return f, nil
+	case bytesValue:
+		return string(v.B), nil
+	case seqValue:
+		rv := make([]any, len(v.Items))
+		for i := range v.Items {
+			item, err := valueTryToJSONObject(v.Items[i])
+			if err != nil {
+				return nil, err
+			}
+			rv[i] = item
+		}
+		return rv, nil
+	case mapValue:
+		rv := make(map[string]any, v.Map.Len())
+		for i := uint(0); i < v.Map.Len(); i++ {
+			e, _ := v.Map.EntryAt(i)
+			var key string
+			if !e.Key.AsStr().UnwrapTo(&key) {
+				return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+			}
+			vv, err := valueTryToJSONObject(e.Value)
+			if err != nil {
+				return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+			}
+			rv[key] = vv
+		}
+		return rv, nil
+	case dynamicValue:
+		switch v.Dy.Kind() {
+		case ObjectKindSeq:
+			seq := v.Dy.(SeqObject)
+			n := seq.ItemCount()
+			rv := make([]any, n)
+			for i := uint(0); i < n; i++ {
+				item, err := valueTryToJSONObject(seq.GetItem(i).Unwrap())
+				if err != nil {
+					return nil, err
+				}
+				rv[i] = item
+			}
+			return rv, nil
+		case ObjectKindStruct:
+			st := v.Dy.(StructObject)
+			fields := staticOrDynamicFields(st)
+			rv := make(map[string]any, len(fields))
+			for _, field := range fields {
+				vv, err := valueTryToJSONObject(st.GetField(field).Unwrap())
+				if err != nil {
+					return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+				}
+				rv[field] = vv
+			}
+			return rv, nil
+		default:
+			return nil, NewError(InvalidOperation, "cannot serialize to JSON")
+		}
+	default:
+		panic("unreachable")
 	}
 }

@@ -69,6 +69,9 @@ sort-case-insensitive-mixed: {{ [0, 1, "true", "false", "True", "False", true, f
 sort-case-sensitive-mixed: {{ [0, 1, "true", "false", "True", "False", true, false]|sort(case_sensitive=true) }}
 sort-attribute {{ objects|sort(attribute="name") }}
 d: {{ undefined|d == "" }}
+json: {{ map|tojson }}
+json-pretty: {{ map|tojson(true) }}
+json-scary-html: {{ scary_html|tojson }}
 urlencode: {{ "hello world/foo-bar_baz.txt"|urlencode }}
 urlencode-kv: {{ dict(a="x y", b=2, c=3)|urlencode }}
 batch: {{ range(10)|batch(3) }}
@@ -76,6 +79,8 @@ batch-fill: {{ range(10)|batch(3, '-') }}
 slice: {{ range(10)|slice(3) }}
 slice-fill: {{ range(10)|slice(3, '-') }}
 items: {{ dict(a=1)|items }}
+indent: {{ "foo\nbar\nbaz"|indent(2)|tojson }}
+indent-first-line: {{ "foo\nbar\nbaz"|indent(2, true)|tojson }}
 int-abs: {{ -42|abs }}
 float-abs: {{ -42.5|abs }}
 int-round: {{ 42|round }}
