@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestTokenize(t *testing.T) {
@@ -42,7 +44,16 @@ func TestTokenize(t *testing.T) {
 		snapFilename := inputFilename + ".snap"
 		want := mustReadFile(snapFilename)
 		if got != want {
-			t.Errorf("result mismatch, inputFilename=%s,\n got=%s\nwant=%s", inputFilename, got, want)
+			t.Errorf("result mismatch, inputFilename=%s\n-- got -- \n%s\n-- want --\n%s\n-- diff --\n%s",
+				inputFilename, got, want, cmp.Diff(got, want))
+			if overwriteSnapshot {
+				if err := os.WriteFile(snapFilename, []byte(got), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				t.Logf("overwritten test snapshot file: %s", snapFilename)
+			} else {
+				t.Logf("If `got` result is correct, rerun tests with -overwrite-snapshot flag to overwrite snapshot file")
+			}
 		}
 	}
 }
