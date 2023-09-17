@@ -26,9 +26,15 @@ type Error struct {
 	source error
 }
 
-// NewError creates a new error with kind and detail.
+// NewError creates a new [Error] with kind and detail.
 func NewError(kind ErrorKind, detail string) *Error {
 	return &Error{kind: kind, detail: detail}
+}
+
+// NewErrorNotFound creates a new [Error] with [TemplateNotFound] kind.
+func NewErrorNotFound(name string) *Error {
+	return &Error{kind: TemplateNotFound,
+		detail: fmt.Sprintf("template %s does not exist", name)}
 }
 
 // ErrorKind describes the error kind.

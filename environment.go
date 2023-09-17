@@ -80,6 +80,21 @@ func (e *Environment) AddTemplate(name, source string) error {
 	return e.templates.insert(name, source)
 }
 
+// SetLoader registers a template loader as source of templates.
+//
+// When a template loader is registered, the environment gains the ability
+// to dynamically load templates.  The loader is invoked with the name of
+// the template.  If this template exists the template source has to be returned,
+// if the template does not exist an [Error] created with [NewErrorNotFound] has to
+// be returned.  Once a template has been loaded it's stored on the environment.
+// This means the loader is only invoked once per template name.
+//
+// For loading templates from the file system, you can use the
+// [PathLoader] function.
+func (e *Environment) SetLoader(f LoadFunc) {
+	e.templates.setLoader(f)
+}
+
 // SetKeepTrailingNewline preserve the trailing newline when rendering templates.
 //
 // The default is `false`, which causes a single newline, if present, to be
@@ -114,9 +129,12 @@ func (e *Environment) ClearTemplates() {
 // not loaded an error of kind [TemplateNotFound] is returned.  If a loaded was
 // added to the engine this can also dynamically load templates.
 func (e *Environment) GetTemplate(name string) (*Template, error) {
-	compiled := e.templates.get(name)
+	compiled, err := e.templates.get(name)
+	if err != nil {
+		return nil, err
+	}
 	if compiled == nil {
-		return nil, NewError(TemplateNotFound, "")
+		return nil, NewErrorNotFound(name)
 	}
 	return &Template{
 		env:               e,
