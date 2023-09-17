@@ -12,10 +12,26 @@ import (
 	"github.com/hnakamur/mjingo"
 )
 
+// PathLoader is a helper to load templates from a given directory.
+//
+// This creates a dynamic loader which looks up templates in the
+// given directory.  This loader allows templates that start with a dot (`.`)
+// or are contained in a folder starting with a dot.
+//
+// The name argument of the returned LoadFunc can contain `/` as a path separator
+// (even on Windows).
+// If name contains `\`, an [Error] with [TemplateNotFound] kind will be returned
+// from the returned LoadFunc.
 func MyPathLoader(dir string) mjingo.LoadFunc {
 	return func(name string) (string, error) {
+		segments := strings.Split(name, "/")
+		for _, segment := range segments {
+			if strings.Contains(segment, `\`) {
+				return "", mjingo.NewErrorNotFound(name)
+			}
+		}
 		if os.PathSeparator != '/' {
-			name = strings.Join(strings.Split(name, "/"), string(os.PathSeparator))
+			name = strings.Join(segments, string(os.PathSeparator))
 		}
 		path := filepath.Join(dir, name)
 		data, err := os.ReadFile(path)

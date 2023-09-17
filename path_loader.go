@@ -13,10 +13,21 @@ import (
 // This creates a dynamic loader which looks up templates in the
 // given directory.  Templates that start with a dot (`.`) or are contained in
 // a folder starting with a dot cannot be loaded.
+//
+// The name argument of the returned LoadFunc can contain `/` as a path separator
+// (even on Windows).
+// If name contains `\`, an [Error] with [TemplateNotFound] kind will be returned
+// from the returned LoadFunc.
 func PathLoader(dir string) LoadFunc {
 	return func(name string) (string, error) {
-		if !isSafeRelPath(name) {
-			return "", NewErrorNotFound(name)
+		segments := strings.Split(name, "/")
+		for _, segment := range segments {
+			if strings.HasPrefix(segment, ".") || strings.Contains(segment, `\`) {
+				return "", NewErrorNotFound(name)
+			}
+		}
+		if os.PathSeparator != '/' {
+			name = strings.Join(segments, string(os.PathSeparator))
 		}
 		path := filepath.Join(dir, name)
 		data, err := os.ReadFile(path)
@@ -28,13 +39,4 @@ func PathLoader(dir string) LoadFunc {
 		}
 		return string(data), nil
 	}
-}
-
-func isSafeRelPath(relPath string) bool {
-	for _, segment := range strings.Split(relPath, "/") {
-		if strings.HasPrefix(segment, ".") || strings.Contains(segment, "\\") {
-			return false
-		}
-	}
-	return true
 }
