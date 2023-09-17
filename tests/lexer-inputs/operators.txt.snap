@@ -1,0 +1,44 @@
+VariableStart
+  "{{"
+ParenOpen
+  "("
+Bang
+  "!"
+Ident("a")
+  "a"
+Plus
+  "+"
+Ident("b")
+  "b"
+ParenClose
+  ")"
+Mul
+  "*"
+ParenOpen
+  "("
+Ident("c")
+  "c"
+Minus
+  "-"
+Ident("d")
+  "d"
+ParenClose
+  ")"
+Div
+  "/"
+Ident("e")
+  "e"
+Mod
+  "%"
+Ident("f")
+  "f"
+FloorDiv
+  "//"
+Ident("g")
+  "g"
+Tilde
+  "~"
+Ident("h")
+  "h"
+VariableEnd
+  "}}"

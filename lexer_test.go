@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestTokenize(t *testing.T) {
+func TestLexer(t *testing.T) {
 	inputFilenames := mustGlob(t, []string{"tests", "lexer-inputs"}, []string{"*.txt"})
 	for _, inputFilename := range inputFilenames {
 		t.Run(inputFilename, func(t *testing.T) {

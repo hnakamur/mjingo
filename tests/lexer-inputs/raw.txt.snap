@@ -1,0 +1,14 @@
+TemplateData("before ")
+  "before "
+TemplateData(" this is a {{ raw }} {% block %} ")
+  "{% raw %} this is a {{ raw }} {% block %} {% endraw %}"
+TemplateData(" after\n\nbefore")
+  " after\n\nbefore"
+TemplateData(" this is a {{ raw }} {% block %} ")
+  "{%- raw %} this is a {{ raw }} {% block %} {% endraw -%}"
+TemplateData("after\n\nbefore")
+  "after\n\nbefore"
+TemplateData("this is a {{ raw }} {% block %}")
+  "{%- raw -%} this is a {{ raw }} {% block %} {%- endraw -%}"
+TemplateData("after")
+  "after"

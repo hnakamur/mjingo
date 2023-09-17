@@ -1,0 +1,2 @@
+TemplateData("{foo} foo {bar}\n")
+  "{foo} foo {bar}\n"
