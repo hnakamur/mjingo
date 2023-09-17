@@ -1,0 +1,10 @@
+TemplateData("Hello ")
+  "Hello "
+VariableStart
+  "{{"
+Ident("name")
+  "name"
+VariableEnd
+  "}}"
+TemplateData("!\n")
+  "!\n"

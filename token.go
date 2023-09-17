@@ -1,7 +1,10 @@
 package mjingo
 
+import "fmt"
+
 type token interface {
 	String() string
+	DebugString() string
 
 	typ() tokenType
 }
@@ -113,6 +116,42 @@ func (t parenOpenToken) String() string     { return t.typ().String() }
 func (t parenCloseToken) String() string    { return t.typ().String() }
 func (t braceOpenToken) String() string     { return t.typ().String() }
 func (t braceCloseToken) String() string    { return t.typ().String() }
+
+func (t templateDataToken) DebugString() string  { return fmt.Sprintf("TemplateData(%q)", t.s) }
+func (t variableStartToken) DebugString() string { return "VariableStart" }
+func (t variableEndToken) DebugString() string   { return "VariableEnd" }
+func (t blockStartToken) DebugString() string    { return "BlockStart" }
+func (t blockEndToken) DebugString() string      { return "BlockEnd" }
+func (t identToken) DebugString() string         { return fmt.Sprintf("Ident(%q)", t.ident) }
+func (t stringToken) DebugString() string        { return fmt.Sprintf("String(%q)", t.s) }
+func (t intToken) DebugString() string           { return fmt.Sprintf("Int(%d)", t.n) }
+func (t floatToken) DebugString() string         { return fmt.Sprintf("Float(%v)", t.f) }
+func (t plusToken) DebugString() string          { return "Plus" }
+func (t minusToken) DebugString() string         { return "Minus" }
+func (t mulToken) DebugString() string           { return "Mul" }
+func (t divToken) DebugString() string           { return "Div" }
+func (t floorDivToken) DebugString() string      { return "FloorDiv" }
+func (t powToken) DebugString() string           { return "Pow" }
+func (t modToken) DebugString() string           { return "Mod" }
+func (t bangToken) DebugString() string          { return "Bang" }
+func (t dotToken) DebugString() string           { return "Dot" }
+func (t commaToken) DebugString() string         { return "Comma" }
+func (t colonToken) DebugString() string         { return "Colon" }
+func (t tildeToken) DebugString() string         { return "Tilde" }
+func (t assignToken) DebugString() string        { return "Assign" }
+func (t pipeToken) DebugString() string          { return "Pipe" }
+func (t eqToken) DebugString() string            { return "Eq" }
+func (t neToken) DebugString() string            { return "Ne" }
+func (t gtToken) DebugString() string            { return "Gt" }
+func (t gteToken) DebugString() string           { return "Gte" }
+func (t ltToken) DebugString() string            { return "Lt" }
+func (t lteToken) DebugString() string           { return "Lte" }
+func (t bracketOpenToken) DebugString() string   { return "BracketOpen" }
+func (t bracketCloseToken) DebugString() string  { return "BracketClose" }
+func (t parenOpenToken) DebugString() string     { return "ParenOpen" }
+func (t parenCloseToken) DebugString() string    { return "ParenClose" }
+func (t braceOpenToken) DebugString() string     { return "BraceOpen" }
+func (t braceCloseToken) DebugString() string    { return "BraceClose" }
 
 func (templateDataToken) typ() tokenType  { return tokenTypeTemplateData }
 func (variableStartToken) typ() tokenType { return tokenTypeVariableStart }

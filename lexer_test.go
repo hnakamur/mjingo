@@ -1,8 +1,51 @@
 package mjingo
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func TestTokenize(t *testing.T) {
+	mustReadFile := func(filename string) string {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			t.Fatalf("cannot read file, filename=%s, err=%v", filename, err)
+		}
+		return string(data)
+	}
+
+	inputFilenames, err := filepath.Glob(filepath.Join(".", "tests", "lexer-inputs", "*.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, inputFilename := range inputFilenames {
+		inputContent := mustReadFile(inputFilename)
+		iter := tokenize(inputContent, false, &defaultSyntaxConfig)
+		var b strings.Builder
+		for {
+			tkn, spn, err := iter.Next()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tkn == nil {
+				break
+			}
+			tokenSource := inputContent[spn.StartOffset:spn.EndOffset]
+			fmt.Fprintf(&b, "%s\n", tkn.DebugString())
+			fmt.Fprintf(&b, "  %q\n", tokenSource)
+		}
+		got := b.String()
+
+		snapFilename := inputFilename + ".snap"
+		want := mustReadFile(snapFilename)
+		if got != want {
+			t.Errorf("result mismatch, inputFilename=%s,\n got=%s\nwant=%s", inputFilename, got, want)
+		}
+	}
+}
 
 func TestBasicIdentifiers(t *testing.T) {
 	t.Run("ident", func(t *testing.T) {
