@@ -369,7 +369,7 @@ func (p *parser) parsePrimaryImpl() (astExpr, error) {
 		default:
 			return varExpr{id: tkn.ident, span: *spn}, nil
 		}
-	case stringToken:
+	case strToken:
 		return makeConst(valueFromString(tkn.s), *spn), nil
 	case intToken:
 		return makeConst(valueFromI64(tkn.n), *spn), nil

@@ -15,7 +15,7 @@ type variableEndToken struct{}
 type blockStartToken struct{}
 type blockEndToken struct{}
 type identToken struct{ ident string }
-type stringToken struct{ s string }
+type strToken struct{ s string }
 type intToken struct{ n int64 }
 type floatToken struct{ f float64 }
 type plusToken struct{}
@@ -51,7 +51,7 @@ var _ = token(variableEndToken{})
 var _ = token(blockStartToken{})
 var _ = token(blockEndToken{})
 var _ = token(identToken{})
-var _ = token(stringToken{})
+var _ = token(strToken{})
 var _ = token(intToken{})
 var _ = token(floatToken{})
 var _ = token(plusToken{})
@@ -87,7 +87,7 @@ func (t variableEndToken) String() string   { return t.typ().String() }
 func (t blockStartToken) String() string    { return t.typ().String() }
 func (t blockEndToken) String() string      { return t.typ().String() }
 func (t identToken) String() string         { return t.typ().String() }
-func (t stringToken) String() string        { return t.typ().String() }
+func (t strToken) String() string           { return t.typ().String() }
 func (t intToken) String() string           { return t.typ().String() }
 func (t floatToken) String() string         { return t.typ().String() }
 func (t plusToken) String() string          { return t.typ().String() }
@@ -123,7 +123,7 @@ func (t variableEndToken) DebugString() string   { return "VariableEnd" }
 func (t blockStartToken) DebugString() string    { return "BlockStart" }
 func (t blockEndToken) DebugString() string      { return "BlockEnd" }
 func (t identToken) DebugString() string         { return fmt.Sprintf("Ident(%q)", t.ident) }
-func (t stringToken) DebugString() string        { return fmt.Sprintf("String(%q)", t.s) }
+func (t strToken) DebugString() string           { return fmt.Sprintf("Str(%q)", t.s) }
 func (t intToken) DebugString() string           { return fmt.Sprintf("Int(%d)", t.n) }
 func (t floatToken) DebugString() string         { return fmt.Sprintf("Float(%v)", t.f) }
 func (t plusToken) DebugString() string          { return "Plus" }
@@ -159,7 +159,7 @@ func (variableEndToken) typ() tokenType   { return tokenTypeVariableEnd }
 func (blockStartToken) typ() tokenType    { return tokenTypeBlockStart }
 func (blockEndToken) typ() tokenType      { return tokenTypeBlockEnd }
 func (identToken) typ() tokenType         { return tokenTypeIdent }
-func (stringToken) typ() tokenType        { return tokenTypeString }
+func (strToken) typ() tokenType           { return tokenTypeString }
 func (intToken) typ() tokenType           { return tokenTypeInt }
 func (floatToken) typ() tokenType         { return tokenTypeFloat }
 func (plusToken) typ() tokenType          { return tokenTypePlus }
@@ -224,9 +224,9 @@ const (
 	// An identifier.
 	tokenTypeIdent
 	// A borrowed string.
-	// NOTE: not used in mjingo
 	tokenTypeStr
 	// An allocated string.
+	// NOTE: not used in mjingo
 	tokenTypeString
 	// An integer (limited to i64)
 	tokenTypeInt

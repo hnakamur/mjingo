@@ -183,9 +183,9 @@ func (s *tokenizerState) eatString(delim rune) (token, *span, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return stringToken{s: str}, s.span(oldLoc), nil
+		return strToken{s: str}, s.span(oldLoc), nil
 	}
-	return stringToken{s: str[1 : len(str)-1]}, s.span(oldLoc), nil
+	return strToken{s: str[1 : len(str)-1]}, s.span(oldLoc), nil
 }
 
 func (s *tokenizerState) skipWhitespace() {
