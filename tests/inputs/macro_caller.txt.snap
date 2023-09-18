@@ -1,0 +1,13 @@
+
+
+<div class="dialog">
+        <h2>Hello World</h2>
+        <div class="contents">
+            
+    This is a simple dialog rendered by using a macro and
+    a call block.
+
+        </div>
+    </div>
+
+caller: true

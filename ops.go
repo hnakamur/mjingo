@@ -42,10 +42,10 @@ func opGetOffsetAndLen(start int64, stop option.Option[int64], end func() uint) 
 func opSlice(val, start, stop, step Value) (Value, error) {
 	startVal := int64(0)
 	if !start.isNone() {
-		if s, ok := start.data.(i64Value); ok {
-			startVal = s.N
+		if i, err := start.tryToI64(); err == nil {
+			startVal = i
 		} else {
-			panic("opsSlice start must be an i64")
+			return Value{}, err
 		}
 	}
 	stopVal := option.None[int64]()
@@ -53,24 +53,19 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 		if v, err := stop.tryToI64(); err == nil {
 			stopVal = option.Some(v)
 		} else {
-			return Value{}, NewError(InvalidOperation,
-				"cannot convert slice stop index to i64")
+			return Value{}, err
 		}
 	}
-	stepVal := int64(1)
+	stepVal := uint(1)
 	if !step.isNone() {
-		if s, ok := step.data.(i64Value); ok {
-			stepVal = s.N
-			if stepVal < 0 {
-				return Value{}, NewError(InvalidOperation,
-					"cannot slice by negative step size")
-			}
+		if i, err := step.tryToUint(); err == nil {
+			stepVal = i
 			if stepVal == 0 {
 				return Value{}, NewError(InvalidOperation,
 					"cannot slice by step size of 0")
 			}
 		} else {
-			panic("opsSlice step must be an i64")
+			return Value{}, err
 		}
 	}
 
@@ -78,10 +73,10 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	switch v := val.data.(type) {
 	case stringValue:
 		chars := []rune(v.Str)
-		startIdx, stopIdx := opGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
+		startIdx, l := opGetOffsetAndLen(startVal, stopVal, func() uint { return uint(len(chars)) })
 		sliced := make([]rune, 0, len(chars))
-		for i := startIdx; i < stopIdx; i += uint(stepVal) {
-			sliced = append(sliced, chars[i])
+		for i := uint(0); i < l; i += uint(stepVal) {
+			sliced = append(sliced, chars[i+startIdx])
 		}
 		return valueFromString(string(sliced)), nil
 	case undefinedValue, noneValue:
@@ -238,7 +233,7 @@ func opStringConcat(left, right Value) Value {
 }
 
 // / Implements a containment operation on values.
-func opContains(container Value, val Value) (Value, error) {
+func opContains(container, val Value) (Value, error) {
 	// Special case where if the container is undefined, it cannot hold
 	// values.  For strict containment checks the vm has a special case.
 	if container.isUndefined() {
@@ -251,12 +246,11 @@ func opContains(container Value, val Value) (Value, error) {
 			valStr = val.String()
 		}
 		rv = strings.Contains(containerStr, valStr)
-	} else if optSeq := container.asSeq(); optSeq.IsSome() {
-		seq := optSeq.Unwrap()
+	} else if seq := SeqObject(nil); container.asSeq().UnwrapTo(&seq) {
 		n := seq.ItemCount()
 		for i := uint(0); i < n; i++ {
 			elem := seq.GetItem(i).Unwrap()
-			if elem == val {
+			if elem.Equal(val) {
 				rv = true
 				break
 			}

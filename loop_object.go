@@ -73,7 +73,7 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 		return option.Some[Value](valueFromI64(int64(idx)))
 	case "index":
 		return option.Some[Value](valueFromI64(int64(idx + 1)))
-	case "len":
+	case "length":
 		return option.Some[Value](valueFromI64(int64(l.len)))
 	case "revindex":
 		return option.Some[Value](valueFromI64(int64(uintSaturatingSub(l.len, idx))))

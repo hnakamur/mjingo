@@ -1,0 +1,51 @@
+Basic:
+root value
+
+new value
+
+  
+  new value 2
+
+new value
+
+Into Loop:
+
+  1
+  
+  2
+
+  2
+  
+  4
+
+  3
+  
+  6
+
+
+Conditional:
+
+was true
+
+Multiline:
+
+
+hello
+world
+
+Multiline:
+
+hello
+world
+
+Block:
+
+[This is a was true]
+
+Filter block
+
+[THIS IS A WAS TRUE]
+
+Set with +
+
+helloworld

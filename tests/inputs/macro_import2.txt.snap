@@ -1,0 +1,4 @@
+{"helper": <macro helper>, "title": "The Title"}
+missing: 
+title: The Title
+helper: ["a", "b", "The C Variable"]

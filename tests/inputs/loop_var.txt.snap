@@ -1,0 +1,36 @@
+
+  a (1 of 4)
+    first=true
+    last=false
+    revindex=4
+    revindex0=3
+    cycle=odd
+    previtem=
+    nextitem=b
+
+  b (2 of 4)
+    first=false
+    last=false
+    revindex=3
+    revindex0=2
+    cycle=even
+    previtem=a
+    nextitem=c
+
+  c (3 of 4)
+    first=false
+    last=false
+    revindex=2
+    revindex0=1
+    cycle=odd
+    previtem=b
+    nextitem=d
+
+  d (4 of 4)
+    first=false
+    last=true
+    revindex=1
+    revindex0=0
+    cycle=even
+    previtem=c
+    nextitem=

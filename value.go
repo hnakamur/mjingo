@@ -341,6 +341,9 @@ func (v dynamicValue) String() string {
 		b.WriteString("]")
 		return b.String()
 	case ObjectKindStruct:
+		if m, ok := v.Dy.(*macro); ok {
+			return m.String()
+		}
 		obj := v.Dy.(StructObject)
 		fields := staticOrDynamicFields(obj)
 		var b strings.Builder

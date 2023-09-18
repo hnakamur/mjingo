@@ -1,0 +1,25 @@
+key implied:
+* bar: 2
+* baz: 100
+* Blafasel: aha
+* foo: 1
+key explicit:
+* bar: 2
+* baz: 100
+* Blafasel: aha
+* foo: 1
+value:
+* foo: 1
+* bar: 2
+* baz: 100
+* Blafasel: aha
+reverse:
+* foo: 1
+* Blafasel: aha
+* baz: 100
+* bar: 2
+case_sensitive:
+* Blafasel: aha
+* bar: 2
+* baz: 100
+* foo: 1

@@ -1,0 +1,24 @@
+even: true
+odd: false
+undefined: false
+defined: true
+undefined2: true
+defined2: false
+none: true
+not-none: true
+number-int: true
+number-float: true
+not-seq: false
+seq: true
+not-map: false
+map: true
+string: true
+not-string: false
+starts-with-a: true
+ends-with-ha: true
+not-safe: false
+safe: true
+is-true: true | false
+is-false: true | false
+is-filter: true | false
+is-test: true | false

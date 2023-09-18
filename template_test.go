@@ -8,6 +8,14 @@ import (
 )
 
 func TestTemplate(t *testing.T) {
+	refFilenames := mustGlob(t, []string{"tests", "inputs", "refs"}, []string{"*.txt", "*.html"})
+	refContents := make(map[string]string)
+	for _, refFilename := range refFilenames {
+		refFileBasename := filepath.Base(refFilename)
+		refContent := mustReadFile(t, refFilename)
+		refContents[refFileBasename] = refContent
+	}
+
 	inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"*.txt", "*.html"})
 	for _, inputFilename := range inputFilenames {
 		inputFileBasename := filepath.Base(inputFilename)
@@ -25,7 +33,11 @@ func TestTemplate(t *testing.T) {
 			}
 
 			env := NewEnvironment()
-			env.SetKeepTrailingNewline(true)
+			for refBaseFilename, refContent := range refContents {
+				if err := env.AddTemplate(refBaseFilename, refContent); err != nil {
+					t.Fatal(err)
+				}
+			}
 			var got string
 			err := env.AddTemplate(inputFilename, templateContent)
 			if err != nil {

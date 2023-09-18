@@ -100,6 +100,9 @@ func (m *virtualMachine) evalImpl(state *State, out *output, stack *stackpkg.Sta
 			target:     pc + 1,
 			endCapture: capture,
 		})
+		if capture {
+			out.beginCapture(captureModeCapture)
+		}
 		pc = jumpTarget
 		return nil
 	}
@@ -775,8 +778,7 @@ func (m *virtualMachine) callBlock(name string, state *State, out *output) (opti
 }
 
 func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscape) (AutoEscape, error) {
-	var strVal string
-	if valueAsOptionString(val).UnwrapTo(&strVal) {
+	if strVal := ""; valueAsOptionString(val).UnwrapTo(&strVal) {
 		switch strVal {
 		case "html":
 			return autoEscapeHTML{}, nil
@@ -785,11 +787,15 @@ func (m *virtualMachine) deriveAutoEscape(val Value, initialAutoEscape AutoEscap
 		case "none":
 			return autoEscapeNone{}, nil
 		}
-	} else if v, ok := val.data.(boolValue); ok && v.B {
-		if _, ok := initialAutoEscape.(autoEscapeNone); ok {
-			return autoEscapeHTML{}, nil
+	} else if v, ok := val.data.(boolValue); ok {
+		if v.B {
+			if _, ok := initialAutoEscape.(autoEscapeNone); ok {
+				return autoEscapeHTML{}, nil
+			}
+			return initialAutoEscape, nil
+		} else {
+			return autoEscapeNone{}, nil
 		}
-		return initialAutoEscape, nil
 	}
 	return nil, NewError(InvalidOperation, "invalid value to autoescape tag")
 }
