@@ -35,14 +35,14 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 }
 
 func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], error) {
-	state := State{
+	state := &State{
 		env:          m.env,
 		ctx:          *newContext(*newFrame(root)),
 		autoEscape:   escape,
 		instructions: insts,
 		blocks:       prepareBlocks(blocks),
 	}
-	return m.evalState(&state, out)
+	return m.evalState(state, out)
 }
 
 func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
@@ -56,7 +56,7 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 	}
 
 	stack := stackpkg.Stack[Value](args)
-	return m.evalImpl(&State{
+	state2 := &State{
 		env:             m.env,
 		ctx:             *ctx,
 		currentBlock:    option.None[string](),
@@ -65,7 +65,8 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 		blocks:          make(map[string]*blockStack),
 		loadedTemplates: *hashset.NewStrHashSet(),
 		macros:          state.macros, // TODO: clone
-	}, out, &stack, pc)
+	}
+	return m.evalImpl(state2, out, &stack, pc)
 }
 
 func (m *virtualMachine) evalState(state *State, out *output) (option.Option[Value], error) {
@@ -351,7 +352,7 @@ loop:
 			}
 		case pushWithInstruction:
 			if err := state.ctx.pushFrame(*newFrameDefault()); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 		case popFrameInstruction:
 			if optLoopCtx := state.ctx.popFrame().currentLoop; optLoopCtx.IsSome() {
@@ -821,6 +822,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 		recurseJumpTarget = option.Some(pc)
 	}
 	f := newFrameDefault()
+	v := it.Next()
 	f.currentLoop = option.Some(loopState{
 		withLoopVar:          withLoopVar,
 		recurseJumpTarget:    recurseJumpTarget,
@@ -829,7 +831,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 			idx:         ^uint(0),
 			len:         l,
 			depth:       depth,
-			valueTriple: [3]option.Option[Value]{option.None[Value](), option.None[Value](), it.Next()},
+			valueTriple: [3]option.Option[Value]{option.None[Value](), option.None[Value](), v},
 		},
 		iterator: it,
 	})

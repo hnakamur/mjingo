@@ -10,7 +10,24 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestCompilerConst(t *testing.T) {
+func TestParserCompiler(t *testing.T) {
+	inputFilenames := mustGlob(t, []string{"tests", "parser-inputs"}, []string{"*.txt"})
+	for _, inputFilename := range inputFilenames {
+		inputFileBasename := filepath.Base(inputFilename)
+		t.Run(inputFileBasename, func(t *testing.T) {
+			inputContent := mustReadFile(t, inputFilename)
+			keepTrailingNewline := false
+			ct, err := newCompiledTemplate(inputFileBasename, inputContent, defaultSyntaxConfig, keepTrailingNewline)
+			if err != nil {
+				t.Fatal(err)
+			}
+			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
+				filepath.Join("tests", "parser-inputs", inputFileBasename+".compiler.snap"))
+		})
+	}
+}
+
+func TestCompiler(t *testing.T) {
 	t.Run("for_loop", func(t *testing.T) {
 		c := newCodeGenerator("<unknown>", "")
 		c.add(lookupInstruction{Name: "items"})
@@ -97,11 +114,14 @@ func debugStringInstsAndBlocks(insts instructions,
 	var b strings.Builder
 	fmt.Fprintf(&b, "(\n")
 	fmt.Fprintf(&b, "%s[\n", indent1)
+	j := 0
 	for i, inst := range insts.instructions {
-		if i == 0 {
-			fmt.Fprintf(&b, "%s%s%05d | %s  [line 0],\n", indent1, indent1, i, inst)
+		fmt.Fprintf(&b, "%s%s%05d | %s", indent1, indent1, i, inst)
+		if i == 0 || (j < len(insts.lineInfos) && insts.lineInfos[j].firstInstruction == uint32(i)) {
+			fmt.Fprintf(&b, "  [line %d],\n", insts.lineInfos[j].line)
+			j++
 		} else {
-			fmt.Fprintf(&b, "%s%s%05d | %s,\n", indent1, indent1, i, inst)
+			fmt.Fprint(&b, ",\n")
 		}
 	}
 	fmt.Fprintf(&b, "%s],\n", indent1)

@@ -55,12 +55,14 @@ func newCodeGenerator(file, source string) *codeGenerator {
 func (g *codeGenerator) CompileStmt(stmt statement) {
 	switch st := stmt.(type) {
 	case templateStmt:
+		g.setLineFromSpan(st.span)
 		for _, node := range st.children {
 			g.CompileStmt(node)
 		}
 	case emitExprStmt:
 		g.compileEmitExpr(emitExprStmt{expr: st.expr, span: st.span})
 	case emitRawStmt:
+		g.setLineFromSpan(st.span)
 		g.add(emitRawInstruction{Val: st.raw})
 		g.rawTemplateBytes += uint(len(st.raw))
 	case forLoopStmt:
@@ -69,6 +71,7 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 		g.compileIfStmt(st)
 	case withBlockStmt:
 		g.setLineFromSpan(st.span)
+		g.add(pushWithInstruction{})
 		for _, assign := range st.assignments {
 			g.compileExpr(assign.rhs)
 			g.compileAssignment(assign.lhs)

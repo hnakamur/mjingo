@@ -47,7 +47,8 @@ type frame struct {
 func newContext(f frame) *context {
 	stack := make([]frame, 0, 12)
 	stack = append(stack, f)
-	return &context{stack: stack, outerStackDepth: 0}
+	c := &context{stack: stack, outerStackDepth: 0}
+	return c
 }
 
 func (c *context) store(key string, val Value) {

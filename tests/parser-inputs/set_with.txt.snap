@@ -1,0 +1,71 @@
+Ok(
+    Template {
+        children: [
+            EmitRaw {
+                raw: "Basic:\n",
+            } @ 1:0-2:0,
+            EmitExpr {
+                expr: Var {
+                    id: "foo",
+                } @ 2:3-2:6,
+            } @ 2:0-2:6,
+            EmitRaw {
+                raw: "\n",
+            } @ 2:9-3:0,
+            Set {
+                target: Var {
+                    id: "foo",
+                } @ 3:7-3:10,
+                expr: Const {
+                    value: "new value",
+                } @ 3:13-3:24,
+            } @ 3:3-3:24,
+            EmitRaw {
+                raw: "\n",
+            } @ 3:27-4:0,
+            EmitExpr {
+                expr: Var {
+                    id: "foo",
+                } @ 4:3-4:6,
+            } @ 4:0-4:6,
+            EmitRaw {
+                raw: "\n",
+            } @ 4:9-5:0,
+            WithBlock {
+                assignments: [],
+                body: [
+                    EmitRaw {
+                        raw: "\n  ",
+                    } @ 5:10-6:2,
+                    Set {
+                        target: Var {
+                            id: "foo",
+                        } @ 6:9-6:12,
+                        expr: Const {
+                            value: "new value 2",
+                        } @ 6:15-6:28,
+                    } @ 6:5-6:28,
+                    EmitRaw {
+                        raw: "\n  ",
+                    } @ 6:31-7:2,
+                    EmitExpr {
+                        expr: Var {
+                            id: "foo",
+                        } @ 7:5-7:8,
+                    } @ 7:2-7:8,
+                    EmitRaw {
+                        raw: "\n",
+                    } @ 7:11-8:0,
+                ],
+            } @ 5:3-8:10,
+            EmitRaw {
+                raw: "\n",
+            } @ 8:13-9:0,
+            EmitExpr {
+                expr: Var {
+                    id: "foo",
+                } @ 9:3-9:6,
+            } @ 9:0-9:6,
+        ],
+    } @ 0:0-9:9,
+)

@@ -311,7 +311,9 @@ func (getClosureInstruction) Typ() instType        { return instTypeGetClosure }
 func (i emitRawInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Val)
 }
-func (i storeLocalInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i storeLocalInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
+}
 func (i lookupInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
 }

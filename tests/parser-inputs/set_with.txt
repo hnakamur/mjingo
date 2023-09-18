@@ -1,0 +1,9 @@
+Basic:
+{{ foo }}
+{% set foo = "new value" %}
+{{ foo }}
+{% with %}
+  {% set foo = "new value 2" %}
+  {{ foo }}
+{% endwith %}
+{{ foo }}
