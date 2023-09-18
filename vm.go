@@ -147,9 +147,7 @@ loop:
 			state.ctx.store(inst.Name, stack.Pop())
 		case lookupInstruction:
 			var v Value
-			if val := state.lookup(inst.Name); val.IsSome() {
-				v = val.Unwrap()
-			} else {
+			if !state.lookup(inst.Name).UnwrapTo(&v) {
 				v = Undefined
 			}
 			stack.Push(v)
@@ -237,7 +235,7 @@ loop:
 			v := stack.Pop()
 			if valData, ok := v.data.(seqValue); ok {
 				valData.Append(a)
-				stack.Push(v)
+				stack.Push(valueFromSlice(valData.Items))
 			} else {
 				err := NewError(InvalidOperation, "cannot append to non-list")
 				return option.None[Value](), processErr(err, pc, state)
@@ -477,19 +475,17 @@ loop:
 		case performTestInstruction:
 			f := func() option.Option[BoxedTest] { return state.env.getTest(inst.Name) }
 			var tf BoxedTest
-			if optVal := getOrLookupLocal(loadedTests[:], inst.LocalID, f); optVal.IsSome() {
-				tf = optVal.Unwrap()
-			} else {
+			if !getOrLookupLocal(loadedTests[:], inst.LocalID, f).UnwrapTo(&tf) {
 				err := NewError(UnknownTest, fmt.Sprintf("test %s is unknown", inst.Name))
 				return option.None[Value](), processErr(err, pc, state)
 			}
 			args := stack.SliceTop(inst.ArgCount)
-			if rv, err := tf(state, args); err != nil {
+			rv, err := tf(state, args)
+			if err != nil {
 				return option.None[Value](), processErr(err, pc, state)
-			} else {
-				stack.DropTop(inst.ArgCount)
-				stack.Push(valueFromBool(rv))
 			}
+			stack.DropTop(inst.ArgCount)
+			stack.Push(valueFromBool(rv))
 		case callFunctionInstruction:
 			if inst.Name == "super" {
 				// super is a special function reserved for super-ing into blocks.

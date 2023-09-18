@@ -317,15 +317,19 @@ func (i storeLocalInstruction) Format(f fmt.State, _ rune) {
 func (i lookupInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
 }
-func (i getAttrInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i getAttrInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
+}
 func (i getItemInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i sliceInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 func (i loadConstInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%s)", i.Typ().String(), i.Val.DebugString())
 }
-func (i buildMapInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i buildKwargsInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
-func (i buildListInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
+func (i buildMapInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
+func (i buildKwargsInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i buildListInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.Count)
+}
 func (i unpackListInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 func (i listAppendInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 func (i addInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
@@ -346,8 +350,10 @@ func (i notInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f,
 func (i stringConcatInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i inInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
 func (i applyFilterInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
-func (i performTestInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
-func (i emitInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
+func (i performTestInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q, %d, %d)", i.Typ().String(), i.Name, i.ArgCount, i.LocalID)
+}
+func (i emitInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i pushLoopInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.Flags)
 }

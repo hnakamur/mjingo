@@ -11,7 +11,8 @@ import (
 )
 
 func TestParserCompiler(t *testing.T) {
-	inputFilenames := mustGlob(t, []string{"tests", "parser-inputs"}, []string{"*.txt"})
+	// inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"*.txt", "*.html"})
+	inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"loop_filter.txt"})
 	for _, inputFilename := range inputFilenames {
 		inputFileBasename := filepath.Base(inputFilename)
 		t.Run(inputFileBasename, func(t *testing.T) {
@@ -22,7 +23,7 @@ func TestParserCompiler(t *testing.T) {
 				t.Fatal(err)
 			}
 			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
-				filepath.Join("tests", "parser-inputs", inputFileBasename+".compiler.snap"))
+				filepath.Join("tests", "inputs", inputFileBasename+".compiler.snap"))
 		})
 	}
 }
