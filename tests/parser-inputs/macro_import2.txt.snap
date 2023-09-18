@@ -1,0 +1,62 @@
+Ok(
+    Template {
+        children: [
+            Import {
+                expr: Const {
+                    value: "include_with_var_and_macro.txt",
+                } @ 1:10-1:42,
+                name: Var {
+                    id: "helpers",
+                } @ 1:46-1:53,
+            } @ 1:3-1:53,
+            EmitExpr {
+                expr: Var {
+                    id: "helpers",
+                } @ 2:3-2:10,
+            } @ 2:0-2:10,
+            EmitRaw {
+                raw: "\nmissing: ",
+            } @ 2:13-3:9,
+            EmitExpr {
+                expr: GetAttr {
+                    expr: Var {
+                        id: "helpers",
+                    } @ 3:12-3:19,
+                    name: "missing",
+                } @ 3:12-3:27,
+            } @ 3:9-3:27,
+            EmitRaw {
+                raw: "\ntitle: ",
+            } @ 3:30-4:7,
+            EmitExpr {
+                expr: GetAttr {
+                    expr: Var {
+                        id: "helpers",
+                    } @ 4:10-4:17,
+                    name: "title",
+                } @ 4:10-4:23,
+            } @ 4:7-4:23,
+            EmitRaw {
+                raw: "\nhelper: ",
+            } @ 4:26-5:8,
+            EmitExpr {
+                expr: Call {
+                    expr: GetAttr {
+                        expr: Var {
+                            id: "helpers",
+                        } @ 5:11-5:18,
+                        name: "helper",
+                    } @ 5:11-5:25,
+                    args: [
+                        Const {
+                            value: "a",
+                        } @ 5:26-5:29,
+                        Const {
+                            value: "b",
+                        } @ 5:31-5:34,
+                    ],
+                } @ 5:18-5:35,
+            } @ 5:8-5:35,
+        ],
+    } @ 0:0-5:38,
+)

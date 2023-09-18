@@ -16,6 +16,15 @@ const (
 	captureModeDiscard
 )
 
+func (m captureMode) Format(f fmt.State, _ rune) {
+	switch m {
+	case captureModeCapture:
+		io.WriteString(f, "Capture")
+	case captureModeDiscard:
+		io.WriteString(f, "Discard")
+	}
+}
+
 const (
 	// This loop has the loop var.
 	loopFlagWithLoopVar = 1
@@ -349,7 +358,9 @@ func (i lteInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f,
 func (i notInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
 func (i stringConcatInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i inInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
-func (i applyFilterInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i applyFilterInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q, %d, %d)", i.Typ().String(), i.Name, i.ArgCount, i.LocalID)
+}
 func (i performTestInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%q, %d, %d)", i.Typ().String(), i.Name, i.ArgCount, i.LocalID)
 }
@@ -379,24 +390,32 @@ func (i jumpIfTrueOrPopInstruction) Format(f fmt.State, _ rune) {
 }
 func (i pushAutoEscapeInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i popAutoEscapeInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
-func (i beginCaptureInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
-func (i endCaptureInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i callFunctionInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
-func (i callMethodInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i callObjectInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i dupTopInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
-func (i discardTopInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i fastSuperInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
-func (i fastRecurseInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
-func (i callBlockInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
-func (i loadBlocksInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i includeInstruction) Format(f fmt.State, _ rune)        { io.WriteString(f, i.Typ().String()) }
-func (i exportLocalsInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
-func (i buildMacroInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
-func (i returnInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
-func (i isUndefinedInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
-func (i encloseInstruction) Format(f fmt.State, _ rune)        { io.WriteString(f, i.Typ().String()) }
-func (i getClosureInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i beginCaptureInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%v)", i.Typ().String(), i.Mode)
+}
+func (i endCaptureInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i callFunctionInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q, %d)", i.Typ().String(), i.Name, i.ArgCount)
+}
+func (i callMethodInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q, %d)", i.Typ().String(), i.Name, i.ArgCount)
+}
+func (i callObjectInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i dupTopInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
+func (i discardTopInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i fastSuperInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i fastRecurseInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i callBlockInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i loadBlocksInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i includeInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%v)", i.Typ().String(), i.IgnoreMissing)
+}
+func (i exportLocalsInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i buildMacroInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i returnInstruction) Format(f fmt.State, _ rune)       { io.WriteString(f, i.Typ().String()) }
+func (i isUndefinedInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i encloseInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
+func (i getClosureInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 
 type instType uint
 

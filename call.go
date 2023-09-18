@@ -42,6 +42,10 @@ func notCallableValueType(v Value) (Value, error) {
 
 func callMethod(receiver Value, state *State, name string, args []Value) (Value, error) {
 	switch v := receiver.data.(type) {
+	case dynamicValue:
+		if c, ok := v.Dy.(CallMethoder); ok {
+			return c.CallMethod(state, name, args)
+		}
 	case mapValue:
 		if val, ok := v.Map.Get(keyRefFromString(name)); ok {
 			if dyVal, ok := val.data.(dynamicValue); ok {
@@ -50,10 +54,6 @@ func callMethod(receiver Value, state *State, name string, args []Value) (Value,
 				}
 			}
 			return notCallableValueType(val)
-		}
-	case dynamicValue:
-		if c, ok := v.Dy.(CallMethoder); ok {
-			return c.CallMethod(state, name, args)
 		}
 	}
 	return Value{}, NewError(InvalidOperation,

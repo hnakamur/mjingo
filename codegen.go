@@ -132,7 +132,8 @@ func (g *codeGenerator) CompileStmt(stmt statement) {
 			g.compileExpr(importName.name)
 		}
 		g.add(popFrameInstruction{})
-		for _, importName := range st.names {
+		for i := len(st.names) - 1; i >= 0; i-- {
+			importName := st.names[i]
 			g.compileAssignment(importName.as.UnwrapOr(importName.name))
 		}
 		g.add(endCaptureInstruction{})

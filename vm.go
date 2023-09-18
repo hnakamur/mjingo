@@ -593,7 +593,13 @@ loop:
 		case exportLocalsInstruction:
 			locals := state.ctx.currentLocals()
 			module := valueMapWithCapacity(uint(len(*locals)))
-			for key, val := range *locals {
+			keys := make([]string, 0, len(*locals))
+			for key := range *locals {
+				keys = append(keys, key)
+			}
+			slices.Sort(keys)
+			for _, key := range keys {
+				val := (*locals)[key]
 				module.Set(keyRefFromValue(valueFromString(key)), val.clone())
 			}
 			stack.Push(valueFromIndexMap(module))

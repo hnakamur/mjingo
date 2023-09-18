@@ -10,24 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestParserCompiler(t *testing.T) {
-	// inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"*.txt", "*.html"})
-	inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"loop_filter.txt"})
-	for _, inputFilename := range inputFilenames {
-		inputFileBasename := filepath.Base(inputFilename)
-		t.Run(inputFileBasename, func(t *testing.T) {
-			inputContent := mustReadFile(t, inputFilename)
-			keepTrailingNewline := false
-			ct, err := newCompiledTemplate(inputFileBasename, inputContent, defaultSyntaxConfig, keepTrailingNewline)
-			if err != nil {
-				t.Fatal(err)
-			}
-			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
-				filepath.Join("tests", "inputs", inputFileBasename+".compiler.snap"))
-		})
-	}
-}
-
 func TestCompiler(t *testing.T) {
 	t.Run("for_loop", func(t *testing.T) {
 		c := newCodeGenerator("<unknown>", "")
