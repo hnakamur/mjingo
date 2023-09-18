@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -9,7 +10,8 @@ import (
 func TestTemplate(t *testing.T) {
 	inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"*.txt", "*.html"})
 	for _, inputFilename := range inputFilenames {
-		t.Run(inputFilename, func(t *testing.T) {
+		inputFileBasename := filepath.Base(inputFilename)
+		t.Run(inputFileBasename, func(t *testing.T) {
 			inputContent := mustReadFile(t, inputFilename)
 			jsonContent, templateContent, found := strings.Cut(inputContent, "\n---\n")
 			if !found {

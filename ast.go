@@ -1,6 +1,9 @@
 package mjingo
 
 import (
+	"fmt"
+	"io"
+
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	"github.com/hnakamur/mjingo/option"
 )
@@ -449,6 +452,21 @@ const (
 	unaryOpTypeNeg
 )
 
+func (t unaryOpType) String() string {
+	switch t {
+	case unaryOpTypeNot:
+		return "Not"
+	case unaryOpTypeNeg:
+		return "Neg"
+	default:
+		panic("unreachable")
+	}
+}
+
+func (t unaryOpType) Format(f fmt.State, _ rune) {
+	io.WriteString(f, t.String())
+}
+
 type binOpType int
 
 const (
@@ -470,6 +488,51 @@ const (
 	binOpTypeConcat
 	binOpTypeIn
 )
+
+func (t binOpType) String() string {
+	switch t {
+	case binOpTypeEq:
+		return "Eq"
+	case binOpTypeNe:
+		return "Ne"
+	case binOpTypeLt:
+		return "Lt"
+	case binOpTypeLte:
+		return "Lte"
+	case binOpTypeGt:
+		return "Gt"
+	case binOpTypeGte:
+		return "Gte"
+	case binOpTypeScAnd:
+		return "ScAnd"
+	case binOpTypeScOr:
+		return "ScOr"
+	case binOpTypeAdd:
+		return "Add"
+	case binOpTypeSub:
+		return "Sub"
+	case binOpTypeMul:
+		return "Mul"
+	case binOpTypeDiv:
+		return "Div"
+	case binOpTypeFloorDiv:
+		return "FloorDiv"
+	case binOpTypeRem:
+		return "Rem"
+	case binOpTypePow:
+		return "Pow"
+	case binOpTypeConcat:
+		return "Concat"
+	case binOpTypeIn:
+		return "In"
+	default:
+		panic("unreachable")
+	}
+}
+
+func (t binOpType) Format(f fmt.State, _ rune) {
+	io.WriteString(f, t.String())
+}
 
 func (l listExpr) asConst() option.Option[Value] {
 	for _, item := range l.items {

@@ -1151,7 +1151,7 @@ func (p *parser) parseAssignment() (astExpr, error) {
 			if rv, err := p.parseAssignment(); err != nil {
 				return nil, err
 			} else {
-				if _, _, err := p.expectToken(isTokenOfType[commaToken], "`,`"); err != nil {
+				if _, _, err := p.expectToken(isTokenOfType[parenCloseToken], "`)`"); err != nil {
 					return nil, err
 				}
 				item = rv
@@ -1291,6 +1291,12 @@ func (p *parser) parseWithBlock() (withBlockStmt, error) {
 		} else if matched {
 			break
 		}
+
+		if len(assignments) != 0 {
+			if _, _, err := p.expectToken(isTokenOfType[commaToken], "comma"); err != nil {
+				return withBlockStmt{}, err
+			}
+		}
 		var target astExpr
 		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
 			return withBlockStmt{}, err
@@ -1361,7 +1367,7 @@ func (p *parser) parseSet() (setParseResult, error) {
 	}
 	if isSetBlock {
 		filter := option.None[astExpr]()
-		if matched, err := p.skipToken(isTokenOfType[parenOpenToken]); err != nil {
+		if matched, err := p.skipToken(isTokenOfType[pipeToken]); err != nil {
 			return nil, err
 		} else if matched {
 			if exp, err := p.parseFilterChain(); err != nil {
@@ -1563,6 +1569,7 @@ func (p *parser) parseInclude() (includeStmt, error) {
 	if matched, err := p.skipToken(isIdentTokenWithName("ignore")); err != nil {
 		return includeStmt{}, err
 	} else if matched {
+		ignoreMissing = true
 		if _, _, err := p.expectToken(isIdentTokenWithName("missing"), "missing keyword"); err != nil {
 			return includeStmt{}, err
 		}
@@ -1577,7 +1584,6 @@ func (p *parser) parseInclude() (includeStmt, error) {
 			if _, _, err := p.expectToken(isIdentTokenWithName("context"), "missing keyword"); err != nil {
 				return includeStmt{}, err
 			}
-			ignoreMissing = true
 		}
 
 	}

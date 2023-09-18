@@ -13,7 +13,8 @@ import (
 func TestLexer(t *testing.T) {
 	inputFilenames := mustGlob(t, []string{"tests", "lexer-inputs"}, []string{"*.txt"})
 	for _, inputFilename := range inputFilenames {
-		t.Run(inputFilename, func(t *testing.T) {
+		inputFileBasename := filepath.Base(inputFilename)
+		t.Run(inputFileBasename, func(t *testing.T) {
 			inputContent := mustReadFile(t, inputFilename)
 			iter := tokenize(inputContent, false, &defaultSyntaxConfig)
 			var b strings.Builder
