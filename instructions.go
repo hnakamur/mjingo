@@ -2,6 +2,8 @@ package mjingo
 
 import (
 	"cmp"
+	"fmt"
+	"io"
 	"slices"
 
 	"github.com/hnakamur/mjingo/option"
@@ -43,12 +45,53 @@ func (i *instructions) Instructions() []instruction { return i.instructions }
 
 func (i *instructions) Name() string { return i.name }
 
+func (i *instructions) getReferencedNames(idx uint) []string {
+	var rv []string
+	// make sure we don't crash on empty instructions
+	if len(i.instructions) == 0 {
+		return rv
+	}
+	if idx > uint(len(i.instructions))-1 {
+		idx = uint(len(i.instructions)) - 1
+	}
+loop:
+	for j := idx; ; j-- {
+		inst := i.instructions[j]
+		var name string
+		switch ii := inst.(type) {
+		case lookupInstruction:
+			name = ii.Name
+		case storeLocalInstruction:
+			name = ii.Name
+		case callFunctionInstruction:
+			name = ii.Name
+		case pushLoopInstruction:
+			if ii.Flags&loopFlagWithLoopVar != 0 {
+				name = "loop"
+			} else {
+				break loop
+			}
+		case pushWithInstruction:
+			break loop
+		}
+		if !slices.Contains(rv, name) {
+			rv = append(rv, name)
+		}
+
+		if j == 0 {
+			break loop
+		}
+	}
+	return rv
+}
+
 var emptyInstructions = instructions{
 	name: "<unknown>",
 }
 
 type instruction interface {
 	Typ() instType
+	fmt.Formatter
 }
 
 type emitRawInstruction struct{ Val string }
@@ -265,6 +308,88 @@ func (isUndefinedInstruction) Typ() instType       { return instTypeIsUndefined 
 func (encloseInstruction) Typ() instType           { return instTypeEnclose }
 func (getClosureInstruction) Typ() instType        { return instTypeGetClosure }
 
+func (i emitRawInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Val)
+}
+func (i storeLocalInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i lookupInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
+}
+func (i getAttrInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i getItemInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i sliceInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i loadConstInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%s)", i.Typ().String(), i.Val.DebugString())
+}
+func (i buildMapInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i buildKwargsInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i buildListInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
+func (i unpackListInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i listAppendInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i addInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i subInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i mulInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i divInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i intDivInstruction) Format(f fmt.State, _ rune)       { io.WriteString(f, i.Typ().String()) }
+func (i remInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i powInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i negInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i eqInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
+func (i neInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
+func (i gtInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
+func (i gteInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i ltInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
+func (i lteInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i notInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
+func (i stringConcatInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i inInstruction) Format(f fmt.State, _ rune)           { io.WriteString(f, i.Typ().String()) }
+func (i applyFilterInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i performTestInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i emitInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
+func (i pushLoopInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.Flags)
+}
+func (i pushWithInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i iterateInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.JumpTarget)
+}
+func (i pushDidNotIterateInstruction) Format(f fmt.State, _ rune) {
+	io.WriteString(f, i.Typ().String())
+}
+func (i popFrameInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i jumpInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.JumpTarget)
+}
+func (i jumpIfFalseInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.JumpTarget)
+}
+func (i jumpIfFalseOrPopInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.JumpTarget)
+}
+func (i jumpIfTrueOrPopInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.JumpTarget)
+}
+func (i pushAutoEscapeInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i popAutoEscapeInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i beginCaptureInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i endCaptureInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i callFunctionInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i callMethodInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i callObjectInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i dupTopInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
+func (i discardTopInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i fastSuperInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
+func (i fastRecurseInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
+func (i callBlockInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
+func (i loadBlocksInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i includeInstruction) Format(f fmt.State, _ rune)        { io.WriteString(f, i.Typ().String()) }
+func (i exportLocalsInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i buildMacroInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+func (i returnInstruction) Format(f fmt.State, _ rune)         { io.WriteString(f, i.Typ().String()) }
+func (i isUndefinedInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
+func (i encloseInstruction) Format(f fmt.State, _ rune)        { io.WriteString(f, i.Typ().String()) }
+func (i getClosureInstruction) Format(f fmt.State, _ rune)     { io.WriteString(f, i.Typ().String()) }
+
 type instType uint
 
 const (
@@ -464,127 +589,127 @@ const (
 func (k instType) String() string {
 	switch k {
 	case instTypeEmitRaw:
-		return "emitRaw"
+		return "EmitRaw"
 	case instTypeStoreLocal:
-		return "storeLocal"
+		return "StoreLocal"
 	case instTypeLookup:
-		return "lookup"
+		return "Lookup"
 	case instTypeGetAttr:
-		return "getAttr"
+		return "GetAttr"
 	case instTypeGetItem:
-		return "getItem"
+		return "GetItem"
 	case instTypeSlice:
-		return "slice"
+		return "Slice"
 	case instTypeLoadConst:
-		return "loadConst"
+		return "LoadConst"
 	case instTypeBuildMap:
-		return "buildMap"
+		return "BuildMap"
 	case instTypeBuildKwargs:
-		return "buildKwargs"
+		return "BuildKwargs"
 	case instTypeBuildList:
-		return "buildList"
+		return "BuildList"
 	case instTypeUnpackList:
-		return "unpackList"
+		return "UnpackList"
 	case instTypeListAppend:
-		return "listAppend"
+		return "ListAppend"
 	case instTypeAdd:
-		return "add"
+		return "Add"
 	case instTypeSub:
-		return "sub"
+		return "Sub"
 	case instTypeMul:
-		return "mul"
+		return "Mul"
 	case instTypeDiv:
-		return "div"
+		return "Div"
 	case instTypeIntDiv:
-		return "intDiv"
+		return "IntDiv"
 	case instTypeRem:
-		return "rem"
+		return "Rem"
 	case instTypePow:
-		return "pow"
+		return "Pow"
 	case instTypeNeg:
-		return "neg"
+		return "Neg"
 	case instTypeEq:
-		return "eq"
+		return "Eq"
 	case instTypeNe:
-		return "ne"
+		return "Ne"
 	case instTypeGt:
-		return "gt"
+		return "Gt"
 	case instTypeGte:
-		return "gte"
+		return "Gte"
 	case instTypeLt:
-		return "lt"
+		return "Lt"
 	case instTypeLte:
-		return "lte"
+		return "Lte"
 	case instTypeNot:
-		return "not"
+		return "Not"
 	case instTypeStringConcat:
-		return "stringConcat"
+		return "StringConcat"
 	case instTypeIn:
-		return "in"
+		return "In"
 	case instTypeApplyFilter:
-		return "applyFilter"
+		return "ApplyFilter"
 	case instTypePerformTest:
-		return "performTest"
+		return "PerformTest"
 	case instTypeEmit:
-		return "emit"
+		return "Emit"
 	case instTypePushLoop:
-		return "pushLoop"
+		return "PushLoop"
 	case instTypePushWith:
-		return "pushWith"
+		return "PushWith"
 	case instTypeIterate:
-		return "iterate"
+		return "Iterate"
 	case instTypePushDidNotIterate:
-		return "pushDidNotIterate"
+		return "PushDidNotIterate"
 	case instTypePopFrame:
-		return "popFrame"
+		return "PopFrame"
 	case instTypeJump:
-		return "jump"
+		return "Jump"
 	case instTypeJumpIfFalse:
-		return "jumpIfFalse"
+		return "JumpIfFalse"
 	case instTypeJumpIfFalseOrPop:
-		return "jumpIfFalseOrPop"
+		return "JumpIfFalseOrPop"
 	case instTypeJumpIfTrueOrPop:
-		return "jumpIfTrueOrPop"
+		return "JumpIfTrueOrPop"
 	case instTypePushAutoEscape:
-		return "pushAutoEscape"
+		return "PushAutoEscape"
 	case instTypePopAutoEscape:
-		return "popAutoEscape"
+		return "PopAutoEscape"
 	case instTypeBeginCapture:
-		return "beginCapture"
+		return "BeginCapture"
 	case instTypeEndCapture:
-		return "endCapture"
+		return "EndCapture"
 	case instTypeCallFunction:
-		return "callFunction"
+		return "CallFunction"
 	case instTypeCallMethod:
-		return "callMethod"
+		return "CallMethod"
 	case instTypeCallObject:
-		return "callObject"
+		return "CallObject"
 	case instTypeDupTop:
-		return "dupTop"
+		return "DupTop"
 	case instTypeDiscardTop:
-		return "discardTop"
+		return "DiscardTop"
 	case instTypeFastSuper:
-		return "fastSuper"
+		return "FastSuper"
 	case instTypeFastRecurse:
-		return "fastRecurse"
+		return "FastRecurse"
 	case instTypeCallBlock:
-		return "callBlock"
+		return "CallBlock"
 	case instTypeLoadBlocks:
-		return "loadBlocks"
+		return "LoadBlocks"
 	case instTypeInclude:
-		return "include"
+		return "Include"
 	case instTypeExportLocals:
-		return "exportLocals"
+		return "ExportLocals"
 	case instTypeBuildMacro:
-		return "buildMacro"
+		return "BuildMacro"
 	case instTypeReturn:
-		return "return"
+		return "Return"
 	case instTypeIsUndefined:
-		return "isUndefined"
+		return "IsUndefined"
 	case instTypeEnclose:
-		return "enclose"
+		return "Enclose"
 	case instTypeGetClosure:
-		return "getClosure"
+		return "GetClosure"
 	default:
 		panic("invalid instType")
 	}

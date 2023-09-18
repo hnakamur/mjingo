@@ -1,0 +1,8 @@
+(
+    [
+        00000 | LoadConst("a")  [line 0],
+        00001 | LoadConst(42),
+        00002 | StringConcat,
+    ],
+    {},
+)
