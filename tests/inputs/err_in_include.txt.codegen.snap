@@ -1,0 +1,16 @@
+(
+    [
+        00000 | EmitRaw("{\"seq\": [1, 2, 3], \"b\": []}\n---\n")  [line 1],
+        00001 | Lookup("seq")  [line 3],
+        00002 | PushLoop(1),
+        00003 | Iterate(10),
+        00004 | StoreLocal("a"),
+        00005 | EmitRaw("\n  This fails in the include: "),
+        00006 | LoadConst("a_plus_b.txt")  [line 4],
+        00007 | Include(false),
+        00008 | EmitRaw("\n"),
+        00009 | Jump(3),
+        00010 | PopFrame,
+    ],
+    {},
+)

@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\nBefore\n")  [line 1],
+        00001 | LoadConst(["missing_template1.txt", "missing_template2.txt"])  [line 4],
+        00002 | Include(false),
+        00003 | EmitRaw("\nAfter"),
+    ],
+    {},
+)

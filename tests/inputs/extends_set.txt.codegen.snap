@@ -1,0 +1,11 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"layout_with_var.txt\"\n}\n---\n")  [line 1],
+        00001 | Lookup("template")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | LoadConst("the value from the child")  [line 6],
+        00005 | StoreLocal("var"),
+    ],
+    {},
+)

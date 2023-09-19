@@ -1,0 +1,19 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"simple_layout.txt\"\n}\n---\n")  [line 1],
+        00001 | Lookup("template")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("title")  [line 6],
+        00005 | EmitRaw("\n"),
+        00006 | CallBlock("body")  [line 7],
+    ],
+    {
+        "body": [
+            00000 | EmitRaw("new body")  [line 7],
+        ],
+        "title": [
+            00000 | EmitRaw("new title")  [line 6],
+        ],
+    },
+)

@@ -2,8 +2,10 @@ package mjingo
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -91,24 +93,48 @@ func testVerifyInstsAndBlocksWithSnapshot(t *testing.T, insts instructions,
 }
 
 func debugStringInstsAndBlocks(insts instructions,
-	_ map[string]instructions) string {
+	blocks map[string]instructions) string {
+
 	const indent1 = "    "
+
+	debugPrintInsts := func(w io.Writer, insts instructions, prefix, indent string) {
+		if len(insts.instructions) == 0 {
+			fmt.Fprintf(w, "%s[],\n", prefix)
+			return
+		}
+		fmt.Fprintf(w, "%s[\n", prefix)
+		j := 0
+		for i, inst := range insts.instructions {
+			fmt.Fprintf(w, "%s%s%05d | %s", indent, indent1, i, inst)
+			if i == 0 || (j < len(insts.lineInfos) && insts.lineInfos[j].firstInstruction == uint32(i)) {
+				fmt.Fprintf(w, "  [line %d],\n", insts.lineInfos[j].line)
+				j++
+			} else {
+				fmt.Fprint(w, ",\n")
+			}
+		}
+		fmt.Fprintf(w, "%s],\n", indent)
+	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "(\n")
-	fmt.Fprintf(&b, "%s[\n", indent1)
-	j := 0
-	for i, inst := range insts.instructions {
-		fmt.Fprintf(&b, "%s%s%05d | %s", indent1, indent1, i, inst)
-		if i == 0 || (j < len(insts.lineInfos) && insts.lineInfos[j].firstInstruction == uint32(i)) {
-			fmt.Fprintf(&b, "  [line %d],\n", insts.lineInfos[j].line)
-			j++
-		} else {
-			fmt.Fprint(&b, ",\n")
+	debugPrintInsts(&b, insts, indent1, indent1)
+	if len(blocks) == 0 {
+		fmt.Fprintf(&b, "%s{},\n", indent1)
+	} else {
+		keys := make([]string, 0, len(blocks))
+		for key := range blocks {
+			keys = append(keys, key)
 		}
+		slices.Sort(keys)
+		fmt.Fprintf(&b, "%s{\n", indent1)
+		nextIndent := indent1 + indent1
+		for _, key := range keys {
+			fmt.Fprintf(&b, "%s%s%q: ", indent1, indent1, key)
+			debugPrintInsts(&b, blocks[key], "", nextIndent)
+		}
+		fmt.Fprintf(&b, "%s},\n", indent1)
 	}
-	fmt.Fprintf(&b, "%s],\n", indent1)
-	fmt.Fprintf(&b, "%s{},\n", indent1)
 	fmt.Fprintf(&b, ")\n")
 	return b.String()
 }

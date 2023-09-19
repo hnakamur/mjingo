@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"name\": \"World\"\n}\n---\nHello ")  [line 1],
+        00001 | Lookup("name")  [line 5],
+        00002 | Emit,
+        00003 | EmitRaw("!"),
+    ],
+    {},
+)

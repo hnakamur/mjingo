@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"missing_template.txt\"\n}\n---\nBefore\n")  [line 1],
+        00001 | Lookup("template")  [line 6],
+        00002 | Include(true),
+        00003 | EmitRaw("\nAfter"),
+    ],
+    {},
+)

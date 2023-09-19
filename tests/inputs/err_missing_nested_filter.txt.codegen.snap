@@ -1,0 +1,11 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst("foo")  [line 3],
+        00002 | ApplyFilter("upper", 1, 0),
+        00003 | ApplyFilter("missingFilter", 1, 1),
+        00004 | ApplyFilter("lower", 1, 2),
+        00005 | Emit,
+    ],
+    {},
+)

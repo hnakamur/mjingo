@@ -1,0 +1,22 @@
+(
+    [
+        00000 | EmitRaw("{\"seq\": [1, 2, 3]}\n---\n")  [line 1],
+        00001 | Lookup("seq")  [line 3],
+        00002 | PushLoop(1),
+        00003 | Iterate(16),
+        00004 | StoreLocal("item"),
+        00005 | EmitRaw("\n  "),
+        00006 | Lookup("item")  [line 4],
+        00007 | LoadConst(42),
+        00008 | PerformTest("even", 2, 0),
+        00009 | JumpIfFalse(14),
+        00010 | EmitRaw("\n    "),
+        00011 | Lookup("item")  [line 5],
+        00012 | Emit,
+        00013 | EmitRaw("\n  "),
+        00014 | EmitRaw("\n")  [line 6],
+        00015 | Jump(3),
+        00016 | PopFrame,
+    ],
+    {},
+)

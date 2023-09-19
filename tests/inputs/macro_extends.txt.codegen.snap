@@ -1,0 +1,25 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"simple_layout.txt\"\n}\n---")  [line 1],
+        00001 | Lookup("template")  [line 5],
+        00002 | LoadBlocks,
+        00003 | Jump(6)  [line 6],
+        00004 | EmitRaw("inside foo"),
+        00005 | Return,
+        00006 | GetClosure,
+        00007 | LoadConst([]),
+        00008 | BuildMacro("foo", 4, 0),
+        00009 | StoreLocal("foo"),
+        00010 | CallBlock("title")  [line 7],
+        00011 | CallBlock("body")  [line 8],
+    ],
+    {
+        "body": [
+            00000 | EmitRaw("new body")  [line 8],
+        ],
+        "title": [
+            00000 | CallFunction("foo", 0)  [line 7],
+            00001 | Emit,
+        ],
+    },
+)

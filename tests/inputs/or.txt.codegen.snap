@@ -1,0 +1,20 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst(42)  [line 3],
+        00002 | JumpIfTrueOrPop(4),
+        00003 | LoadConst(23),
+        00004 | Emit,
+        00005 | EmitRaw("\n"),
+        00006 | LoadConst(0)  [line 4],
+        00007 | JumpIfTrueOrPop(9),
+        00008 | LoadConst(23),
+        00009 | Emit,
+        00010 | EmitRaw("\n"),
+        00011 | LoadConst(none)  [line 5],
+        00012 | JumpIfTrueOrPop(14),
+        00013 | LoadConst(23),
+        00014 | Emit,
+    ],
+    {},
+)

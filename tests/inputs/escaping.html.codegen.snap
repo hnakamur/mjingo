@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"unsafe\": \"<foo>\"\n}\n---\n<h1>")  [line 1],
+        00001 | Lookup("unsafe")  [line 5],
+        00002 | Emit,
+        00003 | EmitRaw("</h1>"),
+    ],
+    {},
+)

@@ -334,12 +334,16 @@ func (i sliceInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Ty
 func (i loadConstInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%s)", i.Typ().String(), i.Val.DebugString())
 }
-func (i buildMapInstruction) Format(f fmt.State, _ rune)    { io.WriteString(f, i.Typ().String()) }
-func (i buildKwargsInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i buildMapInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i buildKwargsInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.PairCount)
+}
 func (i buildListInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.Count)
 }
-func (i unpackListInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i unpackListInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.Count)
+}
 func (i listAppendInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 func (i addInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
 func (i subInstruction) Format(f fmt.State, _ rune)          { io.WriteString(f, i.Typ().String()) }
@@ -400,22 +404,30 @@ func (i callFunctionInstruction) Format(f fmt.State, _ rune) {
 func (i callMethodInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%q, %d)", i.Typ().String(), i.Name, i.ArgCount)
 }
-func (i callObjectInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i callObjectInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%d)", i.Typ().String(), i.ArgCount)
+}
 func (i dupTopInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
 func (i discardTopInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
 func (i fastSuperInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
 func (i fastRecurseInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
-func (i callBlockInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
-func (i loadBlocksInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
+func (i callBlockInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
+}
+func (i loadBlocksInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 func (i includeInstruction) Format(f fmt.State, _ rune) {
 	fmt.Fprintf(f, "%s(%v)", i.Typ().String(), i.IgnoreMissing)
 }
 func (i exportLocalsInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
-func (i buildMacroInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
-func (i returnInstruction) Format(f fmt.State, _ rune)       { io.WriteString(f, i.Typ().String()) }
-func (i isUndefinedInstruction) Format(f fmt.State, _ rune)  { io.WriteString(f, i.Typ().String()) }
-func (i encloseInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
-func (i getClosureInstruction) Format(f fmt.State, _ rune)   { io.WriteString(f, i.Typ().String()) }
+func (i buildMacroInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q, %d, %d)", i.Typ().String(), i.Name, i.Offset, i.Flags)
+}
+func (i returnInstruction) Format(f fmt.State, _ rune)      { io.WriteString(f, i.Typ().String()) }
+func (i isUndefinedInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
+func (i encloseInstruction) Format(f fmt.State, _ rune) {
+	fmt.Fprintf(f, "%s(%q)", i.Typ().String(), i.Name)
+}
+func (i getClosureInstruction) Format(f fmt.State, _ rune) { io.WriteString(f, i.Typ().String()) }
 
 type instType uint
 

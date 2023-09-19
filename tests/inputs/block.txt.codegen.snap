@@ -1,0 +1,15 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n<title>")  [line 1],
+        00001 | CallBlock("title")  [line 5],
+        00002 | EmitRaw("</title>\n"),
+        00003 | CallBlock("body")  [line 6],
+    ],
+    {
+        "body": [
+            00000 | Lookup("var")  [line 6],
+            00001 | Emit,
+        ],
+        "title": [],
+    },
+)

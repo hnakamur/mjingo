@@ -1,0 +1,17 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"var_referencing_layout.txt\"\n}\n---\n")  [line 1],
+        00001 | Lookup("template")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("item_block")  [line 6],
+    ],
+    {
+        "item_block": [
+            00000 | EmitRaw("[")  [line 6],
+            00001 | Lookup("item"),
+            00002 | Emit,
+            00003 | EmitRaw("]"),
+        ],
+    },
+)

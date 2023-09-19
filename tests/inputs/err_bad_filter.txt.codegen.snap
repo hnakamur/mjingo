@@ -1,0 +1,18 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst(42)  [line 3],
+        00002 | LoadConst(4),
+        00003 | ApplyFilter("slice", 2, 0),
+        00004 | PushLoop(1),
+        00005 | Iterate(12),
+        00006 | StoreLocal("item"),
+        00007 | EmitRaw("\n  - "),
+        00008 | Lookup("item")  [line 4],
+        00009 | Emit,
+        00010 | EmitRaw("\n"),
+        00011 | Jump(5),
+        00012 | PopFrame,
+    ],
+    {},
+)

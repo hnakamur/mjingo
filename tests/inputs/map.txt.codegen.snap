@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst({"foo": "bar"})  [line 3],
+        00002 | GetAttr("foo"),
+        00003 | Emit,
+    ],
+    {},
+)

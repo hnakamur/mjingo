@@ -1,0 +1,10 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst(10)  [line 3],
+        00002 | LoadConst(0),
+        00003 | Rem,
+        00004 | Emit,
+    ],
+    {},
+)

@@ -71,6 +71,7 @@ func getDefaultBuiltinFilters() map[string]BoxedFilter {
 	rv["rejectattr"] = BoxedFilterFromVariadic5ArgWithErrFunc(rejectAttrFilter)
 	rv["map"] = BoxedFilterFromVariadic3ArgWithErrFunc(mapFilter)
 	rv["unique"] = BoxedFilterFromFixedArity1ArgNoErrFunc(uniqueFilter)
+	rv["pprint"] = BoxedFilterFromFixedArity1ArgNoErrFunc(pprint)
 	rv["urlencode"] = BoxedFilterFromFixedArity1ArgWithErrFunc(urlencodeFilter)
 	rv["tojson"] = BoxedFilterFromFixedArity2ArgWithErrFunc(tojson)
 	return rv
@@ -115,6 +116,7 @@ func getDefaultBuiltinFiltersReflect() map[string]BoxedFilter {
 	rv["rejectattr"] = BoxedFilterFromFuncReflect(rejectAttrFilter)
 	rv["map"] = BoxedFilterFromFuncReflect(mapFilter)
 	rv["unique"] = BoxedFilterFromFuncReflect(uniqueFilter)
+	rv["pprint"] = BoxedFilterFromFuncReflect(pprint)
 	rv["urlencode"] = BoxedFilterFromFuncReflect(urlencodeFilter)
 	rv["tojson"] = BoxedFilterFromFuncReflect(tojson)
 	return rv

@@ -1,0 +1,17 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"seq\": [\n    1,\n    2,\n    3\n  ]\n}\n---\n<ul>\n")  [line 1],
+        00001 | Lookup("seq")  [line 10],
+        00002 | PushLoop(1),
+        00003 | Iterate(10),
+        00004 | StoreLocal("item"),
+        00005 | EmitRaw("\n    <li>"),
+        00006 | Lookup("item")  [line 11],
+        00007 | Emit,
+        00008 | EmitRaw("</li>\n"),
+        00009 | Jump(3),
+        00010 | PopFrame,
+        00011 | EmitRaw("\n</ul>")  [line 12],
+    ],
+    {},
+)

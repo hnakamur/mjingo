@@ -1,0 +1,19 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"upper\": 1\n}\n---\n")  [line 1],
+        00001 | PushWith  [line 5],
+        00002 | Lookup("range"),
+        00003 | StoreLocal("f"),
+        00004 | Lookup("upper"),
+        00005 | CallFunction("f", 1),
+        00006 | PushLoop(1),
+        00007 | Iterate(12),
+        00008 | StoreLocal("x"),
+        00009 | CallFunction("debug", 0),
+        00010 | Emit,
+        00011 | Jump(7),
+        00012 | PopFrame,
+        00013 | PopFrame,
+    ],
+    {},
+)

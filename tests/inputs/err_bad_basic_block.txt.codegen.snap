@@ -1,0 +1,14 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst("bad_basic_block.txt")  [line 3],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("title")  [line 4],
+    ],
+    {
+        "title": [
+            00000 | EmitRaw("My Title")  [line 4],
+        ],
+    },
+)

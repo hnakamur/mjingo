@@ -1,0 +1,14 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"value\": \"foo < bar\"\n}\n---\n")  [line 1],
+        00001 | BeginCapture(Capture)  [line 5],
+        00002 | EmitRaw("<p>"),
+        00003 | Lookup("value"),
+        00004 | Emit,
+        00005 | EmitRaw("</p>"),
+        00006 | EndCapture,
+        00007 | ApplyFilter("escape", 1, 0),
+        00008 | Emit,
+    ],
+    {},
+)

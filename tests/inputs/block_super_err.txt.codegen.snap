@@ -1,0 +1,7 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | FastSuper  [line 3],
+    ],
+    {},
+)

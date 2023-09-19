@@ -1,0 +1,15 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"value\": false,\n  \"other_value\": false\n}\n---\n")  [line 1],
+        00001 | Lookup("value")  [line 6],
+        00002 | JumpIfFalse(5),
+        00003 | EmitRaw("\n  first branch\n"),
+        00004 | Jump(10),
+        00005 | Lookup("other_value")  [line 8],
+        00006 | JumpIfFalse(9),
+        00007 | EmitRaw("\n  second branch\n"),
+        00008 | Jump(10),
+        00009 | EmitRaw("\n  else\n")  [line 10],
+    ],
+    {},
+)

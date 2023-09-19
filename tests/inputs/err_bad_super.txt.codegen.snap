@@ -1,0 +1,21 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst("bad_basic_block.txt")  [line 3],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("title")  [line 4],
+        00005 | EmitRaw("\n"),
+        00006 | CallBlock("body")  [line 6],
+    ],
+    {
+        "body": [
+            00000 | EmitRaw("\n  Changed stuff goes here. ")  [line 5],
+            00001 | FastSuper  [line 6],
+            00002 | EmitRaw("\n"),
+        ],
+        "title": [
+            00000 | EmitRaw("My Title")  [line 4],
+        ],
+    },
+)

@@ -17,7 +17,7 @@ func TestCodegen(t *testing.T) {
 				t.Fatal(err)
 			}
 			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
-				filepath.Join("tests", "inputs", inputFileBasename+".compiler.snap"))
+				filepath.Join("tests", "inputs", inputFileBasename+".codegen.snap"))
 		})
 	}
 }

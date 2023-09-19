@@ -1,0 +1,13 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"not_true\": false\n}\n---\nbefore\n")  [line 1],
+        00001 | Lookup("not_true")  [line 6],
+        00002 | JumpIfFalse(7),
+        00003 | EmitRaw("\n  "),
+        00004 | LoadConst("something.html")  [line 7],
+        00005 | LoadBlocks,
+        00006 | EmitRaw("\n"),
+        00007 | EmitRaw("\nand after")  [line 8],
+    ],
+    {},
+)

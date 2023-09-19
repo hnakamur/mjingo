@@ -1,0 +1,15 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"template\": \"simple_include.txt\"\n}\n---\nBefore\n")  [line 1],
+        00001 | PushWith  [line 6],
+        00002 | LoadConst(42),
+        00003 | StoreLocal("variable"),
+        00004 | EmitRaw("\n  "),
+        00005 | Lookup("template")  [line 7],
+        00006 | Include(false),
+        00007 | EmitRaw("\n"),
+        00008 | PopFrame,
+        00009 | EmitRaw("\nAfter")  [line 8],
+    ],
+    {},
+)

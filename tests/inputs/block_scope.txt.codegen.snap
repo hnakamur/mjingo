@@ -1,0 +1,20 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n")  [line 1],
+        00001 | Lookup("var")  [line 5],
+        00002 | Emit,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("test")  [line 6],
+        00005 | EmitRaw("\n"),
+        00006 | Lookup("var")  [line 7],
+        00007 | Emit,
+    ],
+    {
+        "test": [
+            00000 | LoadConst("bar")  [line 6],
+            00001 | StoreLocal("var"),
+            00002 | Lookup("var"),
+            00003 | Emit,
+        ],
+    },
+)

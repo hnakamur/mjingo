@@ -1,0 +1,23 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | Jump(7)  [line 3],
+        00002 | StoreLocal("title"),
+        00003 | EmitRaw("Dialog is "),
+        00004 | Lookup("title"),
+        00005 | Emit,
+        00006 | Return,
+        00007 | GetClosure,
+        00008 | LoadConst(["title"]),
+        00009 | BuildMacro("dialog", 2, 0),
+        00010 | StoreLocal("dialog"),
+        00011 | EmitRaw("\n\nShould be empty: "),
+        00012 | LoadConst({"title": "Hello World"})  [line 5],
+        00013 | CallFunction("dialog", 1),
+        00014 | EmitRaw("\nShould show: "),
+        00015 | LoadConst({"title": "Hello World"})  [line 6],
+        00016 | CallFunction("dialog", 1),
+        00017 | Emit,
+    ],
+    {},
+)

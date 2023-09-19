@@ -1,0 +1,23 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n")  [line 1],
+        00001 | LoadConst("var_setting_layout.txt")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("test")  [line 8],
+    ],
+    {
+        "test": [
+            00000 | EmitRaw("before: ")  [line 6],
+            00001 | LoadConst("from self"),
+            00002 | StoreLocal("var"),
+            00003 | Lookup("var"),
+            00004 | Emit,
+            00005 | EmitRaw("\n"),
+            00006 | FastSuper  [line 7],
+            00007 | EmitRaw("\nafter: "),
+            00008 | Lookup("var")  [line 8],
+            00009 | Emit,
+        ],
+    },
+)

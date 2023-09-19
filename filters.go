@@ -1521,3 +1521,7 @@ func tojson(val Value, pretty option.Option[bool]) (Value, error) {
 	s := jsonReplacer.Replace(strings.TrimSuffix(marshaled, "\n"))
 	return ValueFromSafeString(s), nil
 }
+
+func pprint(Value) string {
+	panic("not implemented yet")
+}

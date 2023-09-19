@@ -1,0 +1,23 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | Jump(3)  [line 3],
+        00002 | Return,
+        00003 | GetClosure,
+        00004 | LoadConst([]),
+        00005 | BuildMacro("no_caller", 2, 0),
+        00006 | StoreLocal("no_caller"),
+        00007 | EmitRaw("\n"),
+        00008 | LoadConst("caller")  [line 4],
+        00009 | Jump(12),
+        00010 | EmitRaw("..."),
+        00011 | Return,
+        00012 | GetClosure,
+        00013 | LoadConst([]),
+        00014 | BuildMacro("caller", 10, 0),
+        00015 | BuildKwargs(1),
+        00016 | CallFunction("no_caller", 1),
+        00017 | Emit,
+    ],
+    {},
+)

@@ -1,0 +1,20 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"items\": [\n    \"first_item\",\n    \"middle_item\",\n    \"last_item\"\n  ],\n  \"user\": {\n    \"name\": \"Peter\"\n  }\n}\n---\nfirst: ")  [line 1],
+        00001 | Lookup("items")  [line 12],
+        00002 | LoadConst(0),
+        00003 | GetItem,
+        00004 | Emit,
+        00005 | EmitRaw("\nlast: "),
+        00006 | Lookup("items")  [line 13],
+        00007 | LoadConst(-1),
+        00008 | GetItem,
+        00009 | Emit,
+        00010 | EmitRaw("\nname: "),
+        00011 | Lookup("user")  [line 14],
+        00012 | LoadConst("name"),
+        00013 | GetItem,
+        00014 | Emit,
+    ],
+    {},
+)

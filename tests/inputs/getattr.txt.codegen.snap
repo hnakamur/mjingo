@@ -1,0 +1,13 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"user\": {\n    \"name\": \"Peter\",\n    \"is_active\": true\n  }\n}\n---\nname: ")  [line 1],
+        00001 | Lookup("user")  [line 8],
+        00002 | GetAttr("name"),
+        00003 | Emit,
+        00004 | EmitRaw("\nactive: "),
+        00005 | Lookup("user")  [line 9],
+        00006 | GetAttr("is_active"),
+        00007 | Emit,
+    ],
+    {},
+)

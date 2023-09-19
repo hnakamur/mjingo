@@ -1,0 +1,21 @@
+(
+    [
+        00000 | EmitRaw("{}\n---")  [line 1],
+        00001 | LoadConst("example_macro.txt")  [line 3],
+        00002 | Include(false),
+        00003 | LoadConst("should never show up")  [line 4],
+        00004 | StoreLocal("d"),
+        00005 | EmitRaw("\n"),
+        00006 | LoadConst(1)  [line 5],
+        00007 | LoadConst(2),
+        00008 | LoadConst(3),
+        00009 | CallFunction("example", 3),
+        00010 | Emit,
+        00011 | EmitRaw("\n"),
+        00012 | LoadConst(1)  [line 6],
+        00013 | LoadConst(2),
+        00014 | CallFunction("example", 2),
+        00015 | Emit,
+    ],
+    {},
+)

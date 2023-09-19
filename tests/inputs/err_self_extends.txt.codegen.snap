@@ -1,0 +1,8 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst("self-extends.txt")  [line 3],
+        00002 | LoadBlocks,
+    ],
+    {},
+)

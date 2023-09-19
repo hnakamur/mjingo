@@ -1,0 +1,11 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst(none)  [line 3],
+        00002 | Emit,
+        00003 | EmitRaw("\n"),
+        00004 | Lookup("undefined")  [line 4],
+        00005 | Emit,
+    ],
+    {},
+)

@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"value\": 42\n}\n---\n")  [line 1],
+        00001 | Lookup("value")  [line 5],
+        00002 | JumpIfFalse(4),
+        00003 | EmitRaw("\n  was true\n"),
+    ],
+    {},
+)

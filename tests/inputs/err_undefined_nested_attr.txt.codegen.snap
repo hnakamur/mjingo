@@ -1,0 +1,14 @@
+(
+    [
+        00000 | EmitRaw("{\"seq\": [1, 2, 3]}\n---\n")  [line 1],
+        00001 | Lookup("seq")  [line 3],
+        00002 | GetAttr("whatever"),
+        00003 | Emit,
+        00004 | EmitRaw("\n"),
+        00005 | Lookup("seq")  [line 4],
+        00006 | GetAttr("whatever"),
+        00007 | GetAttr("else"),
+        00008 | Emit,
+    ],
+    {},
+)

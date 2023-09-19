@@ -1,0 +1,12 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"egg\": \"Humpty Dumpty sat on a wall\"\n}\n---\n")  [line 1],
+        00001 | BeginCapture(Capture)  [line 5],
+        00002 | Lookup("egg"),
+        00003 | Emit,
+        00004 | EndCapture,
+        00005 | ApplyFilter("upper", 1, 0),
+        00006 | Emit,
+    ],
+    {},
+)

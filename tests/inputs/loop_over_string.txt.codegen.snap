@@ -1,0 +1,15 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst("abcdefg")  [line 3],
+        00002 | PushLoop(1),
+        00003 | Iterate(9),
+        00004 | StoreLocal("char"),
+        00005 | Lookup("char")  [line 4],
+        00006 | Emit,
+        00007 | EmitRaw("\n"),
+        00008 | Jump(3),
+        00009 | PopFrame,
+    ],
+    {},
+)

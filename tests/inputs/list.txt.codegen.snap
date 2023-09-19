@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n")  [line 1],
+        00001 | LoadConst([1, 2, 3])  [line 3],
+        00002 | ApplyFilter("length", 1, 0),
+        00003 | Emit,
+    ],
+    {},
+)

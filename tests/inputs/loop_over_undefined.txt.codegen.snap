@@ -1,0 +1,13 @@
+(
+    [
+        00000 | EmitRaw("{}\n---\n[")  [line 1],
+        00001 | Lookup("seq")  [line 3],
+        00002 | PushLoop(1),
+        00003 | Iterate(6),
+        00004 | StoreLocal("item"),
+        00005 | Jump(3),
+        00006 | PopFrame,
+        00007 | EmitRaw("]"),
+    ],
+    {},
+)

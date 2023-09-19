@@ -49,6 +49,13 @@ func (o Option[T]) IsNone() bool {
 	return !o.valid
 }
 
+// Take takes the value out of the option, leaving a None in its place.
+func (o *Option[T]) Take() Option[T] {
+	rv := *o
+	*o = None[T]()
+	return rv
+}
+
 // UnwrapTo sets the contained Some value to dest and returns true
 // if the options is a Some value.
 // It does nothing and returns false if the option is a None value.

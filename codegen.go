@@ -390,7 +390,7 @@ func (g *codeGenerator) compileExpr(exp astExpr) {
 		for _, arg := range exp.args {
 			g.compileExpr(arg)
 		}
-		localID := getLocalID(g.testLocalIds, exp.name)
+		localID := getLocalID(g.filterLocalIds, exp.name)
 		g.add(applyFilterInstruction{Name: exp.name, ArgCount: uint(len(exp.args)) + 1, LocalID: localID})
 		g.popSpan()
 	case testExpr:

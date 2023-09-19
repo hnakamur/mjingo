@@ -1,0 +1,9 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"value\": \"foo bar baz\"\n}\n---\n")  [line 1],
+        00001 | Lookup("value")  [line 5],
+        00002 | ApplyFilter("upper", 1, 0),
+        00003 | Emit,
+    ],
+    {},
+)

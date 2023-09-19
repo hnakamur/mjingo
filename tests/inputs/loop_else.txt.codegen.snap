@@ -1,0 +1,16 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"seq\": []\n}\n---\n")  [line 1],
+        00001 | Lookup("seq")  [line 5],
+        00002 | PushLoop(1),
+        00003 | Iterate(7),
+        00004 | StoreLocal("item"),
+        00005 | EmitRaw("\n  should not happen\n"),
+        00006 | Jump(3),
+        00007 | PushDidNotIterate,
+        00008 | PopFrame,
+        00009 | JumpIfFalse(11),
+        00010 | EmitRaw("\n  else block!\n")  [line 7],
+    ],
+    {},
+)
