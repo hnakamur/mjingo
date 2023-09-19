@@ -1,0 +1,108 @@
+TemplateData("should be -2.5: ")
+  "should be -2.5: "
+VariableStart
+  "{{"
+Float(1.5)
+  "1.5"
+Mul
+  "*"
+Float(2.5)
+  "2.5"
+Mul
+  "*"
+Int(2)
+  "2"
+Div
+  "/"
+Int(3)
+  "3"
+Minus
+  "-"
+Ident("var")
+  "var"
+VariableEnd
+  "}}"
+TemplateData("\nshould be -3.0: ")
+  "\nshould be -3.0: "
+VariableStart
+  "{{"
+Float(1.5)
+  "1.5"
+Mul
+  "*"
+Float(2.5)
+  "2.5"
+Mul
+  "*"
+Int(2)
+  "2"
+FloorDiv
+  "//"
+Int(3)
+  "3"
+Minus
+  "-"
+Ident("var")
+  "var"
+VariableEnd
+  "}}"
+TemplateData("\nshould be 2.0: ")
+  "\nshould be 2.0: "
+VariableStart
+  "{{"
+Int(4)
+  "4"
+Div
+  "/"
+Int(2)
+  "2"
+VariableEnd
+  "}}"
+TemplateData("\nshould be 2: ")
+  "\nshould be 2: "
+VariableStart
+  "{{"
+Int(4)
+  "4"
+FloorDiv
+  "//"
+Int(2)
+  "2"
+VariableEnd
+  "}}"
+TemplateData("\nshould be 0: ")
+  "\nshould be 0: "
+VariableStart
+  "{{"
+Int(1)
+  "1"
+Minus
+  "-"
+Int(1)
+  "1"
+VariableEnd
+  "}}"
+TemplateData("\nshould be 0: ")
+  "\nshould be 0: "
+VariableStart
+  "{{"
+Int(1)
+  "1"
+Minus
+  "-"
+Int(1)
+  "1"
+VariableEnd
+  "}}"
+TemplateData("\nshould be -1: ")
+  "\nshould be -1: "
+VariableStart
+  "{{"
+Minus
+  "-"
+Int(1)
+  "1"
+VariableEnd
+  "}}"
+TemplateData("\n")
+  "\n"
