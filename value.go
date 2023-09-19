@@ -1198,8 +1198,8 @@ func (s *chainedValueIteratorState) advanceState() option.Option[Value] {
 	if len(s.states) > 0 {
 		rv = s.states[0].advanceState()
 		for rv.IsNone() && len(s.states) > 1 {
-			clear(s.states[len(s.states)-1:])
-			s.states = s.states[:len(s.states)-1]
+			clear(s.states[0:1])
+			s.states = s.states[1:]
 			rv = s.states[0].advanceState()
 		}
 	}
