@@ -90,10 +90,10 @@ func opSlice(val, start, stop, step Value) (Value, error) {
 	}
 
 	if maybeSeq != nil {
-		startIdx, stopIdx := opGetOffsetAndLen(startVal, stopVal, func() uint { return maybeSeq.ItemCount() })
+		startIdx, l := opGetOffsetAndLen(startVal, stopVal, func() uint { return maybeSeq.ItemCount() })
 		sliced := make([]Value, 0, maybeSeq.ItemCount())
-		for i := startIdx; i < stopIdx; i += uint(stepVal) {
-			if item := maybeSeq.GetItem(i); item.IsSome() {
+		for i := uint(0); i < l; i += uint(stepVal) {
+			if item := maybeSeq.GetItem(i + startIdx); item.IsSome() {
 				sliced = append(sliced, item.Unwrap())
 			}
 		}
