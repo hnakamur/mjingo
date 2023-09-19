@@ -89,10 +89,10 @@ func (m *virtualMachine) evalImpl(state *State, out *output, stack *stackpkg.Sta
 
 	recurseLoop := func(capture bool) error {
 		jumpTarget, err := m.prepareLoopRecursion(state)
-		// log.Printf("recurseLoop capture=%v, jumpTarget=%d, err=%v", capture, jumpTarget, err)
 		if err != nil {
 			return processErr(err, pc, state)
 		}
+		fmt.Printf("recurse_loop capture=%v, jump_target=%d\n", capture, jumpTarget)
 		// the way this works is that we remember the next instruction
 		// as loop exit jump target.  Whenever a loop is pushed, it
 		// memorizes the value in `next_loop_iteration_jump` to jump
@@ -105,6 +105,7 @@ func (m *virtualMachine) evalImpl(state *State, out *output, stack *stackpkg.Sta
 			out.beginCapture(captureModeCapture)
 		}
 		pc = jumpTarget
+		fmt.Printf("recurse_loop pc=%d\n", pc)
 		return nil
 	}
 
@@ -127,9 +128,10 @@ loop:
 			}
 			out.endCapture(autoEscapeNone{})
 			pc = 0
+			fmt.Printf("loop#1 pc=0\n")
 			continue
 		}
-		// log.Printf("evalImpl pc=%d, instr=%s %+v", pc, inst.Typ(), inst)
+		fmt.Printf("eval_impl pc=%d, instr=%v\n", pc, inst)
 
 		var a, b Value
 
@@ -353,16 +355,16 @@ loop:
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case popFrameInstruction:
-			if optLoopCtx := state.ctx.popFrame().currentLoop; optLoopCtx.IsSome() {
-				loopCtx := optLoopCtx.Unwrap()
-				if loopCtx.currentRecursionJump.IsSome() {
-					recurJump := loopCtx.currentRecursionJump.Unwrap()
+			fmt.Println("PopFrame calling pop_frame")
+			if loopCtx := (loopState{}); state.ctx.popFrame().currentLoop.UnwrapTo(&loopCtx) {
+				if recurJump := (recursionJump{}); loopCtx.currentRecursionJump.UnwrapTo(&recurJump) {
+					fmt.Printf("PopFrame, target=%d, end_capture=%v\n", recurJump.target, recurJump.endCapture)
 					loopCtx.currentRecursionJump = option.None[recursionJump]()
 					pc = recurJump.target
 					if recurJump.endCapture {
 						stack.Push(out.endCapture(state.autoEscape))
 					}
-					continue
+					continue loop
 				}
 			}
 		case isUndefinedInstruction:
@@ -370,16 +372,13 @@ loop:
 			stack.Push(valueFromBool(a.isUndefined()))
 		case pushLoopInstruction:
 			a = stack.Pop()
-			if err := m.pushLoop(state, a, inst.Flags, pc, nextRecursionJump); err != nil {
+			recurJump := nextRecursionJump
+			nextRecursionJump = option.None[recursionJump]()
+			if err := m.pushLoop(state, a, inst.Flags, pc, recurJump); err != nil {
 				return option.None[Value](), processErr(err, pc, state)
 			}
 		case iterateInstruction:
-			var l *loopState
-			if mayLoopState := state.ctx.currentLoop(); mayLoopState.IsSome() {
-				l = mayLoopState.Unwrap()
-			} else {
-				panic("no currentLoop")
-			}
+			l := state.ctx.currentLoop().Unwrap()
 			l.object.idx++
 			next := option.None[Value]()
 			triple := &l.object.valueTriple
@@ -398,6 +397,7 @@ loop:
 				}
 			} else {
 				pc = inst.JumpTarget
+				fmt.Printf("Iterate pc=%d\n", pc)
 				continue
 			}
 		case pushDidNotIterateInstruction:
@@ -405,11 +405,13 @@ loop:
 			stack.Push(valueFromBool(l.object.idx == 0))
 		case jumpInstruction:
 			pc = inst.JumpTarget
+			fmt.Printf("Jump pc=%d\n", pc)
 			continue
 		case jumpIfFalseInstruction:
 			a = stack.Pop()
 			if !a.isTrue() {
 				pc = inst.JumpTarget
+				fmt.Printf("JumpIfFalse pc=%d\n", pc)
 				continue
 			}
 		case jumpIfFalseOrPopInstruction:
@@ -418,6 +420,7 @@ loop:
 					stack.Pop()
 				} else {
 					pc = inst.JumpTarget
+					fmt.Printf("JumpIfFalseOrPop pc=%d\n", pc)
 					continue
 				}
 			} else {
@@ -427,6 +430,7 @@ loop:
 			if a, ok := stack.Peek(); ok {
 				if a.isTrue() {
 					pc = inst.JumpTarget
+					fmt.Printf("JumpIfTrueOrPop pc=%d\n", pc)
 					continue
 				} else {
 					stack.Pop()
@@ -509,7 +513,7 @@ loop:
 				if err := recurseLoop(true); err != nil {
 					return option.None[Value](), err
 				}
-				continue
+				continue loop
 			} else if optFunc := state.lookup(inst.Name); optFunc.IsSome() {
 				f := optFunc.Unwrap()
 				args := stack.SliceTop(inst.ArgCount)
@@ -549,7 +553,7 @@ loop:
 			if err := recurseLoop(false); err != nil {
 				return option.None[Value](), err
 			}
-			continue
+			continue loop
 		case loadBlocksInstruction:
 			// Explanation on the behavior of `LoadBlocks` and rendering of
 			// inherited templates:
@@ -709,6 +713,7 @@ func (m *virtualMachine) performSuper(state *State, out *output, capture bool) (
 		return Value{}, err
 	}
 	_, err := m.evalState(state, out)
+	fmt.Println("perform_super calling pop_frame")
 	state.ctx.popFrame()
 	state.instructions = oldInsts
 	state.blocks[name].pop()
@@ -772,6 +777,7 @@ func (m *virtualMachine) callBlock(name string, state *State, out *output) (opti
 		state.instructions = blockStack.instructions()
 		state.ctx.pushFrame(*newFrameDefault())
 		rv, err := m.evalState(state, out)
+		fmt.Println("call_block calling pop_frame")
 		state.ctx.popFrame()
 		state.instructions = oldInsts
 		state.currentBlock = oldBlock
@@ -819,6 +825,7 @@ func (m *virtualMachine) pushLoop(state *State, iterable Value,
 	}
 	recursive := (flags & loopFlagRecursive) != 0
 	withLoopVar := (flags & loopFlagWithLoopVar) != 0
+	fmt.Printf("push_loop pc=%d, len=%d, depth=%d, recursive=%v, with_loop_var=%v\n", pc, l, depth, recursive, withLoopVar)
 	recurseJumpTarget := option.None[uint]()
 	if recursive {
 		recurseJumpTarget = option.Some(pc)

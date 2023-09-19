@@ -1,6 +1,8 @@
 package mjingo
 
 import (
+	"fmt"
+
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -116,11 +118,13 @@ func (c *context) pushFrame(f frame) error {
 	if err := c.checkDepth(); err != nil {
 		return err
 	}
+	fmt.Printf("push_frame stack_len=%d\n", len(c.stack))
 	c.stack = append(c.stack, f)
 	return nil
 }
 
 func (c *context) popFrame() frame {
+	fmt.Printf("pop_frame stack_len=%d\n", len(c.stack))
 	f := c.stack[len(c.stack)-1]
 	c.stack = c.stack[:len(c.stack)-1]
 	return f
