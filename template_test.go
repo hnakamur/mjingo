@@ -97,9 +97,15 @@ func TestVMBlockFragments(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				got, err = tpl.Render(ValueFromGoValue(ctx))
+				state, err := tpl.EvalToState(ValueFromGoValue(ctx))
 				if err != nil {
 					got = err.Error()
+				}
+				rendered, err := state.RenderBlock("fragment")
+				if err != nil {
+					got = err.Error()
+				} else {
+					got = rendered + "\n"
 				}
 			}
 			checkResultWithSnapshotFile(t, got, inputFilename)

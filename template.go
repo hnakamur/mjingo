@@ -34,13 +34,26 @@ func (t *Template) Render(context Value) (string, error) {
 	return b.String(), nil
 }
 
+// EvalToState evaluates the template into a [`State`].
+//
+// This evaluates the template, discards the output and returns the final
+// `State` for introspection.  From there global variables or blocks
+// can be accessed.  What this does is quite similar to how the engine
+// interally works with tempaltes that are extended or imported from.
+func (t *Template) EvalToState(context Value) (*State, error) {
+	out := newOutputNull()
+	vm := newVirtualMachine(t.env)
+	_, state, err := vm.eval(t.compiled.instructions, context, t.compiled.blocks, out, t.initialAutoEscape)
+	return state, err
+}
+
 func (t *Template) name() string {
 	return t.compiled.instructions.Name()
 }
 
 func (t *Template) _eval(root Value, out *output) error {
 	vm := newVirtualMachine(t.env)
-	if _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
+	if _, _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
 		out, t.initialAutoEscape); err != nil {
 		return err
 	}

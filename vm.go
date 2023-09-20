@@ -34,7 +34,7 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 	return &virtualMachine{env: env}
 }
 
-func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], error) {
+func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], *State, error) {
 	state := &State{
 		env:          m.env,
 		ctx:          *newContext(*newFrame(root)),
@@ -42,7 +42,8 @@ func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]
 		instructions: insts,
 		blocks:       prepareBlocks(blocks),
 	}
-	return m.evalState(state, out)
+	v, err := m.evalState(state, out)
+	return v, state, err
 }
 
 func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,

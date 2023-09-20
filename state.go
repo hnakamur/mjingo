@@ -1,6 +1,8 @@
 package mjingo
 
 import (
+	"strings"
+
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
 	"github.com/hnakamur/mjingo/option"
@@ -60,6 +62,27 @@ func (s *State) UndefinedBehavior() UndefinedBehavior {
 
 func (s *State) lookup(name string) option.Option[Value] {
 	return s.ctx.load(s.env, name)
+}
+
+// RenderBlock renders a block with the given name into a string.
+//
+// This method works like [Template.Render] but
+// it only renders a specific block in the template.  The first argument is
+// the name of the block.
+//
+// Note that rendering a block is a stateful operation.  If an error
+// is returned the module has to be re-created as the internal state
+// can end up corrupted.  This also means you can only render blocks
+// if you have a mutable reference to the state which is not possible
+// from within filters or similar.
+func (s *State) RenderBlock(block string) (string, error) {
+	var b strings.Builder
+	out := newOutput(&b)
+	_, err := newVirtualMachine(s.env).callBlock(block, s, out)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }
 
 func newBlockStack(instrs instructions) *blockStack {
