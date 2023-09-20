@@ -1,6 +1,7 @@
 package mjingo
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -40,6 +41,21 @@ func TestValueString(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("result mismatch, input=%+v, got=%s, want=%s", tc.input, got, tc.want)
 		}
+	}
+}
+
+func TestValueType_Format(t *testing.T) {
+	if got, want := fmt.Sprintf("%s", valueTypeBool), "bool"; got != want {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := fmt.Sprintf("%v", valueTypeBool), "2"; got != want {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := fmt.Sprintf("%#v", valueTypeBool), "2"; got != want {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
+	}
+	if got, want := fmt.Sprintf("%T", valueTypeBool), "mjingo.valueType"; got != want {
+		t.Errorf("result mismatch, got=%v, want=%v", got, want)
 	}
 }
 

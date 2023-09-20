@@ -187,6 +187,18 @@ func (t valueType) String() string {
 	}
 }
 
+func (t valueType) Format(f fmt.State, verb rune) {
+	switch verb {
+	case 's':
+		io.WriteString(f, t.String())
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods valueType
+		type valueType hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), valueType(t))
+	}
+}
+
 func (k ValueKind) String() string {
 	switch k {
 	case ValueKindUndefined:
