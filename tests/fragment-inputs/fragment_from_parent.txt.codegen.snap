@@ -1,0 +1,14 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n")  [line 1],
+        00001 | LoadConst("fragment_in_parent.txt")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n"),
+        00004 | CallBlock("other")  [line 6],
+    ],
+    {
+        "other": [
+            00000 | EmitRaw("\nShouldn't show up\n")  [line 6],
+        ],
+    },
+)

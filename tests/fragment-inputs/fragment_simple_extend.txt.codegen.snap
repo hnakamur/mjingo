@@ -1,0 +1,14 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n")  [line 1],
+        00001 | LoadConst("simple_layout.txt")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n\n"),
+        00004 | CallBlock("fragment")  [line 7],
+    ],
+    {
+        "fragment": [
+            00000 | EmitRaw("\nThis should appear\n")  [line 7],
+        ],
+    },
+)

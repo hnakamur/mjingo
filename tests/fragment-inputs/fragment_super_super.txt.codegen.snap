@@ -1,0 +1,20 @@
+(
+    [
+        00000 | EmitRaw("{\n  \"var\": \"foo\"\n}\n---\n")  [line 1],
+        00001 | LoadConst("simple_layout_2.txt")  [line 5],
+        00002 | LoadBlocks,
+        00003 | EmitRaw("\n\n"),
+        00004 | CallBlock("fragment")  [line 10],
+    ],
+    {
+        "fragment": [
+            00000 | EmitRaw("\nThis should appear\n")  [line 7],
+            00001 | FastSuper  [line 9],
+            00002 | EmitRaw("\n"),
+            00003 | CallFunction("super", 0)  [line 10],
+            00004 | ApplyFilter("upper", 1, 0),
+            00005 | Emit,
+            00006 | EmitRaw("\n"),
+        ],
+    },
+)

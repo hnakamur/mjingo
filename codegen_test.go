@@ -21,6 +21,24 @@ func TestCodegen(t *testing.T) {
 		})
 	}
 }
+
+func TestCodegenFragments(t *testing.T) {
+	inputFilenames := mustGlob(t, []string{"tests", "fragment-inputs"}, []string{"*.txt", "*.html"})
+	for _, inputFilename := range inputFilenames {
+		inputFileBasename := filepath.Base(inputFilename)
+		t.Run(inputFileBasename, func(t *testing.T) {
+			inputContent := mustReadFile(t, inputFilename)
+			keepTrailingNewline := false
+			ct, err := newCompiledTemplate(inputFileBasename, inputContent, defaultSyntaxConfig, keepTrailingNewline)
+			if err != nil {
+				t.Fatal(err)
+			}
+			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
+				filepath.Join("tests", "fragment-inputs", inputFileBasename+".codegen.snap"))
+		})
+	}
+}
+
 func TestModifyInstructions(t *testing.T) {
 	insts := []instruction{
 		jumpIfFalseInstruction{JumpTarget: 0},
