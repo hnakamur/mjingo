@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -122,14 +121,9 @@ func debugStringInstsAndBlocks(insts instructions,
 	if len(blocks) == 0 {
 		fmt.Fprintf(&b, "%s{},\n", indent1)
 	} else {
-		keys := make([]string, 0, len(blocks))
-		for key := range blocks {
-			keys = append(keys, key)
-		}
-		slices.Sort(keys)
 		fmt.Fprintf(&b, "%s{\n", indent1)
 		nextIndent := indent1 + indent1
-		for _, key := range keys {
+		for _, key := range mapSortedKeys(blocks) {
 			fmt.Fprintf(&b, "%s%s%q: ", indent1, indent1, key)
 			debugPrintInsts(&b, blocks[key], "", nextIndent)
 		}

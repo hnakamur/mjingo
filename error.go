@@ -18,12 +18,13 @@ import (
 // Since mjingo takes advantage of chained errors it's recommended
 // to render the entire chain to better understand the causes.
 type Error struct {
-	kind   ErrorKind
-	detail string
-	name   option.Option[string]
-	lineno uint
-	span   option.Option[span]
-	source error
+	kind      ErrorKind
+	detail    string
+	name      option.Option[string]
+	lineno    option.Option[uint]
+	span      option.Option[span]
+	source    error
+	debugInfo *debugInfo
 }
 
 // NewError creates a new [Error] with kind and detail.
@@ -197,7 +198,7 @@ func (e *Error) Error() string {
 		b.WriteString(e.detail)
 	}
 	if e.name.IsSome() {
-		fmt.Fprintf(&b, " (in %s:%d)", e.name.Unwrap(), e.lineno)
+		fmt.Fprintf(&b, " (in %s:%d)", e.name.Unwrap(), e.lineno.UnwrapOr(0))
 	}
 	return b.String()
 }
@@ -205,25 +206,69 @@ func (e *Error) Error() string {
 // Kind returns the error kind
 func (e *Error) Kind() ErrorKind { return e.kind }
 
-func (e *Error) line() option.Option[uint] {
-	if e.lineno > 0 {
-		return option.Some(e.lineno)
-	}
-	return option.None[uint]()
-}
+func (e *Error) line() option.Option[uint] { return e.lineno }
 
 func (e *Error) setFilenameAndLine(filename string, lineno uint) {
 	e.name = option.Some(filename)
-	e.lineno = lineno
+	e.lineno = option.Some(lineno)
 }
 
 func (e *Error) setFilenameAndSpan(filename string, spn span) {
 	e.name = option.Some(filename)
 	e.span = option.Some(spn)
-	e.lineno = uint(spn.StartLine)
+	e.lineno = option.Some(uint(spn.StartLine))
 }
 
 func (e *Error) withSource(err error) *Error {
 	e.source = err
 	return e
+}
+
+func (e *Error) attachDebugInfo(info *debugInfo) {
+	e.debugInfo = info
+}
+
+// Format implements fmt.Formatter.
+func (e Error) Format(f fmt.State, verb rune) {
+	switch verb {
+	case 's':
+		if e.detail != "" {
+			fmt.Fprintf(f, "%s: %s", e.kind, e.detail)
+		} else {
+			fmt.Fprintf(f, "%s", e.kind)
+		}
+		if filename := ""; e.name.UnwrapTo(&filename) {
+			fmt.Fprintf(f, " (in %s:%d)", filename, e.lineno.UnwrapOr(0))
+		}
+		if f.Flag('#') && e.debugInfo != nil {
+			e.debugInfo.render(f, e.name, e.kind, e.lineno, e.span)
+		}
+	case 'q':
+		s := newDebugStruct("Error")
+		s.field("kind", e.kind.debugString())
+		if e.detail != "" {
+			s.field("detail", fmt.Sprintf("%q", e.detail))
+		}
+		if name := ""; e.name.UnwrapTo(&name) {
+			s.field("name", fmt.Sprintf("%q", name))
+		}
+		if line := uint(0); e.lineno.UnwrapTo(&line) {
+			s.field("line", line)
+		}
+		if e.source != nil {
+			s.field("source", e.source) // TODO: format e.source
+		}
+		s.Format(f, verb)
+		// so this is a bit questionablem, but because of how commonly errors are just
+		// unwrapped i think it's sensible to spit out the debug info following the
+		// error struct dump.
+		if !f.Flag('#') && e.debugInfo != nil {
+			e.debugInfo.render(f, e.name, e.kind, e.lineno, e.span)
+		}
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods Error
+		type Error hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), Error(e))
+	}
 }

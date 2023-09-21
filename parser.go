@@ -1678,7 +1678,7 @@ func parseWithSyntax(source, filename string, syntax syntaxConfig, keepTrailingN
 	if err != nil {
 		var merr *Error
 		if errors.As(err, &merr) {
-			if merr.lineno == 0 {
+			if merr.lineno.IsNone() {
 				merr.setFilenameAndSpan(filename, parser.stream.lastSpan)
 			}
 		}
@@ -1776,7 +1776,7 @@ func parseExpr(source string, syntax syntaxConfig) (astExpr, error) {
 		}
 	}
 	var err2 *Error
-	if errors.As(err, &err2) && err2.lineno == 0 {
+	if errors.As(err, &err2) && err2.lineno.IsNone() {
 		err2.setFilenameAndSpan("<expression>", parser.stream.lastSpan)
 	}
 	return nil, err

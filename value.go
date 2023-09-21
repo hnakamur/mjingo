@@ -214,7 +214,7 @@ func (k ValueKind) String() string {
 	case ValueKindBytes:
 		return "bytes"
 	case ValueKindSeq:
-		return "seq"
+		return "sequence"
 	case ValueKindMap:
 		return "map"
 	default:

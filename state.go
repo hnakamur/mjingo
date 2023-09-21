@@ -85,6 +85,20 @@ func (s *State) RenderBlock(block string) (string, error) {
 	return b.String(), nil
 }
 
+func (s *State) makeDebugInfo(pc uint, insts instructions) *debugInfo {
+	names := insts.getReferencedNames(pc)
+	locals := make(map[string]Value, len(names))
+	for _, name := range names {
+		if val := (Value{}); s.lookup(name).UnwrapTo(&val) {
+			locals[name] = val
+		}
+	}
+	return &debugInfo{
+		templateSource:   insts.source,
+		referencedLocals: locals,
+	}
+}
+
 func newBlockStack(instrs instructions) *blockStack {
 	return &blockStack{instrs: []instructions{instrs}, depth: 0}
 }

@@ -247,7 +247,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opAdd(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -255,7 +255,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opSub(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -263,7 +263,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opMul(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -271,7 +271,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opDiv(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -279,7 +279,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opIntDiv(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -287,7 +287,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opRem(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -295,7 +295,7 @@ loop:
 			b = stack.Pop()
 			a = stack.Pop()
 			if v, err := opPow(a, b); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -596,12 +596,7 @@ loop:
 		case exportLocalsInstruction:
 			locals := state.ctx.currentLocals()
 			module := valueMapWithCapacity(uint(len(*locals)))
-			keys := make([]string, 0, len(*locals))
-			for key := range *locals {
-				keys = append(keys, key)
-			}
-			slices.Sort(keys)
-			for _, key := range keys {
+			for _, key := range mapSortedKeys(*locals) {
 				val := (*locals)[key]
 				module.Set(keyRefFromValue(valueFromString(key)), val.clone())
 			}
@@ -939,6 +934,9 @@ func processErr(err error, pc uint, st *State) error {
 		} else if lineno := st.instructions.GetLine(pc); lineno.IsSome() {
 			er.setFilenameAndLine(st.instructions.Name(), lineno.Unwrap())
 		}
+	}
+	if st.env.Debug() && er.debugInfo == nil {
+		er.attachDebugInfo(st.makeDebugInfo(pc, st.instructions))
 	}
 	return er
 }

@@ -27,6 +27,7 @@ type Environment struct {
 	defaultAutoEscape AutoEscapeFunc
 	undefinedBehavior UndefinedBehavior
 	formatter         formatterFunc
+	debug             bool
 }
 
 // AutoEscapeFunc is the type of the function called by an Environment to
@@ -224,6 +225,22 @@ func (e *Environment) SetUndefinedBehavior(behavior UndefinedBehavior) {
 func (e *Environment) UndefinedBehavior() UndefinedBehavior {
 	return e.undefinedBehavior
 }
+
+// SetDebug enables or disables the debug mode.
+//
+// When the debug mode is enabled the engine will dump out some of the
+// execution state together with the source information of the executing
+// template when an error is created.  The cost of this is relatively
+// high as the data including the template source is cloned.
+//
+// When this is enabled templates will print debug information with source
+// context when the error is printed.
+func (e *Environment) SetDebug(enabled bool) {
+	e.debug = enabled
+}
+
+// Debug returns the current value of the debug flag.
+func (e *Environment) Debug() bool { return e.debug }
 
 func (e *Environment) syntaxConfig() *syntaxConfig {
 	return &e.templates.SyntaxConfig

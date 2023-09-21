@@ -2,6 +2,8 @@ package mjingo
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -33,23 +35,30 @@ func TestTemplate(t *testing.T) {
 			}
 
 			env := NewEnvironment()
+			env.SetDebug(true)
 			for refBaseFilename, refContent := range refContents {
 				if err := env.AddTemplate(refBaseFilename, refContent); err != nil {
 					t.Fatal(err)
 				}
 			}
 			var got string
-			err := env.AddTemplate(inputFilename, templateContent)
+			err := env.AddTemplate(inputFileBasename, templateContent)
 			if err != nil {
 				got = err.Error()
 			} else {
-				tpl, err := env.GetTemplate(inputFilename)
+				tpl, err := env.GetTemplate(inputFileBasename)
 				if err != nil {
 					t.Fatal(err)
 				}
 				got, err = tpl.Render(ValueFromGoValue(ctx))
 				if err != nil {
-					got = err.Error()
+					var b strings.Builder
+					fmt.Fprintf(&b, "!!!ERROR!!!\n\n%#q\n\n", err)
+					fmt.Fprintf(&b, "%#s", err)
+					for merr := (*Error)(nil); errors.As(err, &merr) && merr.source != nil; err = merr.source {
+						fmt.Fprintf(&b, "\ncaused by: %#s", merr.source)
+					}
+					got = b.String()
 				}
 			}
 			checkResultWithSnapshotFile(t, got, inputFilename)

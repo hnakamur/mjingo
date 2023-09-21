@@ -454,7 +454,9 @@ func TestParser(t *testing.T) {
 				"        name: %q,\n"+
 				"        line: %d,\n"+
 				"    },\n"+
-				")\n", merr.Kind().debugString(), merr.detail, merr.name.Unwrap(), merr.lineno)
+				")\n",
+				merr.Kind().debugString(), merr.detail, merr.name.Unwrap(),
+				merr.lineno.UnwrapOr(0))
 		}
 		return fmt.Sprintf("Err(\n"+
 			"    %s\n"+
