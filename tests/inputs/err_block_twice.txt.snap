@@ -1,0 +1,18 @@
+!!!SYNTAX ERROR!!!
+
+Error {
+    kind: SyntaxError,
+    detail: "block 'foo' defined twice",
+    name: "err_block_twice.txt",
+    line: 2,
+}
+
+syntax error: block 'foo' defined twice (in err_block_twice.txt:2)
+----------------------------- err_block_twice.txt -----------------------------
+   1 | {% block foo %}{% endblock %}
+   2 > {% block foo %}{% endblock %}
+     i          ^^^ syntax error
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+No referenced variables
+-------------------------------------------------------------------------------
+

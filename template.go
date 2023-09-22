@@ -53,11 +53,9 @@ func (t *Template) name() string {
 
 func (t *Template) _eval(root Value, out *output) error {
 	vm := newVirtualMachine(t.env)
-	if _, _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
-		out, t.initialAutoEscape); err != nil {
-		return err
-	}
-	return nil
+	_, _, err := vm.eval(t.compiled.instructions, root, t.compiled.blocks,
+		out, t.initialAutoEscape)
+	return err
 }
 
 func (t *Template) instructionsAndBlocks() (insts instructions, blocks map[string]instructions, err error) {
@@ -72,6 +70,10 @@ type compiledTemplate struct {
 }
 
 func newCompiledTemplate(name, source string, syntax syntaxConfig, keepTrailingNewline bool) (*compiledTemplate, error) {
+	return attachBasicDebugInfo[*compiledTemplate](source)(newCompiledTemplateImpl(name, source, syntax, keepTrailingNewline))
+}
+
+func newCompiledTemplateImpl(name, source string, syntax syntaxConfig, keepTrailingNewline bool) (*compiledTemplate, error) {
 	st, err := parseWithSyntax(source, name, syntax, keepTrailingNewline)
 	if err != nil {
 		return nil, err

@@ -1,0 +1,19 @@
+!!!SYNTAX ERROR!!!
+
+Error {
+    kind: SyntaxError,
+    detail: "block tags in macros are not allowed",
+    name: "err_block_in_macro.txt",
+    line: 2,
+}
+
+syntax error: block tags in macros are not allowed (in err_block_in_macro.txt:2)
+--------------------------- err_block_in_macro.txt ----------------------------
+   1 | {% macro two_args(a, b) %}
+   2 >   {% block foo %}{% endblock %}
+     i      ^^^^^ syntax error
+   3 | {% endmacro %}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+No referenced variables
+-------------------------------------------------------------------------------
+

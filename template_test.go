@@ -44,7 +44,10 @@ func TestTemplate(t *testing.T) {
 			var got string
 			err := env.AddTemplate(inputFileBasename, templateContent)
 			if err != nil {
-				got = err.Error()
+				var b strings.Builder
+				fmt.Fprintf(&b, "!!!SYNTAX ERROR!!!\n\n%#q\n\n", err)
+				fmt.Fprintf(&b, "%#s", err)
+				got = b.String()
 			} else {
 				tpl, err := env.GetTemplate(inputFileBasename)
 				if err != nil {
@@ -61,7 +64,7 @@ func TestTemplate(t *testing.T) {
 					got = b.String()
 				}
 			}
-			checkResultWithSnapshotFile(t, got, inputFilename)
+			checkResultWithSnapshotFile(t, got+"\n\n", inputFilename)
 		})
 	}
 }

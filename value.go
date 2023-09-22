@@ -890,34 +890,34 @@ func (undefinedValue) tryIter() (iterator, error) {
 	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v boolValue) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v u64Value) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v i64Value) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v f64Value) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (noneValue) tryIter() (iterator, error) {
 	return iterator{iterState: &emptyValueIteratorState{}}, nil
 }
 func (v invalidValue) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v u128Value) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v i128Value) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v stringValue) tryIter() (iterator, error) {
 	return iterator{iterState: &charsValueIteratorState{s: v.Str}, len: uint(utf8.RuneCountInString(v.Str))}, nil
 }
 func (v bytesValue) tryIter() (iterator, error) {
-	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iteratble", v.kind()))
+	return iterator{}, NewError(InvalidOperation, fmt.Sprintf("%s is not iterable", v.kind()))
 }
 func (v seqValue) tryIter() (iterator, error) {
 	return iterator{iterState: &seqValueIteratorState{items: v.Items}, len: uint(len(v.Items))}, nil

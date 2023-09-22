@@ -1,0 +1,22 @@
+!!!ERROR!!!
+
+Error {
+    kind: UndefinedError,
+    name: "err_undefined_item.txt",
+    line: 1,
+}
+
+undefined value (in err_undefined_item.txt:1)
+--------------------------- err_undefined_item.txt ----------------------------
+   1 > {{ seq[42][23] }}
+     i       ^^^^^^^^ undefined value
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Referenced variables: {
+    seq: [
+        1,
+        2,
+        3,
+    ],
+}
+-------------------------------------------------------------------------------
+

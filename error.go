@@ -1,6 +1,7 @@
 package mjingo
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -270,5 +271,17 @@ func (e Error) Format(f fmt.State, verb rune) {
 		type hideMethods Error
 		type Error hideMethods
 		fmt.Fprintf(f, fmt.FormatString(f, verb), Error(e))
+	}
+}
+
+func attachBasicDebugInfo[T any](source string) func(r T, err error) (T, error) {
+	return func(r T, err error) (T, error) {
+		if err == nil {
+			return r, nil
+		}
+		if merr := (*Error)(nil); errors.As(err, &merr) {
+			merr.debugInfo = newDebugInfo(source)
+		}
+		return r, err
 	}
 }

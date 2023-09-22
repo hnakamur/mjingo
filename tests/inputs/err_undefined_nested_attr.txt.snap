@@ -1,0 +1,23 @@
+!!!ERROR!!!
+
+Error {
+    kind: UndefinedError,
+    name: "err_undefined_nested_attr.txt",
+    line: 2,
+}
+
+undefined value (in err_undefined_nested_attr.txt:2)
+------------------------ err_undefined_nested_attr.txt ------------------------
+   1 | {{ seq.whatever }}
+   2 > {{ seq.whatever.else }}
+     i       ^^^^^^^^^^^^^^ undefined value
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Referenced variables: {
+    seq: [
+        1,
+        2,
+        3,
+    ],
+}
+-------------------------------------------------------------------------------
+

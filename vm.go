@@ -42,8 +42,8 @@ func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]
 		instructions: insts,
 		blocks:       prepareBlocks(blocks),
 	}
-	v, err := m.evalState(state, out)
-	return v, state, err
+	val, err := m.evalState(state, out)
+	return val, state, err
 }
 
 func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
@@ -439,7 +439,9 @@ loop:
 			}
 		case callBlockInstruction:
 			if parentInstructions.IsNone() && !out.isDiscarding() {
-				m.callBlock(inst.Name, state, out)
+				if _, err := m.callBlock(inst.Name, state, out); err != nil {
+					return option.None[Value](), err
+				}
 			}
 		case pushAutoEscapeInstruction:
 			a = stack.Pop()
@@ -513,8 +515,7 @@ loop:
 					return option.None[Value](), err
 				}
 				continue loop
-			} else if optFunc := state.lookup(inst.Name); optFunc.IsSome() {
-				f := optFunc.Unwrap()
+			} else if f := (Value{}); state.lookup(inst.Name).UnwrapTo(&f) {
 				args := stack.SliceTop(inst.ArgCount)
 				a, err := valueCall(f, state, args)
 				if err != nil {

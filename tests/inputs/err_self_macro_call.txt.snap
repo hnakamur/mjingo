@@ -1,0 +1,20 @@
+!!!ERROR!!!
+
+Error {
+    kind: InvalidOperation,
+    detail: "recursion limit exceeded",
+    name: "err_self_macro_call.txt",
+    line: 1,
+}
+
+invalid operation: recursion limit exceeded (in err_self_macro_call.txt:1)
+--------------------------- err_self_macro_call.txt ---------------------------
+   1 > {% macro x() %}{{ x() }}{% endmacro %}
+     i                   ^^^ invalid operation
+   2 | {{ x() }}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Referenced variables: {
+    x: <macro x>,
+}
+-------------------------------------------------------------------------------
+

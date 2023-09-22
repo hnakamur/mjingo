@@ -1,0 +1,17 @@
+!!!ERROR!!!
+
+Error {
+    kind: UnknownFunction,
+    detail: "an_unknown_function is unknown",
+    name: "err_bad_call.txt",
+    line: 1,
+}
+
+unknown function: an_unknown_function is unknown (in err_bad_call.txt:1)
+------------------------------ err_bad_call.txt -------------------------------
+   1 > This is {{ an_unknown_function() }}!
+     i            ^^^^^^^^^^^^^^^^^^^^^ unknown function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+No referenced variables
+-------------------------------------------------------------------------------
+

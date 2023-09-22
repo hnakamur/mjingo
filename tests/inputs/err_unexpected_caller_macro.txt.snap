@@ -1,0 +1,20 @@
+!!!ERROR!!!
+
+Error {
+    kind: TooManyArguments,
+    detail: "unknown keyword argument `caller`",
+    name: "err_unexpected_caller_macro.txt",
+    line: 2,
+}
+
+too many arguments: unknown keyword argument `caller` (in err_unexpected_caller_macro.txt:2)
+----------------------- err_unexpected_caller_macro.txt -----------------------
+   1 | {% macro no_caller() %}{% endmacro %}
+   2 > {% call no_caller() %}...{% endcall %}
+     i         ^^^^^^^^^^^ too many arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Referenced variables: {
+    no_caller: <macro no_caller>,
+}
+-------------------------------------------------------------------------------
+

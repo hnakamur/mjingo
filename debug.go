@@ -14,6 +14,13 @@ type debugInfo struct {
 	referencedLocals map[string]Value
 }
 
+func newDebugInfo(source string) *debugInfo {
+	return &debugInfo{
+		templateSource:   source,
+		referencedLocals: make(map[string]Value),
+	}
+}
+
 type varPrinter map[string]Value
 
 func (p varPrinter) Format(f fmt.State, verb rune) {
@@ -96,76 +103,11 @@ func (d debugInfo) render(w io.Writer, name option.Option[string], kind ErrorKin
 	if _, err := fmt.Fprintln(w); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "%q\n", varPrinter(d.referencedLocals)); err != nil {
+	if _, err := fmt.Fprintf(w, "%#q\n", varPrinter(d.referencedLocals)); err != nil {
 		return err
 	}
 	if _, err := io.WriteString(w, strings.Repeat("-", 79)); err != nil {
 		return err
-	}
-	return nil
-}
-
-type debugStruct struct {
-	name        string
-	indentLevel uint
-	fields      []debugStructField
-}
-
-type debugStructField struct {
-	name  string
-	value any
-}
-
-func newDebugStruct(name string) *debugStruct {
-	return &debugStruct{name: name}
-}
-
-func (s *debugStruct) field(name string, value any) *debugStruct {
-	s.fields = append(s.fields, debugStructField{name: name, value: value})
-	return s
-}
-
-func (s debugStruct) Format(f fmt.State, verb rune) {
-	switch verb {
-	case 's':
-		io.WriteString(f, s.name)
-		io.WriteString(f, " { ")
-		for i, field := range s.fields {
-			if i > 0 {
-				io.WriteString(f, ", ")
-			}
-			io.WriteString(f, field.name)
-			io.WriteString(f, ": ")
-			fmt.Fprintf(f, "%v", field.value)
-		}
-		io.WriteString(f, " }")
-	case 'q':
-		io.WriteString(f, s.name)
-		io.WriteString(f, " {\n")
-		s.indentLevel++
-		for _, field := range s.fields {
-			writeIndent(f, s.indentLevel)
-			io.WriteString(f, field.name)
-			io.WriteString(f, ": ")
-			fmt.Fprintf(f, "%v", field.value)
-			io.WriteString(f, ",\n")
-		}
-		s.indentLevel--
-		writeIndent(f, s.indentLevel)
-		io.WriteString(f, "}")
-	default:
-		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
-		type hideMethods debugStruct
-		type debugStruct hideMethods
-		fmt.Fprintf(f, fmt.FormatString(f, verb), debugStruct(s))
-	}
-}
-
-func writeIndent(w io.Writer, level uint) error {
-	for i := uint(0); i < level; i++ {
-		if _, err := io.WriteString(w, "    "); err != nil {
-			return err
-		}
 	}
 	return nil
 }
