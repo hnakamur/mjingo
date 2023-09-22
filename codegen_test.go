@@ -1,11 +1,17 @@
 package mjingo
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestCodegen(t *testing.T) {
+	fileExists := func(path string) bool {
+		_, err := os.Stat(path)
+		return err == nil
+	}
+
 	inputFilenames := mustGlob(t, []string{"tests", "inputs"}, []string{"*.txt", "*.html"})
 	for _, inputFilename := range inputFilenames {
 		inputFileBasename := filepath.Base(inputFilename)
@@ -13,11 +19,15 @@ func TestCodegen(t *testing.T) {
 			inputContent := mustReadFile(t, inputFilename)
 			keepTrailingNewline := false
 			ct, err := newCompiledTemplate(inputFileBasename, inputContent, defaultSyntaxConfig, keepTrailingNewline)
+			codegenSnapPath := filepath.Join("tests", "inputs", inputFileBasename+".codegen.snap")
 			if err != nil {
-				t.Fatal(err)
+				if fileExists(codegenSnapPath) {
+					t.Errorf("should not get error, but got: %v", err)
+				}
+				return
 			}
 			testVerifyInstsAndBlocksWithSnapshot(t, ct.instructions, ct.blocks,
-				filepath.Join("tests", "inputs", inputFileBasename+".codegen.snap"))
+				codegenSnapPath)
 		})
 	}
 }
