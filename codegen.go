@@ -171,13 +171,13 @@ func (g *codeGenerator) compileEmitExpr(exp emitExprStmt) {
 	g.setLineFromSpan(exp.span)
 
 	if callExpr, ok := exp.expr.(callExpr); ok {
-		switch ct := callExpr.call.identityCall().(type) {
+		switch ct := callExpr.call.data.identityCall().(type) {
 		case callTypeFunction:
-			if ct.name == "super" && len(callExpr.call.args) == 0 {
-				g.addWithSpan(fastSuperInstruction{}, callExpr.span)
+			if ct.name == "super" && len(callExpr.call.data.args) == 0 {
+				g.addWithSpan(fastSuperInstruction{}, callExpr.call.span)
 				return
-			} else if ct.name == "loop" && len(callExpr.call.args) == 1 {
-				g.compileExpr(callExpr.call.args[0])
+			} else if ct.name == "loop" && len(callExpr.call.data.args) == 1 {
+				g.compileExpr(callExpr.call.data.args[0])
 				g.add(fastRecurseInstruction{})
 				return
 			}
@@ -296,12 +296,12 @@ func (g *codeGenerator) compileMacro(macroDecl macroStmt) {
 }
 
 func (g *codeGenerator) compileCallBlock(callBlock callBlockStmt) {
-	g.compileCall(callBlock.call, callBlock.span, option.Some(callBlock.macroDecl))
+	g.compileCall(callBlock.call, option.Some(callBlock.macroDecl))
 	g.add(emitInstruction{})
 }
 
 func (g *codeGenerator) compileDo(doTag doStmt) {
-	g.compileCall(doTag.call, doTag.span, option.None[macroStmt]())
+	g.compileCall(doTag.call, option.None[macroStmt]())
 }
 
 func (g *codeGenerator) compileIfStmt(ifCond ifCondStmt) {
@@ -414,7 +414,7 @@ func (g *codeGenerator) compileExpr(exp astExpr) {
 		g.add(getItemInstruction{})
 		g.popSpan()
 	case callExpr:
-		g.compileCall(exp.call, exp.span, option.None[macroStmt]())
+		g.compileCall(exp.call, option.None[macroStmt]())
 	case listExpr:
 		if v := exp.asConst(); v.IsSome() {
 			g.add(loadConstInstruction{Val: v.Unwrap()})
@@ -457,11 +457,11 @@ func (g *codeGenerator) compileExpr(exp astExpr) {
 	}
 }
 
-func (g *codeGenerator) compileCall(c call, spn span, caller option.Option[macroStmt]) {
-	g.pushSpan(spn)
-	switch ct := c.identityCall().(type) {
+func (g *codeGenerator) compileCall(c spanned[call], caller option.Option[macroStmt]) {
+	g.pushSpan(c.span)
+	switch ct := c.data.identityCall().(type) {
 	case callTypeFunction:
-		argCount := g.compileCallArgs(c.args, caller)
+		argCount := g.compileCallArgs(c.data.args, caller)
 		g.add(callFunctionInstruction{Name: ct.name, ArgCount: argCount})
 	case callTypeBlock:
 		g.add(beginCaptureInstruction{Mode: captureModeCapture})
@@ -469,11 +469,11 @@ func (g *codeGenerator) compileCall(c call, spn span, caller option.Option[macro
 		g.add(endCaptureInstruction{})
 	case callTypeMethod:
 		g.compileExpr(ct.expr)
-		argCount := g.compileCallArgs(c.args, caller)
+		argCount := g.compileCallArgs(c.data.args, caller)
 		g.add(callMethodInstruction{Name: ct.name, ArgCount: argCount + 1})
 	case callTypeObject:
 		g.compileExpr(ct.expr)
-		argCount := g.compileCallArgs(c.args, caller)
+		argCount := g.compileCallArgs(c.data.args, caller)
 		g.add(callObjectInstruction{ArgCount: argCount + 1})
 	}
 	g.popSpan()

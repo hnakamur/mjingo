@@ -331,11 +331,13 @@ loop:
 				return nil, err
 			}
 			exp = callExpr{
-				call: call{
-					expr: exp,
-					args: args,
+				call: spanned[call]{
+					data: call{
+						expr: exp,
+						args: args,
+					},
+					span: p.stream.expandSpan(spn),
 				},
-				span: p.stream.expandSpan(spn),
 			}
 		default:
 			break loop

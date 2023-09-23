@@ -97,12 +97,12 @@ type macroStmt struct {
 	span     span
 }
 type callBlockStmt struct {
-	call      call
+	call      spanned[call]
 	macroDecl macroStmt
 	span      span
 }
 type doStmt struct {
-	call call
+	call spanned[call]
 	span span
 }
 
@@ -119,6 +119,11 @@ type importName struct {
 type call struct {
 	expr astExpr
 	args []astExpr
+}
+
+type spanned[T any] struct {
+	data T
+	span span
 }
 
 var _ = statement(templateStmt{})
@@ -294,8 +299,7 @@ type getItemExpr struct {
 }
 
 type callExpr struct {
-	call call
-	span span
+	call spanned[call]
 }
 
 type listExpr struct {

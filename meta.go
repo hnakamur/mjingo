@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
-	"github.com/hnakamur/mjingo/option"
 	"github.com/hnakamur/mjingo/internal/datast/slicex"
 	"github.com/hnakamur/mjingo/internal/datast/stack"
+	"github.com/hnakamur/mjingo/option"
 )
 
 type assignmentTracker struct {
@@ -140,8 +140,8 @@ func trackVisitExpr(expr astExpr, state *assignmentTracker) {
 		trackVisitExprOpt(exp.stop, state)
 		trackVisitExprOpt(exp.step, state)
 	case callExpr:
-		trackVisitExpr(exp.call.expr, state)
-		trackVisitExpressions(exp.call.args, state)
+		trackVisitExpr(exp.call.data.expr, state)
+		trackVisitExpressions(exp.call.data.args, state)
 	case listExpr:
 		trackVisitExpressions(exp.items, state)
 	case mapExpr:
@@ -236,7 +236,7 @@ func trackWalk(node statement, state *assignmentTracker) {
 		state.assign(st.name)
 	case callBlockStmt: // do nothing
 	case doStmt:
-		trackVisitExpr(st.call.expr, state)
-		trackVisitExpressions(st.call.args, state)
+		trackVisitExpr(st.call.data.expr, state)
+		trackVisitExpressions(st.call.data.args, state)
 	}
 }

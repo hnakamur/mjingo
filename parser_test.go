@@ -26,18 +26,18 @@ func TestParser(t *testing.T) {
 		case callExpr:
 			fmt.Fprintf(w, "%sCall {\n", prefix)
 			fmt.Fprintf(w, "%s%sexpr: ", indent, indent1)
-			debugStringExprHelper(e.call.expr, w, "", indent+indent1)
-			if len(e.call.args) == 0 {
+			debugStringExprHelper(e.call.data.expr, w, "", indent+indent1)
+			if len(e.call.data.args) == 0 {
 				fmt.Fprintf(w, "%s%sargs: [],\n", indent, indent1)
 			} else {
 				fmt.Fprintf(w, "%s%sargs: [\n", indent, indent1)
 				nextIndent := indent + indent1 + indent1
-				for _, arg := range e.call.args {
+				for _, arg := range e.call.data.args {
 					debugStringExprHelper(arg, w, nextIndent, nextIndent)
 				}
 				fmt.Fprintf(w, "%s%s],\n", indent, indent1)
 			}
-			fmt.Fprintf(w, "%s} @ %s,\n", indent, debugStringSpan(e.span))
+			fmt.Fprintf(w, "%s} @ %s,\n", indent, debugStringSpan(e.call.span))
 		case varExpr:
 			fmt.Fprintf(w, "%sVar {\n", prefix)
 			fmt.Fprintf(w, "%s%sid: %q,\n", indent, indent1, e.id)
