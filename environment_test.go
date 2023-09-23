@@ -1,6 +1,7 @@
 package mjingo_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -666,7 +667,11 @@ func TestErrorSingleTemplate(t *testing.T) {
 				context := mjingo.ValueFromGoValue(tc.context, mjingo.WithStructTag("json"))
 				var got string
 				if _, err := tpl.Render(context); err != nil {
-					got = err.Error()
+					if merr := (*mjingo.Error)(nil); errors.As(err, &merr) {
+						got = merr.Kind().String()
+					} else {
+						got = err.Error()
+					}
 				}
 				if got != tc.want {
 					t.Errorf("error mismatch, i=%d, source=%s, got=%s, want=%s", i, tc.source, got, tc.want)

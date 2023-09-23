@@ -26,10 +26,10 @@ func TestDebugStruct(t *testing.T) {
 			Field("detail", "missing_function is unknown").
 			Field("name", "bad_basic_block.txt").
 			Field("line", 3)
-		if got, want := fmt.Sprintf("%s", s), `Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
+		if got, want := fmt.Sprintf(rustfmt.DisplayString, s), `Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
 			t.Errorf("result mismatch, got=%s, want=%s", got, want)
 		}
-		if got, want := fmt.Sprintf("%q", s), "Error {\n"+
+		if got, want := fmt.Sprintf(rustfmt.DebugString, s), "Error {\n"+
 			"    kind: UnknownFunction,\n"+
 			"    detail: missing_function is unknown,\n"+
 			"    name: bad_basic_block.txt,\n"+
@@ -45,14 +45,14 @@ func TestDebugStruct(t *testing.T) {
 			Field("detail", "missing_function is unknown").
 			Field("name", "bad_basic_block.txt").
 			Field("line", 3)
-		fmt.Fprintf(a, "%s", s)
+		fmt.Fprintf(a, rustfmt.DisplayString, s)
 		if got, want := b.String(), `    Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
 			t.Errorf("result mismatch,\n got=%q,\nwant=%q", got, want)
 		}
 
 		b = new(strings.Builder)
 		a = rustfmt.NewPadAdapter(b, true)
-		fmt.Fprintf(a, "%q", s)
+		fmt.Fprintf(a, rustfmt.DebugString, s)
 		if got, want := b.String(), "    Error {\n"+
 			"        kind: UnknownFunction,\n"+
 			"        detail: missing_function is unknown,\n"+
@@ -70,7 +70,7 @@ func TestDebugList(t *testing.T) {
 			b := new(strings.Builder)
 			a := rustfmt.NewPadAdapter(b, true)
 			l := rustfmt.NewDebugList([]any{1, 2})
-			fmt.Fprintf(a, "%s", l)
+			fmt.Fprintf(a, rustfmt.DisplayString, l)
 			if got, want := b.String(), "    [1, 2]"; got != want {
 				t.Errorf("result mismatch,\n got=%q,\nwant=%q", got, want)
 			}
@@ -79,7 +79,7 @@ func TestDebugList(t *testing.T) {
 			b := new(strings.Builder)
 			a := rustfmt.NewPadAdapter(b, true)
 			l := rustfmt.NewDebugList([]any{1, 2})
-			fmt.Fprintf(a, "%q", l)
+			fmt.Fprintf(a, rustfmt.DebugString, l)
 			if got, want := b.String(), "    [\n"+
 				"        1,\n"+
 				"        2,\n"+

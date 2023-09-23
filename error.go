@@ -3,7 +3,6 @@ package mjingo
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/rustfmt"
@@ -233,7 +232,6 @@ func (e *Error) attachDebugInfo(info *debugInfo) {
 
 // Format implements fmt.Formatter.
 func (e Error) Format(f fmt.State, verb rune) {
-	log.Printf("Error.Format start, verb=%c, pretty=%v", verb, f.Flag(rustfmt.PrettyFlag))
 	switch verb {
 	case rustfmt.DisplayVerb:
 		if e.detail != "" {

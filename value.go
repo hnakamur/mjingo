@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -1628,14 +1627,40 @@ func valueAsOptionString(val Value) option.Option[string] {
 func (v Value) SupportRustFormat() {}
 
 func (v Value) Format(f fmt.State, verb rune) {
-	log.Printf("Value.Format start, verb=%c, pretty=%v, v.dataType=%T", verb, f.Flag(rustfmt.PrettyFlag), v.data)
 	switch verb {
 	case rustfmt.DisplayVerb:
-		switch v.data.(type) {
+		switch d := v.data.(type) {
 		case undefinedValue:
 			// do nothing
+		case boolValue:
+			fmt.Fprintf(f, "%v", d.B)
+		case u64Value:
+			fmt.Fprintf(f, "%d", d.N)
+		case i64Value:
+			fmt.Fprintf(f, "%d", d.N)
+		case f64Value:
+			io.WriteString(f, v.data.String())
+		case noneValue:
+			io.WriteString(f, "none")
+		case invalidValue:
+			fmt.Fprintf(f, "<invalid value: %s>", d.Detail)
+		case u128Value:
+			io.WriteString(f, d.N.String())
+		case i128Value:
+			io.WriteString(f, d.N.String())
+		case stringValue:
+			io.WriteString(f, d.Str)
+		case bytesValue:
+			panic("not implemented yet")
+		case seqValue:
+			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
+		case mapValue:
+			panic("not implemented yet")
+		case dynamicValue:
+			rustfmt.FormatAnyValue(f, verb, d.Dy)
 		default:
-			fmt.Fprintf(f, fmt.FormatString(f, verb), v.data)
+			panic("not implemented yet")
+			// fmt.Fprintf(f, fmt.FormatString(f, verb), v.data)
 		}
 	case rustfmt.DebugVerb:
 		switch d := v.data.(type) {
@@ -1659,15 +1684,14 @@ func (v Value) Format(f fmt.State, verb rune) {
 			io.WriteString(f, d.N.String())
 		case stringValue:
 			io.WriteString(f, d.Str)
+		case bytesValue:
+			panic("not implemented yet")
 		case seqValue:
 			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
 		case mapValue:
+			panic("not implemented yet")
 		case dynamicValue:
-			if dyFmt, ok := d.Dy.(fmt.Formatter); ok {
-				dyFmt.Format(f, verb)
-			} else {
-				fmt.Fprintf(f, fmt.FormatString(f, verb), d)
-			}
+			rustfmt.FormatAnyValue(f, verb, d.Dy)
 		default:
 			fmt.Fprintf(f, fmt.FormatString(f, verb), d)
 		}

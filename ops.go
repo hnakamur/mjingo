@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -229,7 +230,7 @@ func opPow(lhs, rhs Value) (Value, error) {
 }
 
 func opStringConcat(left, right Value) Value {
-	return valueFromString(fmt.Sprintf("%s%s", left, right))
+	return valueFromString(fmt.Sprintf(rustfmt.DisplayString+rustfmt.DisplayString, left, right))
 }
 
 // / Implements a containment operation on values.
@@ -414,12 +415,12 @@ func i128CheckedPow(ret, base *I128, exp uint32) *I128 {
 
 func failedOpUnary(op string, v Value) error {
 	return NewError(InvalidOperation,
-		fmt.Sprintf("unable to calculate %s%s", op, v))
+		fmt.Sprintf("unable to calculate %s"+rustfmt.DisplayString, op, v))
 }
 
 func failedOp(op string, lhs, rhs Value) error {
 	return NewError(InvalidOperation,
-		fmt.Sprintf("unable to calculate %s %s %s", lhs, op, rhs))
+		fmt.Sprintf("unable to calculate "+rustfmt.DisplayString+" %s "+rustfmt.DisplayString, lhs, op, rhs))
 }
 
 func impossibleOp(op string, lhs, rhs Value) error {

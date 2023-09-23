@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/rustfmt"
@@ -26,7 +25,6 @@ func newDebugInfo(source string) *debugInfo {
 type varPrinter map[string]Value
 
 func (p varPrinter) Format(f fmt.State, verb rune) {
-	log.Printf("varPrinter Format start, verb=%c, flag#=%v", verb, f.Flag('#'))
 	switch verb {
 	case rustfmt.DebugVerb, rustfmt.DisplayVerb:
 		if len(p) == 0 {
@@ -35,7 +33,6 @@ func (p varPrinter) Format(f fmt.State, verb rune) {
 		}
 		s := rustfmt.NewDebugStruct("Referenced variables:")
 		for _, key := range mapSortedKeys(p) {
-			log.Printf("varPrinter key=%s, valType=%T, valDataType=%T", key, p[key], p[key].data)
 			s.Field(key, p[key])
 		}
 		s.Format(f, verb)
@@ -95,7 +92,7 @@ func (d debugInfo) render(w io.Writer, name option.Option[string], kind ErrorKin
 			}
 
 		}
-		for i := idx + 1; i < min(idx+3, uint(len(lines))); i++ {
+		for i := idx + 1; i < min(idx+1+3, uint(len(lines))); i++ {
 			if _, err := fmt.Fprintf(w, "%4d | %s\n", i+1, lines[i]); err != nil {
 				return err
 			}

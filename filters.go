@@ -10,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -901,7 +902,7 @@ func join(val Value, joiner option.Option[string]) (string, error) {
 			if itemStr := ""; valueAsOptionString(item).UnwrapTo(&itemStr) {
 				b.WriteString(itemStr)
 			} else {
-				fmt.Fprintf(&b, "%s", item)
+				fmt.Fprintf(&b, rustfmt.DisplayString, item)
 			}
 		}
 		return b.String(), nil

@@ -1,11 +1,12 @@
 package mjingo
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/hnakamur/mjingo/internal/rustfmt"
@@ -194,6 +195,8 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 		return v
 	case Object:
 		return ValueFromObject(v)
+	case map[string]any:
+		return valueFromStrKeyGoMap(v)
 	case []Value:
 		return valueFromSlice(v)
 	default:
@@ -213,6 +216,38 @@ func valueFromGoValueHelper(val any, config *valueFromGoValueConfig, level uint)
 	}
 }
 
+func valueFromStrKeyGoMap[V any](m map[string]V) Value {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	vm := newValueMap()
+	for _, key := range keys {
+		valVal := ValueFromGoValue(m[key])
+		vm.Set(keyRefFromString(key), valVal)
+	}
+	return valueFromIndexMap(vm)
+}
+
+func valueFromGoMap[K interface {
+	comparable
+	cmp.Ordered
+}, V any](m map[K]V) Value {
+	keys := make([]K, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	vm := newValueMap()
+	for _, key := range keys {
+		keyVal := ValueFromGoValue(key)
+		valVal := ValueFromGoValue(m[key])
+		vm.Set(keyRefFromValue(keyVal), valVal)
+	}
+	return valueFromIndexMap(vm)
+}
+
 func mapErrToInvalidValue(val Value, err error) Value {
 	if err != nil {
 		return Value{data: invalidValue{Detail: err.Error()}}
@@ -222,6 +257,7 @@ func mapErrToInvalidValue(val Value, err error) Value {
 
 func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
 	m := newValueMap()
+	// TODO: sort keys
 	for iter := val.MapRange(); iter.Next(); {
 		key := valueFromGoValueHelper(iter.Key().Interface(), config, level+1)
 		v := valueFromGoValueHelper(iter.Value().Interface(), config, level+1)
@@ -324,14 +360,12 @@ func (s *reflectSeqObject) ItemCount() uint {
 func (s *reflectSeqObject) SupportRustFormat() {}
 
 func (s *reflectSeqObject) Format(f fmt.State, verb rune) {
-	log.Printf("reflectSeqObject.Format start, verb=%c, flag#=%v", verb, f.Flag('#'))
 	switch verb {
 	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
 		l := s.ItemCount()
 		items := make([]any, l)
 		for i := uint(0); i < l; i++ {
 			items[i] = s.GetItem(i).Unwrap()
-			log.Printf("reflectSeqObject.Format i=%d, valDataType=%T", i, s.GetItem(i).Unwrap().data)
 		}
 		rustfmt.NewDebugList(items).Format(f, verb)
 	default:

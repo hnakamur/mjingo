@@ -139,12 +139,14 @@ loop:
 		switch inst := inst.(type) {
 		case emitRawInstruction:
 			if _, err := io.WriteString(out, inst.Val); err != nil {
+				// this only produces a format error, no need to attach
+				// location information.
 				return option.None[Value](), err
 			}
 		case emitInstruction:
 			v := stack.Pop()
 			if err := m.env.format(v, state, out); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 		case storeLocalInstruction:
 			state.ctx.store(inst.Name, stack.Pop())
@@ -230,7 +232,7 @@ loop:
 			stack.Push(valueFromSlice(v))
 		case unpackListInstruction:
 			if err := m.unpackList(stack, inst.Count); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 		case listAppendInstruction:
 			a = stack.Pop()
@@ -337,17 +339,17 @@ loop:
 			// the in-operator can fail if the value is undefined and
 			// we are in strict mode.
 			if err := state.UndefinedBehavior().assertIterable(a); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 			rv, err := opContains(a, b)
 			if err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 			stack.Push(rv)
 		case negInstruction:
 			a = stack.Pop()
 			if v, err := opNeg(a); err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			} else {
 				stack.Push(v)
 			}
@@ -519,7 +521,7 @@ loop:
 				args := stack.SliceTop(inst.ArgCount)
 				a, err := valueCall(f, state, args)
 				if err != nil {
-					return option.None[Value](), err
+					return option.None[Value](), processErr(err, pc, state)
 				}
 				stack.DropTop(inst.ArgCount)
 				stack.Push(a)
@@ -585,7 +587,7 @@ loop:
 			}
 			insts, err := m.loadBlocks(a, state)
 			if err != nil {
-				return option.None[Value](), err
+				return option.None[Value](), processErr(err, pc, state)
 			}
 			parentInstructions = option.Some(insts)
 			out.beginCapture(captureModeDiscard)

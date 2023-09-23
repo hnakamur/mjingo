@@ -2,7 +2,6 @@ package mjingo
 
 import (
 	"fmt"
-	"log"
 	"slices"
 
 	"github.com/hnakamur/mjingo/internal/rustfmt"
@@ -101,7 +100,6 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 func (l *loopObject) SupportRustFormat() {}
 
 func (l *loopObject) Format(f fmt.State, verb rune) {
-	log.Printf("loopObject Format start, verb=%c, flag#=%v", verb, f.Flag('#'))
 	switch verb {
 	case rustfmt.DisplayVerb:
 		fmt.Fprintf(f, "<loop %d/%d>", l.idx, l.len)

@@ -56,7 +56,7 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 			}
 			io.WriteString(f, field.name)
 			io.WriteString(f, ": ")
-			formatAnyValue(f, verb, field.value)
+			FormatAnyValue(f, verb, field.value)
 		}
 		io.WriteString(f, " }")
 	case DebugVerb:
@@ -66,7 +66,7 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 		for _, field := range s.fields {
 			io.WriteString(w, field.name)
 			io.WriteString(w, ": ")
-			formatAnyValue(w, verb, field.value)
+			FormatAnyValue(w, verb, field.value)
 			io.WriteString(w, ",\n")
 		}
 		io.WriteString(f, "}")
@@ -78,7 +78,7 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 	}
 }
 
-func formatAnyValue(f fmt.State, verb rune, val any) {
+func FormatAnyValue(f fmt.State, verb rune, val any) {
 	if rf, ok := val.(Formatter); ok {
 		rf.Format(f, verb)
 	} else {
@@ -128,7 +128,7 @@ func (d *debugElem) Format(f fmt.State, verb rune) {
 			io.WriteString(f, "\n")
 		}
 		w := NewPadFormatAdapter(f, true)
-		formatAnyValue(w, verb, d.data)
+		FormatAnyValue(w, verb, d.data)
 		io.WriteString(w, ",\n")
 		d.hasFields = true
 	case DisplayVerb:
@@ -136,7 +136,7 @@ func (d *debugElem) Format(f fmt.State, verb rune) {
 			io.WriteString(f, ", ")
 			d.hasFields = true
 		}
-		formatAnyValue(f, verb, d.data)
+		FormatAnyValue(f, verb, d.data)
 		d.hasFields = true
 	default:
 		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
