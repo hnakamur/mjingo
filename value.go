@@ -1651,7 +1651,9 @@ func (v Value) Format(f fmt.State, verb rune) {
 		case stringValue:
 			io.WriteString(f, d.Str)
 		case bytesValue:
-			panic("not implemented yet")
+			// https://go.dev/ref/spec#Conversions_to_and_from_a_string_type
+			// Values outside the range of valid Unicode code points are converted to "\uFFFD"
+			io.WriteString(f, string(d.B))
 		case seqValue:
 			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
 		case mapValue:
@@ -1683,9 +1685,12 @@ func (v Value) Format(f fmt.State, verb rune) {
 		case i128Value:
 			io.WriteString(f, d.N.String())
 		case stringValue:
-			io.WriteString(f, d.Str)
+			fmt.Fprintf(f, "%q", d.Str)
 		case bytesValue:
-			panic("not implemented yet")
+			if !f.Flag(rustfmt.PrettyFlag) {
+				verb = rustfmt.DisplayVerb
+			}
+			rustfmt.NewDebugList(slicex.Map(d.B, func(v byte) any { return fmt.Sprintf("%q", v) })).Format(f, verb)
 		case seqValue:
 			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
 		case mapValue:

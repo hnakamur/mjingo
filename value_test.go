@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"testing"
+
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 )
 
 func TestValueString(t *testing.T) {
@@ -57,6 +59,31 @@ func TestValueType_Format(t *testing.T) {
 	if got, want := fmt.Sprintf("%T", valueTypeBool), "mjingo.valueType"; got != want {
 		t.Errorf("result mismatch, got=%v, want=%v", got, want)
 	}
+}
+
+func formatTestHelper[T any](t *testing.T, fmtStr string, input T, want string) {
+	t.Helper()
+	if got := fmt.Sprintf(fmtStr, input); got != want {
+		t.Errorf("result mismatch, got=%q, want=%q", got, want)
+	}
+}
+
+func TestValue_Format(t *testing.T) {
+	t.Run("debug", func(t *testing.T) {
+		t.Run("bytes", func(t *testing.T) {
+			formatTestHelper(t, rustfmt.DebugString, valueFromBytes([]byte{'f', 'o', 'o'}), "['f', 'o', 'o']")
+		})
+	})
+	t.Run("debugPretty", func(t *testing.T) {
+		t.Run("bytes", func(t *testing.T) {
+			formatTestHelper(t, rustfmt.DebugPrettyString, valueFromBytes([]byte{'f', 'o', 'o'}), "[\n    'f',\n    'o',\n    'o',\n]")
+		})
+	})
+	t.Run("display", func(t *testing.T) {
+		t.Run("bytes", func(t *testing.T) {
+			formatTestHelper(t, rustfmt.DisplayString, valueFromBytes([]byte{'f', 'o', 'o'}), "foo")
+		})
+	})
 }
 
 func TestValueCmp(t *testing.T) {
