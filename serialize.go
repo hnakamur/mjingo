@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -245,20 +247,20 @@ func structObjectWithReflect(val reflect.Value, config *valueFromGoValueConfig, 
 
 func (*reflectStructObject) Kind() ObjectKind { return ObjectKindStruct }
 
-func (o *reflectStructObject) GetField(name string) option.Option[Value] {
-	o.collectFieldNames()
-	idx, ok := o.nameToFieldIdx[name]
+func (s *reflectStructObject) GetField(name string) option.Option[Value] {
+	s.collectFieldNames()
+	idx, ok := s.nameToFieldIdx[name]
 	if !ok {
 		return option.None[Value]()
 	}
-	fv := o.val.Field(idx)
-	val := valueFromGoValueHelper(fv.Interface(), o.config, o.level+1)
+	fv := s.val.Field(idx)
+	val := valueFromGoValueHelper(fv.Interface(), s.config, s.level+1)
 	return option.Some(val)
 }
 
-func (o *reflectStructObject) StaticFields() option.Option[[]string] {
-	o.collectFieldNames()
-	return option.Some(o.fieldNames)
+func (s *reflectStructObject) StaticFields() option.Option[[]string] {
+	s.collectFieldNames()
+	return option.Some(s.fieldNames)
 }
 
 func (o *reflectStructObject) collectFieldNames() {
@@ -277,9 +279,9 @@ func (o *reflectStructObject) collectFieldNames() {
 	}
 }
 
-func (o *reflectStructObject) keyNameForField(f reflect.StructField) string {
-	if o.config.structTag != "" {
-		if tagVal, ok := f.Tag.Lookup(o.config.structTag); ok {
+func (s *reflectStructObject) keyNameForField(f reflect.StructField) string {
+	if s.config.structTag != "" {
+		if tagVal, ok := f.Tag.Lookup(s.config.structTag); ok {
 			nameInTag, _, _ := strings.Cut(tagVal, ",")
 			if nameInTag != "" {
 				return nameInTag
@@ -289,7 +291,7 @@ func (o *reflectStructObject) keyNameForField(f reflect.StructField) string {
 	return f.Name
 }
 
-func (o *reflectStructObject) Fields() []string { return nil }
+func (*reflectStructObject) Fields() []string { return nil }
 
 type reflectSeqObject struct {
 	val    reflect.Value
@@ -297,8 +299,9 @@ type reflectSeqObject struct {
 	level  uint
 }
 
-var _ = (Object)((*reflectSeqObject)(nil))
-var _ = (SeqObject)((*reflectSeqObject)(nil))
+var _ Object = (*reflectSeqObject)(nil)
+var _ SeqObject = (*reflectSeqObject)(nil)
+var _ rustfmt.Formatter = (*reflectSeqObject)(nil)
 
 func sqeObjectFromGoReflectSeq(val reflect.Value, config *valueFromGoValueConfig, level uint) *reflectSeqObject {
 	return &reflectSeqObject{val: val, config: config, level: level}
@@ -306,14 +309,35 @@ func sqeObjectFromGoReflectSeq(val reflect.Value, config *valueFromGoValueConfig
 
 func (*reflectSeqObject) Kind() ObjectKind { return ObjectKindSeq }
 
-func (o *reflectSeqObject) GetItem(idx uint) option.Option[Value] {
-	if idx >= o.ItemCount() {
+func (s *reflectSeqObject) GetItem(idx uint) option.Option[Value] {
+	if idx >= s.ItemCount() {
 		return option.None[Value]()
 	}
-	val := valueFromGoValueHelper(o.val.Index(int(idx)).Interface(), o.config, o.level+1)
+	val := valueFromGoValueHelper(s.val.Index(int(idx)).Interface(), s.config, s.level+1)
 	return option.Some(val)
 }
 
-func (o *reflectSeqObject) ItemCount() uint {
-	return uint(o.val.Len())
+func (s *reflectSeqObject) ItemCount() uint {
+	return uint(s.val.Len())
+}
+
+func (s *reflectSeqObject) SupportRustFormat() {}
+
+func (s *reflectSeqObject) Format(f fmt.State, verb rune) {
+	log.Printf("reflectSeqObject.Format start, verb=%c, flag#=%v", verb, f.Flag('#'))
+	switch verb {
+	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
+		l := s.ItemCount()
+		items := make([]any, l)
+		for i := uint(0); i < l; i++ {
+			items[i] = s.GetItem(i).Unwrap()
+			log.Printf("reflectSeqObject.Format i=%d, valDataType=%T", i, s.GetItem(i).Unwrap().data)
+		}
+		rustfmt.NewDebugList(items).Format(f, verb)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods reflectSeqObject
+		type reflectSeqObject hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), reflectSeqObject(*s))
+	}
 }

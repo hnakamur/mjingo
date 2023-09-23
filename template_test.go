@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 )
 
 func TestTemplate(t *testing.T) {
@@ -45,8 +47,8 @@ func TestTemplate(t *testing.T) {
 			err := env.AddTemplate(inputFileBasename, templateContent)
 			if err != nil {
 				var b strings.Builder
-				fmt.Fprintf(&b, "!!!SYNTAX ERROR!!!\n\n%#q\n\n", err)
-				fmt.Fprintf(&b, "%#s", err)
+				fmt.Fprintf(&b, "!!!SYNTAX ERROR!!!\n\n"+rustfmt.DebugPrettyString+"\n\n", err)
+				fmt.Fprintf(&b, rustfmt.DisplayPrettyString, err)
 				got = b.String()
 			} else {
 				tpl, err := env.GetTemplate(inputFileBasename)
@@ -56,10 +58,10 @@ func TestTemplate(t *testing.T) {
 				got, err = tpl.Render(ValueFromGoValue(ctx))
 				if err != nil {
 					var b strings.Builder
-					fmt.Fprintf(&b, "!!!ERROR!!!\n\n%#q\n\n", err)
-					fmt.Fprintf(&b, "%#s", err)
+					fmt.Fprintf(&b, "!!!ERROR!!!\n\n"+rustfmt.DebugPrettyString+"\n\n", err)
+					fmt.Fprintf(&b, rustfmt.DisplayPrettyString, err)
 					for merr := (*Error)(nil); errors.As(err, &merr) && merr.source != nil; err = merr.source {
-						fmt.Fprintf(&b, "\ncaused by: %#s", merr.source)
+						fmt.Fprintf(&b, "\ncaused by: "+rustfmt.DisplayPrettyString, merr.source)
 					}
 					got = b.String()
 				}

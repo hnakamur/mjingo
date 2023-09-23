@@ -3,8 +3,10 @@ package mjingo
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -231,8 +233,9 @@ func (e *Error) attachDebugInfo(info *debugInfo) {
 
 // Format implements fmt.Formatter.
 func (e Error) Format(f fmt.State, verb rune) {
+	log.Printf("Error.Format start, verb=%c, pretty=%v", verb, f.Flag(rustfmt.PrettyFlag))
 	switch verb {
-	case 's':
+	case rustfmt.DisplayVerb:
 		if e.detail != "" {
 			fmt.Fprintf(f, "%s: %s", e.kind, e.detail)
 		} else {
@@ -241,29 +244,29 @@ func (e Error) Format(f fmt.State, verb rune) {
 		if filename := ""; e.name.UnwrapTo(&filename) {
 			fmt.Fprintf(f, " (in %s:%d)", filename, e.lineno.UnwrapOr(0))
 		}
-		if f.Flag('#') && e.debugInfo != nil {
+		if f.Flag(rustfmt.PrettyFlag) && e.debugInfo != nil {
 			e.debugInfo.render(f, e.name, e.kind, e.lineno, e.span)
 		}
-	case 'q':
-		s := newDebugStruct("Error")
-		s.field("kind", e.kind.debugString())
+	case rustfmt.DebugVerb:
+		s := rustfmt.NewDebugStruct("Error")
+		s.Field("kind", e.kind.debugString())
 		if e.detail != "" {
-			s.field("detail", fmt.Sprintf("%q", e.detail))
+			s.Field("detail", fmt.Sprintf("%q", e.detail))
 		}
 		if name := ""; e.name.UnwrapTo(&name) {
-			s.field("name", fmt.Sprintf("%q", name))
+			s.Field("name", fmt.Sprintf("%q", name))
 		}
 		if line := uint(0); e.lineno.UnwrapTo(&line) {
-			s.field("line", line)
+			s.Field("line", line)
 		}
 		if e.source != nil {
-			s.field("source", e.source) // TODO: format e.source
+			s.Field("source", e.source) // TODO: format e.source
 		}
 		s.Format(f, verb)
 		// so this is a bit questionablem, but because of how commonly errors are just
 		// unwrapped i think it's sensible to spit out the debug info following the
 		// error struct dump.
-		if !f.Flag('#') && e.debugInfo != nil {
+		if !f.Flag(rustfmt.PrettyFlag) && e.debugInfo != nil {
 			e.debugInfo.render(f, e.name, e.kind, e.lineno, e.span)
 		}
 	default:

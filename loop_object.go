@@ -2,8 +2,10 @@ package mjingo
 
 import (
 	"fmt"
+	"log"
 	"slices"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -18,10 +20,11 @@ type loopObject struct {
 var _ = (Object)((*loopObject)(nil))
 var _ = (CallMethoder)((*loopObject)(nil))
 var _ = (StructObject)((*loopObject)(nil))
+var _ = (rustfmt.Formatter)((*loopObject)(nil))
 
 func (l *loopObject) Kind() ObjectKind { return ObjectKindStruct }
 
-func (l *loopObject) CallMethod(state *State, name string, args []Value) (Value, error) {
+func (l *loopObject) CallMethod(_ *State, name string, args []Value) (Value, error) {
 	switch name {
 	case "changed":
 		if slices.Equal(l.lastChangedValue, args) {
@@ -93,6 +96,27 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 		return option.Some[Value](l.valueTriple[2].UnwrapOr(Undefined).clone())
 	}
 	return option.None[Value]()
+}
+
+func (l *loopObject) SupportRustFormat() {}
+
+func (l *loopObject) Format(f fmt.State, verb rune) {
+	log.Printf("loopObject Format start, verb=%c, flag#=%v", verb, f.Flag('#'))
+	switch verb {
+	case rustfmt.DisplayVerb:
+		fmt.Fprintf(f, "<loop %d/%d>", l.idx, l.len)
+	case rustfmt.DebugVerb:
+		s := rustfmt.NewDebugStruct("Loop")
+		for _, attr := range l.StaticFields().Unwrap() {
+			s.Field(attr, l.GetField(attr).Unwrap())
+		}
+		s.Format(f, verb)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods loopObject
+		type loopObject hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), loopObject(*l))
+	}
 }
 
 func uintSaturatingSub(x, y uint) uint {

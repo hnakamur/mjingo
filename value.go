@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"log"
 	"math"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/hnakamur/mjingo/internal/datast/slicex"
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -36,6 +39,8 @@ import (
 type Value struct {
 	data valueData
 }
+
+var _ rustfmt.Formatter = (*Value)(nil)
 
 func (v Value) String() string      { return v.data.String() }
 func (v Value) DebugString() string { return v.data.debugString() }
@@ -1578,6 +1583,7 @@ func valueDataHash(val valueData, h hash.Hash) {
 			}
 		}
 	case u64Value, i64Value, f64Value, u128Value, i128Value:
+		// TODO: fix for u128 and i128
 		n, err := val.clone().tryToI64()
 		if err != nil {
 			val.asF64().Hash(h, f64Hash)
@@ -1617,4 +1623,58 @@ func valueAsOptionString(val Value) option.Option[string] {
 		return option.Some(strVal.Str)
 	}
 	return option.None[string]()
+}
+
+func (v Value) SupportRustFormat() {}
+
+func (v Value) Format(f fmt.State, verb rune) {
+	log.Printf("Value.Format start, verb=%c, pretty=%v, v.dataType=%T", verb, f.Flag(rustfmt.PrettyFlag), v.data)
+	switch verb {
+	case rustfmt.DisplayVerb:
+		switch v.data.(type) {
+		case undefinedValue:
+			// do nothing
+		default:
+			fmt.Fprintf(f, fmt.FormatString(f, verb), v.data)
+		}
+	case rustfmt.DebugVerb:
+		switch d := v.data.(type) {
+		case undefinedValue:
+			io.WriteString(f, "undefined")
+		case boolValue:
+			fmt.Fprintf(f, "%v", d.B)
+		case u64Value:
+			fmt.Fprintf(f, "%d", d.N)
+		case i64Value:
+			fmt.Fprintf(f, "%d", d.N)
+		case f64Value:
+			io.WriteString(f, v.data.String())
+		case noneValue:
+			io.WriteString(f, "none")
+		case invalidValue:
+			fmt.Fprintf(f, "<invalid value: %s>", d.Detail)
+		case u128Value:
+			io.WriteString(f, d.N.String())
+		case i128Value:
+			io.WriteString(f, d.N.String())
+		case stringValue:
+			io.WriteString(f, d.Str)
+		case seqValue:
+			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
+		case mapValue:
+		case dynamicValue:
+			if dyFmt, ok := d.Dy.(fmt.Formatter); ok {
+				dyFmt.Format(f, verb)
+			} else {
+				fmt.Fprintf(f, fmt.FormatString(f, verb), d)
+			}
+		default:
+			fmt.Fprintf(f, fmt.FormatString(f, verb), d)
+		}
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods Value
+		type Value hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), Value(v))
+	}
 }
