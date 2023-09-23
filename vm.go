@@ -35,13 +35,7 @@ func newVirtualMachine(env *Environment) *virtualMachine {
 }
 
 func (m *virtualMachine) eval(insts instructions, root Value, blocks map[string]instructions, out *output, escape AutoEscape) (option.Option[Value], *State, error) {
-	state := &State{
-		env:          m.env,
-		ctx:          *newContext(*newFrame(root)),
-		autoEscape:   escape,
-		instructions: insts,
-		blocks:       prepareBlocks(blocks),
-	}
+	state := newState(m.env, root, escape, insts, blocks)
 	val, err := m.evalState(state, out)
 	return val, state, err
 }
@@ -65,6 +59,7 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 		instructions:    insts,
 		blocks:          make(map[string]*blockStack),
 		loadedTemplates: *hashset.NewStrHashSet(),
+		id:              state.id,
 		macros:          state.macros, // TODO: clone
 	}
 	return m.evalImpl(state2, out, &stack, pc)
@@ -745,7 +740,7 @@ func (m *virtualMachine) loadBlocks(name Value, state *State) (instructions, err
 	}
 	if state.loadedTemplates.Contains(strName) {
 		return instructions{}, NewError(InvalidOperation,
-			fmt.Sprintf("cycle in template inheritance. %s was referenced more than once", name))
+			fmt.Sprintf("cycle in template inheritance. %q was referenced more than once", strName))
 	}
 	tmpl, err := m.env.GetTemplate(strName)
 	if err != nil {
@@ -755,6 +750,7 @@ func (m *virtualMachine) loadBlocks(name Value, state *State) (instructions, err
 	if err != nil {
 		return instructions{}, err
 	}
+	state.loadedTemplates.Add(newInsts.Name())
 	for strName, insts := range newBlocks {
 		if _, ok := state.blocks[strName]; ok {
 			state.blocks[strName].appendInstructions(insts)

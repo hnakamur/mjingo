@@ -2,6 +2,7 @@ package mjingo
 
 import (
 	"strings"
+	"sync/atomic"
 
 	"github.com/hnakamur/mjingo/internal/datast/hashset"
 	stackpkg "github.com/hnakamur/mjingo/internal/datast/stack"
@@ -29,6 +30,7 @@ type State struct {
 	instructions    instructions
 	blocks          map[string]*blockStack
 	loadedTemplates hashset.StrHashSet
+	id              int64
 	macros          stackpkg.Stack[macroStackElem]
 }
 
@@ -42,6 +44,21 @@ type blockStack struct {
 type macroStackElem struct {
 	insts  instructions
 	offset uint
+}
+
+var stateID atomic.Int64
+
+func newState(env *Environment, ctx Value, escape AutoEscape, insts instructions,
+	blocks map[string]instructions) *State {
+	return &State{
+		env:             env,
+		ctx:             *newContext(*newFrame(ctx)),
+		autoEscape:      escape,
+		instructions:    insts,
+		blocks:          prepareBlocks(blocks),
+		loadedTemplates: *hashset.NewStrHashSet(),
+		id:              stateID.Add(1),
+	}
 }
 
 // Env returns a reference to the current environment.
