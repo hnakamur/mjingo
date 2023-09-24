@@ -48,7 +48,7 @@ func TestTemplate(t *testing.T) {
 			if err != nil {
 				var b strings.Builder
 				fmt.Fprintf(&b, "!!!SYNTAX ERROR!!!\n\n"+rustfmt.DebugPrettyString+"\n\n", err)
-				fmt.Fprintf(&b, rustfmt.DisplayPrettyString, err)
+				fmt.Fprintf(&b, rustfmt.DisplayPrettyString+"\n", err)
 				got = b.String()
 			} else {
 				tpl, err := env.GetTemplate(inputFileBasename)
@@ -59,14 +59,16 @@ func TestTemplate(t *testing.T) {
 				if err != nil {
 					var b strings.Builder
 					fmt.Fprintf(&b, "!!!ERROR!!!\n\n"+rustfmt.DebugPrettyString+"\n\n", err)
-					fmt.Fprintf(&b, rustfmt.DisplayPrettyString, err)
+					fmt.Fprintf(&b, rustfmt.DisplayPrettyString+"\n", err)
 					for merr := (*Error)(nil); errors.As(err, &merr) && merr.source != nil; err = merr.source {
-						fmt.Fprintf(&b, "\ncaused by: "+rustfmt.DisplayPrettyString, merr.source)
+						fmt.Fprintf(&b, "\ncaused by: "+rustfmt.DisplayPrettyString+"\n", merr.source)
 					}
 					got = b.String()
+				} else {
+					got = got + "\n"
 				}
 			}
-			checkResultWithSnapshotFile(t, got+"\n\n", inputFilename)
+			checkResultWithSnapshotFile(t, got+"\n", inputFilename)
 		})
 	}
 }

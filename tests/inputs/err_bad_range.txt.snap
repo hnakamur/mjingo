@@ -13,7 +13,7 @@ invalid operation: range has too many elements (in err_bad_range.txt:1)
      i    ^^^^^^^^^^^^ invalid operation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Referenced variables: {
-    range: minijinja::functions::builtins::range,
+    range: <function range>,
 }
 -------------------------------------------------------------------------------
 

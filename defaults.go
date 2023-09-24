@@ -216,14 +216,14 @@ func getDefaultGlobals() map[string]Value {
 	}
 
 	rv := make(map[string]Value)
-	rv["range"] = valueFromBoxedFunc(BoxedFuncFromFixedArity3ArgWithErrFunc(rangeFunc))
-	rv["dict"] = valueFromBoxedFunc(BoxedFuncFromFixedArity1ArgWithErrFunc(dictFunc))
+	addFunction(rv, "range", BoxedFuncFromFixedArity3ArgWithErrFunc(rangeFunc))
+	addFunction(rv, "dict", BoxedFuncFromFixedArity1ArgWithErrFunc(dictFunc))
 	return rv
 }
 
 func getDefaultGlobalsReflect() map[string]Value {
 	rv := make(map[string]Value)
-	rv["range"] = valueFromBoxedFunc(BoxedFuncFromFuncReflect(rangeFunc))
-	rv["dict"] = valueFromBoxedFunc(BoxedFuncFromFuncReflect(dictFunc))
+	addFunction(rv, "range", BoxedFuncFromFuncReflect(rangeFunc))
+	addFunction(rv, "dict", BoxedFuncFromFuncReflect(dictFunc))
 	return rv
 }

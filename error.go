@@ -29,6 +29,8 @@ type Error struct {
 	debugInfo *debugInfo
 }
 
+var _ rustfmt.Formatter = (*Error)(nil)
+
 // NewError creates a new [Error] with kind and detail.
 func NewError(kind ErrorKind, detail string) *Error {
 	return &Error{kind: kind, detail: detail}
@@ -230,8 +232,11 @@ func (e *Error) attachDebugInfo(info *debugInfo) {
 	e.debugInfo = info
 }
 
+// SupportRustFormat implements rustfmt.Formatter.
+func (e *Error) SupportRustFormat() {}
+
 // Format implements fmt.Formatter.
-func (e Error) Format(f fmt.State, verb rune) {
+func (e *Error) Format(f fmt.State, verb rune) {
 	switch verb {
 	case rustfmt.DisplayVerb:
 		if e.detail != "" {
@@ -271,7 +276,7 @@ func (e Error) Format(f fmt.State, verb rune) {
 		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
 		type hideMethods Error
 		type Error hideMethods
-		fmt.Fprintf(f, fmt.FormatString(f, verb), Error(e))
+		fmt.Fprintf(f, fmt.FormatString(f, verb), Error(*e))
 	}
 }
 

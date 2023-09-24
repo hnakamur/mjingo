@@ -1,10 +1,17 @@
 package mjingo
 
 import (
+	"fmt"
 	"reflect"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
+
+type namedBoxedFunc struct {
+	name string
+	fn   BoxedFunc
+}
 
 // BoxedFunc is the type of a boxed function.
 //
@@ -563,19 +570,39 @@ func BoxedFuncFromFuncReflect(fn any) BoxedFunc {
 	}
 }
 
-func valueFromBoxedFunc(f BoxedFunc) Value {
-	return ValueFromObject(funcObject{f: f})
+func valueFromBoxedFunc(name string, f BoxedFunc) Value {
+	return ValueFromObject(funcObject{name: name, f: f})
 }
 
-type funcObject struct{ f BoxedFunc }
+type funcObject struct {
+	name string
+	f    BoxedFunc
+}
 
 var _ = (Object)(funcObject{})
 var _ = (Caller)(funcObject{})
+var _ = (rustfmt.Formatter)(funcObject{})
 
 func (funcObject) Kind() ObjectKind { return ObjectKindPlain }
 
-func (f funcObject) Call(state *State, args []Value) (Value, error) {
-	return f.f(state, args)
+func (fo funcObject) Call(state *State, args []Value) (Value, error) {
+	return fo.f(state, args)
+}
+
+// SupportRustFormat implements rustfmt.Formatter.
+func (funcObject) SupportRustFormat() {}
+
+// Format implements rustfmt.Formatter.
+func (fo funcObject) Format(f fmt.State, verb rune) {
+	switch verb {
+	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
+		fmt.Fprintf(f, "<function %s>", fo.name)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods funcObject
+		type funcObject hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), funcObject(fo))
+	}
 }
 
 func rangeFunc(lower uint32, upper, step option.Option[uint32]) ([]uint32, error) {
