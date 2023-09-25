@@ -1624,7 +1624,9 @@ func valueAsOptionString(val Value) option.Option[string] {
 	return option.None[string]()
 }
 
-func (v Value) SupportRustFormat() {}
+func (Value) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
 
 func (v Value) Format(f fmt.State, verb rune) {
 	switch verb {
@@ -1655,9 +1657,9 @@ func (v Value) Format(f fmt.State, verb rune) {
 			// Values outside the range of valid Unicode code points are converted to "\uFFFD"
 			io.WriteString(f, string(d.B))
 		case seqValue:
-			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
+			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, rustfmt.DebugVerb)
 		case mapValue:
-			panic("not implemented yet")
+			rustfmt.NewDebugMap(*d.Map).Format(f, rustfmt.DebugVerb)
 		case dynamicValue:
 			rustfmt.FormatAnyValue(f, verb, d.Dy)
 		default:
@@ -1687,14 +1689,11 @@ func (v Value) Format(f fmt.State, verb rune) {
 		case stringValue:
 			fmt.Fprintf(f, "%q", d.Str)
 		case bytesValue:
-			if !f.Flag(rustfmt.PrettyFlag) {
-				verb = rustfmt.DisplayVerb
-			}
 			rustfmt.NewDebugList(slicex.Map(d.B, func(v byte) any { return fmt.Sprintf("%q", v) })).Format(f, verb)
 		case seqValue:
 			rustfmt.NewDebugList(slicex.Map(d.Items, func(v Value) any { return v })).Format(f, verb)
 		case mapValue:
-			panic("not implemented yet")
+			rustfmt.NewDebugMap(*d.Map).Format(f, verb)
 		case dynamicValue:
 			rustfmt.FormatAnyValue(f, verb, d.Dy)
 		default:

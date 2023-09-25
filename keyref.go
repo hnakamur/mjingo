@@ -1,9 +1,11 @@
 package mjingo
 
 import (
+	"fmt"
 	"hash"
 	"io"
 
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 	"github.com/hnakamur/mjingo/option"
 )
 
@@ -26,6 +28,9 @@ func keyRefFromString(val string) keyRef {
 
 type valueKeyRef struct{ val Value }
 type strKeyRef struct{ str string }
+
+var _ rustfmt.Formatter = valueKeyRef{}
+var _ rustfmt.Formatter = strKeyRef{}
 
 func (valueKeyRef) typ() keyRefType { return keyRefTypeValue }
 func (strKeyRef) typ() keyRefType   { return keyRefTypeStr }
@@ -82,3 +87,41 @@ const (
 	keyRefTypeValue keyRefType = iota
 	keyRefTypeStr
 )
+
+// Format implements rustfmt.Formatter.
+func (k valueKeyRef) Format(f fmt.State, verb rune) {
+	switch verb {
+	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
+		k.val.Format(f, verb)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods valueKeyRef
+		type valueKeyRef hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), valueKeyRef(k))
+	}
+}
+
+// SupportRustFormat implements rustfmt.Formatter.
+func (valueKeyRef) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
+
+// Format implements rustfmt.Formatter.
+func (k strKeyRef) Format(f fmt.State, verb rune) {
+	switch verb {
+	case rustfmt.DisplayVerb:
+		fmt.Fprintf(f, "%s", k.str)
+	case rustfmt.DebugVerb:
+		fmt.Fprintf(f, "%q", k.str)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods strKeyRef
+		type strKeyRef hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), strKeyRef(k))
+	}
+}
+
+// SupportRustFormat implements rustfmt.Formatter.
+func (strKeyRef) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}

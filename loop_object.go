@@ -97,7 +97,9 @@ func (l *loopObject) GetField(name string) option.Option[Value] {
 	return option.None[Value]()
 }
 
-func (l *loopObject) SupportRustFormat() {}
+func (*loopObject) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
 
 func (l *loopObject) Format(f fmt.State, verb rune) {
 	switch verb {

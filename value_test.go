@@ -73,10 +73,25 @@ func TestValue_Format(t *testing.T) {
 		t.Run("bytes", func(t *testing.T) {
 			formatTestHelper(t, rustfmt.DebugString, valueFromBytes([]byte{'f', 'o', 'o'}), "['f', 'o', 'o']")
 		})
+		t.Run("map", func(t *testing.T) {
+			formatTestHelper(t, rustfmt.DebugString, valueFromIndexMap(valueMapFromEntries([]valueMapEntry{
+				{Key: keyRefFromString("c"), Value: ValueFromGoValue(1)},
+				{Key: keyRefFromString("a"), Value: ValueFromGoValue("bar")},
+			})), `{"c": 1, "a": "bar"}`)
+		})
 	})
 	t.Run("debugPretty", func(t *testing.T) {
 		t.Run("bytes", func(t *testing.T) {
 			formatTestHelper(t, rustfmt.DebugPrettyString, valueFromBytes([]byte{'f', 'o', 'o'}), "[\n    'f',\n    'o',\n    'o',\n]")
+		})
+		t.Run("map", func(t *testing.T) {
+			formatTestHelper(t, rustfmt.DebugPrettyString, valueFromIndexMap(valueMapFromEntries([]valueMapEntry{
+				{Key: keyRefFromString("c"), Value: ValueFromGoValue(1)},
+				{Key: keyRefFromString("a"), Value: ValueFromGoValue("bar")},
+			})), "{\n"+
+				"    \"c\": 1,\n"+
+				"    \"a\": \"bar\",\n"+
+				"}")
 		})
 	})
 	t.Run("display", func(t *testing.T) {

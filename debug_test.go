@@ -26,10 +26,10 @@ func TestDebugStruct(t *testing.T) {
 			Field("detail", "missing_function is unknown").
 			Field("name", "bad_basic_block.txt").
 			Field("line", 3)
-		if got, want := fmt.Sprintf(rustfmt.DisplayString, s), `Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
+		if got, want := fmt.Sprintf(rustfmt.DebugString, s), `Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
 			t.Errorf("result mismatch, got=%s, want=%s", got, want)
 		}
-		if got, want := fmt.Sprintf(rustfmt.DebugString, s), "Error {\n"+
+		if got, want := fmt.Sprintf(rustfmt.DebugPrettyString, s), "Error {\n"+
 			"    kind: UnknownFunction,\n"+
 			"    detail: missing_function is unknown,\n"+
 			"    name: bad_basic_block.txt,\n"+
@@ -45,14 +45,14 @@ func TestDebugStruct(t *testing.T) {
 			Field("detail", "missing_function is unknown").
 			Field("name", "bad_basic_block.txt").
 			Field("line", 3)
-		fmt.Fprintf(a, rustfmt.DisplayString, s)
+		fmt.Fprintf(a, rustfmt.DebugString, s)
 		if got, want := b.String(), `    Error { kind: UnknownFunction, detail: missing_function is unknown, name: bad_basic_block.txt, line: 3 }`; got != want {
 			t.Errorf("result mismatch,\n got=%q,\nwant=%q", got, want)
 		}
 
 		b = new(strings.Builder)
 		a = rustfmt.NewPadAdapter(b, true)
-		fmt.Fprintf(a, rustfmt.DebugString, s)
+		fmt.Fprintf(a, rustfmt.DebugPrettyString, s)
 		if got, want := b.String(), "    Error {\n"+
 			"        kind: UnknownFunction,\n"+
 			"        detail: missing_function is unknown,\n"+
@@ -66,20 +66,20 @@ func TestDebugStruct(t *testing.T) {
 
 func TestDebugList(t *testing.T) {
 	t.Run("indent1", func(t *testing.T) {
-		t.Run("s", func(t *testing.T) {
-			b := new(strings.Builder)
-			a := rustfmt.NewPadAdapter(b, true)
-			l := rustfmt.NewDebugList([]any{1, 2})
-			fmt.Fprintf(a, rustfmt.DisplayString, l)
-			if got, want := b.String(), "    [1, 2]"; got != want {
-				t.Errorf("result mismatch,\n got=%q,\nwant=%q", got, want)
-			}
-		})
-		t.Run("q", func(t *testing.T) {
+		t.Run("nonPretty", func(t *testing.T) {
 			b := new(strings.Builder)
 			a := rustfmt.NewPadAdapter(b, true)
 			l := rustfmt.NewDebugList([]any{1, 2})
 			fmt.Fprintf(a, rustfmt.DebugString, l)
+			if got, want := b.String(), "    [1, 2]"; got != want {
+				t.Errorf("result mismatch,\n got=%q,\nwant=%q", got, want)
+			}
+		})
+		t.Run("pretty", func(t *testing.T) {
+			b := new(strings.Builder)
+			a := rustfmt.NewPadAdapter(b, true)
+			l := rustfmt.NewDebugList([]any{1, 2})
+			fmt.Fprintf(a, rustfmt.DebugPrettyString, l)
 			if got, want := b.String(), "    [\n"+
 				"        1,\n"+
 				"        2,\n"+

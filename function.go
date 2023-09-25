@@ -590,7 +590,9 @@ func (fo funcObject) Call(state *State, args []Value) (Value, error) {
 }
 
 // SupportRustFormat implements rustfmt.Formatter.
-func (funcObject) SupportRustFormat() {}
+func (funcObject) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
 
 // Format implements rustfmt.Formatter.
 func (fo funcObject) Format(f fmt.State, verb rune) {

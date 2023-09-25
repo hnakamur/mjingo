@@ -233,7 +233,9 @@ func (e *Error) attachDebugInfo(info *debugInfo) {
 }
 
 // SupportRustFormat implements rustfmt.Formatter.
-func (e *Error) SupportRustFormat() {}
+func (*Error) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
 
 // Format implements fmt.Formatter.
 func (e *Error) Format(f fmt.State, verb rune) {

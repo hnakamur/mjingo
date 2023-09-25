@@ -357,7 +357,9 @@ func (s *reflectSeqObject) ItemCount() uint {
 	return uint(s.val.Len())
 }
 
-func (s *reflectSeqObject) SupportRustFormat() {}
+func (*reflectSeqObject) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
 
 func (s *reflectSeqObject) Format(f fmt.State, verb rune) {
 	switch verb {
