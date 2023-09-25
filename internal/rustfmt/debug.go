@@ -62,7 +62,7 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 			for _, field := range s.fields {
 				io.WriteString(w, field.name)
 				io.WriteString(w, ": ")
-				FormatAnyValue(w, verb, field.value)
+				FormatValue(w, verb, field.value, "%v")
 				io.WriteString(w, ",\n")
 			}
 			io.WriteString(f, "}")
@@ -75,7 +75,7 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 				}
 				io.WriteString(f, field.name)
 				io.WriteString(f, ": ")
-				FormatAnyValue(f, verb, field.value)
+				FormatValue(f, verb, field.value, "%v")
 			}
 			io.WriteString(f, " }")
 		}
@@ -84,14 +84,6 @@ func (s DebugStruct) Format(f fmt.State, verb rune) {
 		type hideMethods DebugStruct
 		type debugStruct hideMethods
 		fmt.Fprintf(f, fmt.FormatString(f, verb), debugStruct(s))
-	}
-}
-
-func FormatAnyValue(f fmt.State, verb rune, val any) {
-	if rf, ok := val.(Formatter); ok {
-		rf.Format(f, verb)
-	} else {
-		fmt.Fprintf(f, "%v", val)
 	}
 }
 
@@ -148,7 +140,7 @@ func (d *debugElem) Format(f fmt.State, verb rune) {
 				io.WriteString(f, "\n")
 			}
 			w := NewPadFormatAdapter(f, true)
-			FormatAnyValue(w, verb, d.data)
+			FormatValue(w, verb, d.data, "%v")
 			io.WriteString(w, ",\n")
 			d.hasFields = true
 		} else {
@@ -156,7 +148,7 @@ func (d *debugElem) Format(f fmt.State, verb rune) {
 				io.WriteString(f, ", ")
 				d.hasFields = true
 			}
-			FormatAnyValue(f, verb, d.data)
+			FormatValue(f, verb, d.data, "%v")
 			d.hasFields = true
 		}
 	default:
@@ -191,7 +183,7 @@ func (m *DebugMap[K, V]) Format(f fmt.State, verb rune) {
 				e, _ := m.m.EntryAt(i)
 				FormatValue(w, verb, e.Key, "%q")
 				io.WriteString(w, ": ")
-				FormatAnyValue(w, verb, e.Value)
+				FormatValue(w, verb, e.Value, "%v")
 				io.WriteString(w, ",\n")
 			}
 			io.WriteString(f, "}")
@@ -204,7 +196,7 @@ func (m *DebugMap[K, V]) Format(f fmt.State, verb rune) {
 				e, _ := m.m.EntryAt(i)
 				FormatValue(f, verb, e.Key, "%q")
 				io.WriteString(f, ": ")
-				FormatAnyValue(f, verb, e.Value)
+				FormatValue(f, verb, e.Value, "%v")
 			}
 			io.WriteString(f, "}")
 		}
@@ -217,7 +209,7 @@ func (m *DebugMap[K, V]) Format(f fmt.State, verb rune) {
 }
 
 func FormatValue(f fmt.State, verb rune, val any, fallbackFormat string) {
-	if rf, ok := val.(Formatter); ok {
+	if rf, ok := val.(Formatter); ok && rf.SupportsCustomVerb(verb) {
 		rf.Format(f, verb)
 	} else {
 		fmt.Fprintf(f, fallbackFormat, val)

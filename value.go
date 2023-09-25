@@ -1661,7 +1661,7 @@ func (v Value) Format(f fmt.State, verb rune) {
 		case mapValue:
 			rustfmt.NewDebugMap(*d.Map).Format(f, rustfmt.DebugVerb)
 		case dynamicValue:
-			rustfmt.FormatAnyValue(f, verb, d.Dy)
+			rustfmt.FormatValue(f, verb, d.Dy, "%v")
 		default:
 			panic("not implemented yet")
 			// fmt.Fprintf(f, fmt.FormatString(f, verb), v.data)
@@ -1695,7 +1695,7 @@ func (v Value) Format(f fmt.State, verb rune) {
 		case mapValue:
 			rustfmt.NewDebugMap(*d.Map).Format(f, verb)
 		case dynamicValue:
-			rustfmt.FormatAnyValue(f, verb, d.Dy)
+			rustfmt.FormatValue(f, verb, d.Dy, "%v")
 		default:
 			fmt.Fprintf(f, fmt.FormatString(f, verb), d)
 		}
