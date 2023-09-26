@@ -287,12 +287,16 @@ func (e *Environment) RemoveTest(name string) {
 }
 
 // AddFunction adds a new global function.
-func (e *Environment) AddFunction(name string, fn BoxedFunc) {
-	addFunction(e.globals, name, fn)
+func (e *Environment) AddFunction(name string, fn BoxedFunc, aliases ...string) {
+	addFunction(e.globals, name, fn, aliases...)
 }
 
-func addFunction(globals map[string]Value, name string, fn BoxedFunc) {
-	globals[name] = valueFromBoxedFunc(name, fn)
+func addFunction(globals map[string]Value, name string, fn BoxedFunc, aliases ...string) {
+	fnVal := valueFromBoxedFunc(name, fn)
+	globals[name] = fnVal
+	for _, alias := range aliases {
+		globals[alias] = fnVal
+	}
 }
 
 // AddGlobal adds a new global variable.
