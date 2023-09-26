@@ -21,7 +21,7 @@ import (
 //   - [NewEnvironmentEmpty] creates a completely blank environment.
 type Environment struct {
 	templates         templateStore
-	filters           map[string]BoxedFilter
+	filters           map[string]filterObject
 	tests             map[string]testObject
 	globals           map[string]Value
 	defaultAutoEscape AutoEscapeFunc
@@ -60,7 +60,7 @@ func NewEnvironment() *Environment {
 func NewEnvironmentEmpty() *Environment {
 	return &Environment{
 		templates:         *newLoaderStoreDefault(),
-		filters:           make(map[string]BoxedFilter),
+		filters:           make(map[string]filterObject),
 		tests:             make(map[string]testObject),
 		globals:           make(map[string]Value),
 		defaultAutoEscape: noAutoEscape,
@@ -264,8 +264,16 @@ func (e *Environment) CompileExpression(expr string) (*Expression, error) {
 }
 
 // AddFilter adds a new filter function.
-func (e *Environment) AddFilter(name string, filter BoxedFilter) {
-	e.filters[name] = filter
+func (e *Environment) AddFilter(name string, filter BoxedFilter, aliases ...string) {
+	addFilter(e.filters, name, filter, aliases...)
+}
+
+func addFilter(filters map[string]filterObject, name string, filter BoxedFilter, aliases ...string) {
+	filterObj := newFilterObject(name, filter)
+	filters[name] = filterObj
+	for _, alias := range aliases {
+		filters[alias] = filterObj
+	}
 }
 
 // RemoveFilter removes a filter by name.
@@ -337,8 +345,8 @@ func (e *Environment) initialAutoEscape(name string) AutoEscape {
 }
 
 func (e *Environment) getFilter(name string) option.Option[BoxedFilter] {
-	if f, ok := e.filters[name]; ok {
-		return option.Some(f)
+	if fo, ok := e.filters[name]; ok {
+		return option.Some(fo.filter)
 	}
 	return option.None[BoxedFilter]()
 }

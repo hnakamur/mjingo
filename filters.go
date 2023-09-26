@@ -1526,3 +1526,40 @@ func tojson(val Value, pretty option.Option[bool]) (Value, error) {
 func pprint(Value) string {
 	panic("not implemented yet")
 }
+
+type filterObject struct {
+	name   string
+	filter BoxedFilter
+}
+
+var _ = (Object)(filterObject{})
+var _ = (Caller)(filterObject{})
+var _ = (rustfmt.Formatter)(filterObject{})
+
+func newFilterObject(name string, filter BoxedFilter) filterObject {
+	return filterObject{name: name, filter: filter}
+}
+
+func (filterObject) Kind() ObjectKind { return ObjectKindPlain }
+
+func (fo filterObject) Call(state *State, args []Value) (Value, error) {
+	return fo.filter(state, args)
+}
+
+// SupportRustFormat implements rustfmt.Formatter.
+func (filterObject) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
+
+// Format implements rustfmt.Formatter.
+func (fo filterObject) Format(f fmt.State, verb rune) {
+	switch verb {
+	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
+		fmt.Fprintf(f, "<filter %s>", fo.name)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods filterObject
+		type filterObject hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), filterObject(fo))
+	}
+}
