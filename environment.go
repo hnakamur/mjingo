@@ -22,7 +22,7 @@ import (
 type Environment struct {
 	templates         templateStore
 	filters           map[string]BoxedFilter
-	tests             map[string]BoxedTest
+	tests             map[string]testObject
 	globals           map[string]Value
 	defaultAutoEscape AutoEscapeFunc
 	undefinedBehavior UndefinedBehavior
@@ -61,7 +61,7 @@ func NewEnvironmentEmpty() *Environment {
 	return &Environment{
 		templates:         *newLoaderStoreDefault(),
 		filters:           make(map[string]BoxedFilter),
-		tests:             make(map[string]BoxedTest),
+		tests:             make(map[string]testObject),
 		globals:           make(map[string]Value),
 		defaultAutoEscape: noAutoEscape,
 		formatter:         escapeFormatter,
@@ -277,8 +277,16 @@ func (e *Environment) RemoveFilter(name string) {
 //
 // Test functions are similar to filters but perform a check on a value
 // where the return value is always true or false.
-func (e *Environment) AddTest(name string, test BoxedTest) {
-	e.tests[name] = test
+func (e *Environment) AddTest(name string, test BoxedTest, aliases ...string) {
+	addTest(e.tests, name, test, aliases...)
+}
+
+func addTest(tests map[string]testObject, name string, test BoxedTest, aliases ...string) {
+	testObj := newTestObject(name, test)
+	tests[name] = testObj
+	for _, alias := range aliases {
+		tests[alias] = testObj
+	}
 }
 
 // RemoveTest removes a test by name.
@@ -336,8 +344,8 @@ func (e *Environment) getFilter(name string) option.Option[BoxedFilter] {
 }
 
 func (e *Environment) getTest(name string) option.Option[BoxedTest] {
-	if f, ok := e.tests[name]; ok {
-		return option.Some(f)
+	if testObj, ok := e.tests[name]; ok {
+		return option.Some(testObj.test)
 	}
 	return option.None[BoxedTest]()
 }

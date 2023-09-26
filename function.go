@@ -8,11 +8,6 @@ import (
 	"github.com/hnakamur/mjingo/option"
 )
 
-type namedBoxedFunc struct {
-	name string
-	fn   BoxedFunc
-}
-
 // BoxedFunc is the type of a boxed function.
 //
 // A boxed function can be registered as global functions to the environment via

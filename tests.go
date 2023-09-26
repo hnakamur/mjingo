@@ -1,8 +1,11 @@
 package mjingo
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/hnakamur/mjingo/internal/rustfmt"
 )
 
 // BoxedTest is the type of a boxed test.
@@ -615,4 +618,45 @@ func isFilter(state *State, name string) bool {
 
 func isTest(state *State, name string) bool {
 	return state.Env().getTest(name).IsSome()
+}
+
+type testObject struct {
+	name string
+	test BoxedTest
+}
+
+var _ = (Object)(testObject{})
+var _ = (Caller)(testObject{})
+var _ = (rustfmt.Formatter)(testObject{})
+
+func newTestObject(name string, test BoxedTest) testObject {
+	return testObject{name: name, test: test}
+}
+
+func (testObject) Kind() ObjectKind { return ObjectKindPlain }
+
+func (to testObject) Call(state *State, args []Value) (Value, error) {
+	rv, err := to.test(state, args)
+	if err != nil {
+		return Value{}, err
+	}
+	return valueFromBool(rv), nil
+}
+
+// SupportRustFormat implements rustfmt.Formatter.
+func (testObject) SupportsCustomVerb(verb rune) bool {
+	return verb == rustfmt.DebugVerb || verb == rustfmt.DisplayVerb
+}
+
+// Format implements rustfmt.Formatter.
+func (to testObject) Format(f fmt.State, verb rune) {
+	switch verb {
+	case rustfmt.DisplayVerb, rustfmt.DebugVerb:
+		fmt.Fprintf(f, "<test %s>", to.name)
+	default:
+		// https://github.com/golang/go/issues/51195#issuecomment-1563538796
+		type hideMethods testObject
+		type testObject hideMethods
+		fmt.Fprintf(f, fmt.FormatString(f, verb), testObject(to))
+	}
 }
