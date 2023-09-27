@@ -41,6 +41,10 @@ type Value struct {
 
 var _ rustfmt.Formatter = (*Value)(nil)
 
+var _ comparableCheck[Value]
+
+type comparableCheck[T comparable] struct{ t T }
+
 func (v Value) String() string      { return v.data.String() }
 func (v Value) DebugString() string { return v.data.debugString() }
 func (v Value) typ() valueType      { return v.data.typ() }
@@ -1388,6 +1392,15 @@ func valueDataEqualAny(v valueData, other any) bool {
 // +1 if v is greater than other.
 func valueCmp(v, other Value) int {
 	var rv int
+	if v.data == nil || other.data == nil {
+		if v.data == nil && other.data == nil {
+			return 0
+		} else if v.data == nil {
+			return -1
+		} else {
+			return 1
+		}
+	}
 outer:
 	switch {
 	case v.Kind() == ValueKindNone && other.Kind() == ValueKindNone:

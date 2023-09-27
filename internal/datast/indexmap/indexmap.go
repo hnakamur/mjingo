@@ -8,8 +8,8 @@ import (
 )
 
 type HashEqualer interface {
+	comparable
 	Hash(h hash.Hash)
-	Equal(other any) bool
 }
 
 // Map represents a map which preserves the insertion order of keys.
@@ -56,7 +56,7 @@ func (m *Map[K, V]) Set(key K, val V) {
 	// log.Printf("Map.Set key=%+v, keyHash=%x, ii=%+v, ok=%v", key, keyHash, ii, ok)
 	if ok {
 		for _, i := range ii {
-			if key.Equal(m.keys[i]) {
+			if key == m.keys[i] {
 				// log.Printf("Map.Set overwrite value at index=%d", i)
 				m.values[i] = val
 				return
@@ -79,7 +79,7 @@ func (m *Map[K, V]) Get(key K) (v V, ok bool) {
 	// log.Printf("Map.Get key=%+v, keyHash=%x, ii=%+v, ok=%v", key, keyHash, ii, ok)
 	if ok {
 		for _, i := range ii {
-			if key.Equal(m.keys[i]) {
+			if key == m.keys[i] {
 				// log.Printf("Map.Get found key at index=%d", i)
 				return m.values[i], true
 			}
@@ -95,7 +95,7 @@ func (m *Map[K, V]) Delete(key K) (v V, ok bool) {
 	ii, ok := m.indexes[keyHash]
 	if ok {
 		for j, i := range ii {
-			if key.Equal(m.keys[i]) {
+			if key == m.keys[i] {
 				v, ok = m.values[i], true
 				if len(ii) > 1 {
 					m.indexes[keyHash] = slices.Delete(ii, j, j+1)
@@ -122,7 +122,7 @@ func (m *Map[K, V]) updateIndex(key K, newIndex uint) {
 	ii, ok := m.indexes[keyHash]
 	if ok {
 		for j, i := range ii {
-			if key.Equal(m.keys[i]) {
+			if key == m.keys[i] {
 				ii[j] = newIndex
 				return
 			}
