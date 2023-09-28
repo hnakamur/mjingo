@@ -66,6 +66,8 @@ func keyRefEqualAny(a keyRef, b any) bool {
 	return false
 }
 
+func keyRefCmp(a, b keyRef) int { return valueCmp(a.AsValue(), b.AsValue()) }
+
 func keyRefEqual(a, b keyRef) bool {
 	if optAStr, optBStr := a.AsStr(), b.AsStr(); optAStr.IsSome() && optBStr.IsSome() {
 		return optAStr.Unwrap() == optBStr.Unwrap()

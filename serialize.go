@@ -256,14 +256,17 @@ func mapErrToInvalidValue(val Value, err error) Value {
 }
 
 func valueFromGoMapReflect(val reflect.Value, config *valueFromGoValueConfig, level uint) Value {
-	m := newValueMap()
-	// TODO: sort keys
+	entries := make([]valueMapEntry, 0, val.Len())
 	for iter := val.MapRange(); iter.Next(); {
 		key := valueFromGoValueHelper(iter.Key().Interface(), config, level+1)
 		v := valueFromGoValueHelper(iter.Value().Interface(), config, level+1)
-		m.Set(keyRefFromValue(key), v)
+		entries = append(entries, valueMapEntry{Key: keyRefFromValue(key), Value: v})
 	}
-	return valueFromIndexMap(m)
+	slices.SortFunc(entries, func(a, b valueMapEntry) int {
+		return keyRefCmp(a.Key, b.Key)
+	})
+
+	return valueFromIndexMap(valueMapFromEntries(entries))
 }
 
 type reflectStructObject struct {
