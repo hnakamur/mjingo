@@ -1582,7 +1582,6 @@ func valueDataHash(val valueData, h hash.Hash) {
 			}
 		}
 	case u64Value, i64Value, f64Value, u128Value, i128Value:
-		// TODO: fix for u128 and i128
 		n, err := val.clone().tryToI64()
 		if err != nil {
 			val.asF64().Hash(h, f64Hash)
