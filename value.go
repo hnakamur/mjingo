@@ -886,7 +886,6 @@ func (v mapValue) clone() valueData {
 	return mapValue{Map: m, Type: v.Type}
 }
 func (v dynamicValue) clone() valueData {
-	// TODO: implement real clone
 	return v
 }
 
