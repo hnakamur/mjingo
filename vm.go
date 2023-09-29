@@ -60,7 +60,7 @@ func (m *virtualMachine) evalMacro(insts instructions, pc uint, closure Value,
 		blocks:          make(map[string]*blockStack),
 		loadedTemplates: *hashset.NewStrHashSet(),
 		id:              state.id,
-		macros:          state.macros, // TODO: clone
+		macros:          state.macros,
 	}
 	return m.evalImpl(state2, out, &stack, pc)
 }

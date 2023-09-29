@@ -306,7 +306,7 @@ func (v invalidValue) String() string { return fmt.Sprintf("<invalid value: %s>"
 func (v u128Value) String() string    { return v.N.String() }
 func (v i128Value) String() string    { return v.N.String() }
 func (v stringValue) String() string  { return v.Str }
-func (v bytesValue) String() string   { return string(v.B) } // TODO: equivalent impl as String::from_utf8_lossy
+func (v bytesValue) String() string   { return string(v.B) }
 func (v seqValue) String() string {
 	var b strings.Builder
 	b.WriteString("[")
@@ -404,7 +404,7 @@ func (v invalidValue) debugString() string { return fmt.Sprintf("<invalid value:
 func (v u128Value) debugString() string    { return v.N.String() }
 func (v i128Value) debugString() string    { return v.N.String() }
 func (v stringValue) debugString() string  { return fmt.Sprintf("%q", v.Str) }
-func (v bytesValue) debugString() string   { return string(v.B) } // TODO: equivalent impl as String::from_utf8_lossy
+func (v bytesValue) debugString() string   { return string(v.B) }
 func (v seqValue) debugString() string {
 	var b strings.Builder
 	b.WriteString("[")

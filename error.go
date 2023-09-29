@@ -265,7 +265,7 @@ func (e *Error) Format(f fmt.State, verb rune) {
 			s.Field("line", line)
 		}
 		if e.source != nil {
-			s.Field("source", e.source) // TODO: format e.source
+			s.Field("source", e.source)
 		}
 		s.Format(f, verb)
 		// so this is a bit questionablem, but because of how commonly errors are just
