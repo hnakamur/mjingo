@@ -442,6 +442,10 @@
         00439 | LoadConst([1, 1, 1, 4, 3, 0, 0, 5])  [line 103],
         00440 | ApplyFilter("unique", 1, 36),
         00441 | Emit,
+        00442 | EmitRaw("\npprint-filter: "),
+        00443 | Lookup("objects")  [line 104],
+        00444 | ApplyFilter("pprint", 1, 37),
+        00445 | Emit,
     ],
     {},
 )

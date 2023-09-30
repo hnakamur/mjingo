@@ -83,4 +83,12 @@ map-attr-deep: [1, 2, none]
 map-attr-int: [999, 2]
 attr-filter: b
 unique-filter: [1, 4, 3, 0, 5]
+pprint-filter: [
+    {
+        "name": "b",
+    },
+    {
+        "name": "a",
+    },
+]
 

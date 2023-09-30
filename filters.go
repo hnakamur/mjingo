@@ -1523,8 +1523,8 @@ func tojson(val Value, pretty option.Option[bool]) (Value, error) {
 	return ValueFromSafeString(s), nil
 }
 
-func pprint(Value) string {
-	panic("not implemented yet")
+func pprint(val Value) string {
+	return fmt.Sprintf(rustfmt.DebugPrettyString, val)
 }
 
 type filterObject struct {
